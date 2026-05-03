@@ -1,0 +1,41 @@
+PROCEDURE: Cataract Extraction with Posterior Chamber Intraocular Lens (PCIOL) Implantation
+CPT CODE: 66984
+SOURCE: CMS NCD 80.8 / Payer Clinical Policy
+
+COVERED INDICATIONS
+
+Cataract surgery (66984) is medically necessary when ALL of the following criteria are met:
+
+1. Visual Acuity Criteria (any one of the following)
+   - Best-corrected visual acuity (BCVA) is 20/50 or worse in the operative eye, OR
+   - Visual acuity is better than 20/50 but the patient has documented functional impairment that affects
+     activities of daily living (driving, reading, occupation), AND the cataract is the primary cause
+
+2. Lens Opacity Documentation
+   - Slit-lamp biomicroscopy documenting clinically significant lens opacity (nuclear sclerosis, cortical,
+     posterior subcapsular, or combined cataract)
+   - Physician documentation that the cataract is the primary cause of visual impairment
+
+3. Pre-operative Requirements
+   - Biometry (IOL power calculation) using optical or ultrasound measurement
+   - Informed consent documenting risks, benefits, and alternatives discussed
+   - Medical clearance if indicated by systemic comorbidities
+
+4. No Contraindications
+   - Surgery is not contraindicated by active ocular infection, uncontrolled glaucoma, or systemic instability
+
+REQUIRED DOCUMENTATION
+
+- Snellen visual acuity (best-corrected, both eyes)
+- Slit-lamp examination findings describing lens opacity
+- Functional impairment narrative (if VA better than 20/50)
+- IOL calculation sheet (keratometry, axial length, target refraction)
+- Informed consent signed
+
+COVERAGE LIMITATIONS
+
+- Elective refractive lens exchange for emmetropia/presbyopia is not covered
+- Premium IOL upgrade (multifocal, extended depth of focus, toric premium) is patient's responsibility above
+  the standard monofocal IOL benefit
+- Bilateral same-day surgery (BDSO) covered by some payers with additional documentation
+- Second-eye surgery covered when the first eye result is suboptimal or bilateral visually significant cataracts exist

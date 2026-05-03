@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PriorPath — Prior Authorization Engine</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2330;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #2f81f7;
+      --accent-dk: #1f6feb;
+      --green:     #3fb950;
+      --green-bg:  #0d2218;
+      --yellow:    #d29922;
+      --yellow-bg: #2a1f0d;
+      --red:       #f85149;
+      --red-bg:    #2d1216;
+      --radius:    8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #fff;
+    }
+    .logo-text { font-size: 18px; font-weight: 600; color: var(--text); }
+    .logo-tag  { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    header .spacer { flex: 1; }
+    .header-pill {
+      font-size: 11px; color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+    }
+
+    /* ---- Layout ---- */
+    .layout {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 0;
+      flex: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* ---- Panel ---- */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ---- Scenario buttons ---- */
+    .scenarios {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .scenarios label { font-size: 11px; color: var(--muted); align-self: center; margin-right: 2px; }
+    .scenario-btn {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .scenario-btn:hover { border-color: var(--accent); background: var(--surface); }
+
+    /* ---- Form ---- */
+    form { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .field input, .field textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 7px 10px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 72px; }
+    .field.full { grid-column: 1 / -1; }
+
+    /* ---- Submit ---- */
+    .submit-row { display: flex; gap: 10px; align-items: center; }
+    .btn-submit {
+      flex: 1;
+      padding: 10px 0;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, opacity .15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover { background: var(--accent-dk); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-clear {
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+    /* ---- Result panel ---- */
+    .result-panel { position: sticky; top: 80px; }
+
+    .empty-state {
+      padding: 60px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .empty-icon { font-size: 48px; opacity: .4; }
+    .empty-state p { font-size: 14px; line-height: 1.5; max-width: 280px; }
+
+    /* ---- Decision badge ---- */
+    .decision-banner {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .decision-badge {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .badge-approved  { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green); }
+    .badge-pended    { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+    .badge-denied    { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red); }
+
+    .decision-meta { flex: 1; }
+    .decision-patient { font-size: 15px; font-weight: 600; }
+    .decision-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ---- Result body ---- */
+    .result-body { padding: 18px 24px; }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .info-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+    }
+    .info-chip .chip-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .info-chip .chip-value { font-size: 14px; font-weight: 600; margin-top: 3px; }
+    .chip-value.yes  { color: var(--green); }
+    .chip-value.no   { color: var(--red); }
+    .chip-value.null { color: var(--muted); }
+
+    /* ---- Rationale ---- */
+    .rationale-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .rationale-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 8px; }
+
+    /* ---- Missing docs ---- */
+    .missing-docs {
+      margin-bottom: 16px;
+    }
+    .missing-docs-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 8px; }
+    .missing-docs ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .missing-docs li {
+      font-size: 13px;
+      padding: 7px 12px;
+      background: var(--yellow-bg);
+      border: 1px solid var(--yellow);
+      border-radius: 6px;
+      color: var(--yellow);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .missing-docs li::before { content: "⚠"; }
+
+    /* ---- Tabs ---- */
+    .tabs { border-top: 1px solid var(--border); }
+    .tab-list {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-pane { display: none; padding: 16px 20px; }
+    .tab-pane.active { display: block; }
+    .letter-content {
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: var(--text);
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .letter-content::-webkit-scrollbar { width: 6px; }
+    .letter-content::-webkit-scrollbar-track { background: var(--surface2); }
+    .letter-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ---- Error ---- */
+    .error-box {
+      margin: 20px;
+      padding: 14px;
+      background: var(--red-bg);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--red);
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; padding: 12px; }
+      .result-panel { position: static; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="/">
+    <div class="logo-icon">PP</div>
+    <span class="logo-text">PriorPath</span>
+    <span class="logo-tag">Prior Authorization Engine</span>
+  </a>
+  <div class="spacer"></div>
+  <span class="header-pill">LangGraph · Claude · Qdrant · Supabase</span>
+</header>
+
+<div class="layout">
+
+  <!-- ===== LEFT: Request Form ===== -->
+  <div class="panel">
+    <div class="panel-header">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      New Authorization Request
+    </div>
+
+    <div class="scenarios">
+      <label>Quick fill:</label>
+      <button class="scenario-btn" onclick="fillScenario(1)">Wet AMD — Anti-VEGF</button>
+      <button class="scenario-btn" onclick="fillScenario(2)">Cataract Surgery</button>
+      <button class="scenario-btn" onclick="fillScenario(3)">DME Thin Notes</button>
+    </div>
+
+    <form id="paForm" onsubmit="submitForm(event)">
+      <div class="row">
+        <div class="field">
+          <label>Patient Name *</label>
+          <input id="patient_name" type="text" placeholder="Maria Santos" required />
+        </div>
+        <div class="field">
+          <label>Date of Birth *</label>
+          <input id="patient_dob" type="text" placeholder="1948-06-15" required />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Patient ID *</label>
+          <input id="patient_id" type="text" placeholder="pt-001" required />
+        </div>
+        <div class="field">
+          <label>Insurance / Member ID *</label>
+          <input id="insurance_id" type="text" placeholder="INS-001" required />
+        </div>
+      </div>
+      <div class="field">
+        <label>Payer Name *</label>
+        <input id="payer_name" type="text" placeholder="Aetna" required />
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>CPT / Procedure Code *</label>
+          <input id="procedure_code" type="text" placeholder="67028" required />
+        </div>
+        <div class="field">
+          <label>Diagnosis Code (ICD-10) *</label>
+          <input id="diagnosis_code" type="text" placeholder="H35.32" required />
+        </div>
+      </div>
+      <div class="field">
+        <label>Procedure Description *</label>
+        <input id="procedure_description" type="text" placeholder="Intravitreal anti-VEGF injection" required />
+      </div>
+      <div class="field">
+        <label>Diagnosis Description *</label>
+        <input id="diagnosis_description" type="text" placeholder="Exudative age-related macular degeneration" required />
+      </div>
+      <div class="field">
+        <label>Ordering Provider *</label>
+        <input id="ordering_provider" type="text" placeholder="Dr. Priya Sharma, MD (Retinal Surgery)" required />
+      </div>
+      <div class="field">
+        <label>Clinical Notes</label>
+        <textarea id="clinical_notes" placeholder="Patient presents with wet AMD confirmed by OCT…"></textarea>
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <div class="spinner" id="spinner"></div>
+          <span id="submitLabel">Submit for Authorization</span>
+        </button>
+        <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== RIGHT: Result Panel ===== -->
+  <div class="panel result-panel" id="resultPanel">
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">🏥</div>
+      <p>Submit a prior authorization request to see the AI determination here.</p>
+    </div>
+
+    <div id="resultContent" style="display:none">
+      <div class="panel-header">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+        Determination
+        <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="requestId"></span>
+      </div>
+
+      <div class="decision-banner">
+        <div class="decision-meta">
+          <div class="decision-patient" id="resultPatient"></div>
+          <div class="decision-sub" id="resultSub"></div>
+        </div>
+        <div class="decision-badge" id="decisionBadge"></div>
+      </div>
+
+      <div class="result-body">
+        <div class="info-grid">
+          <div class="info-chip">
+            <div class="chip-label">Covered</div>
+            <div class="chip-value" id="chipCovered"></div>
+          </div>
+          <div class="info-chip">
+            <div class="chip-label">Auth Required</div>
+            <div class="chip-value" id="chipAuth"></div>
+          </div>
+          <div class="info-chip">
+            <div class="chip-label">Criteria Met</div>
+            <div class="chip-value" id="chipCriteria"></div>
+          </div>
+        </div>
+
+        <div class="rationale-label">Decision Rationale</div>
+        <div class="rationale-box" id="rationale"></div>
+
+        <div class="missing-docs" id="missingDocsSection" style="display:none">
+          <div class="missing-docs-label">Missing Documentation</div>
+          <ul id="missingDocsList"></ul>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab-list">
+          <button class="tab-btn active" onclick="switchTab(this,'tabProvider')">Provider Letter</button>
+          <button class="tab-btn" onclick="switchTab(this,'tabPatient')">Patient Summary</button>
+        </div>
+        <div class="tab-pane active" id="tabProvider">
+          <pre class="letter-content" id="providerLetter"></pre>
+        </div>
+        <div class="tab-pane" id="tabPatient">
+          <div class="letter-content" id="patientSummary"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorContent" class="error-box" style="display:none"></div>
+  </div>
+
+</div>
+
+<script>
+  const SCENARIOS = {
+    1: {
+      patient_id: "pt-001", patient_name: "Maria Santos", patient_dob: "1948-06-15",
+      insurance_id: "INS-001", payer_name: "Aetna",
+      procedure_code: "67028", procedure_description: "Intravitreal anti-VEGF injection",
+      diagnosis_code: "H35.32", diagnosis_description: "Exudative age-related macular degeneration, bilateral",
+      ordering_provider: "Dr. Priya Sharma, MD (Retinal Surgery)",
+      clinical_notes: "Patient presents with wet AMD confirmed by OCT showing active choroidal neovascularization. " +
+        "Baseline VA: 20/80 OD. OCT central subfield thickness: 412 microns. " +
+        "Fundus photography confirms neovascular membrane. No prior anti-VEGF treatment."
+    },
+    2: {
+      patient_id: "pt-002", patient_name: "James O'Brien", patient_dob: "1955-03-22",
+      insurance_id: "INS-003", payer_name: "BlueCross",
+      procedure_code: "66984", procedure_description: "Cataract extraction with IOL implantation",
+      diagnosis_code: "H26.9", diagnosis_description: "Unspecified cataract",
+      ordering_provider: "Dr. Alan Kim, MD (Ophthalmology)",
+      clinical_notes: "Patient has progressive nuclear sclerotic cataract. Best corrected VA: 20/60 OS. " +
+        "Slit-lamp confirms dense lens opacity. Patient reports difficulty driving and reading. " +
+        "Pre-op biometry complete. Informed consent obtained."
+    },
+    3: {
+      patient_id: "pt-003", patient_name: "Linda Chen", patient_dob: "1962-11-08",
+      insurance_id: "INS-002", payer_name: "UnitedHealth",
+      procedure_code: "67028", procedure_description: "Intravitreal anti-VEGF injection",
+      diagnosis_code: "H36.0", diagnosis_description: "Diabetic retinopathy with macular edema",
+      ordering_provider: "Dr. Marcus Webb, MD",
+      clinical_notes: "Patient has diabetic macular edema. Requesting anti-VEGF treatment."
+    }
+  };
+
+  function fillScenario(n) {
+    const s = SCENARIOS[n];
+    Object.keys(s).forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.value = s[k];
+    });
+  }
+
+  function clearForm() {
+    document.getElementById("paForm").reset();
+  }
+
+  function switchTab(btn, paneId) {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(paneId).classList.add("active");
+  }
+
+  function boolChip(el, val) {
+    if (val === null || val === undefined) {
+      el.textContent = "N/A";
+      el.className = "chip-value null";
+    } else if (val) {
+      el.textContent = "Yes";
+      el.className = "chip-value yes";
+    } else {
+      el.textContent = "No";
+      el.className = "chip-value no";
+    }
+  }
+
+  async function submitForm(e) {
+    e.preventDefault();
+    const btn   = document.getElementById("submitBtn");
+    const spin  = document.getElementById("spinner");
+    const label = document.getElementById("submitLabel");
+
+    btn.disabled = true;
+    spin.style.display = "block";
+    label.textContent = "Processing…";
+    document.getElementById("emptyState").style.display = "none";
+    document.getElementById("resultContent").style.display = "none";
+    document.getElementById("errorContent").style.display = "none";
+
+    const payload = {
+      patient_id:              document.getElementById("patient_id").value.trim(),
+      patient_name:            document.getElementById("patient_name").value.trim(),
+      patient_dob:             document.getElementById("patient_dob").value.trim(),
+      insurance_id:            document.getElementById("insurance_id").value.trim(),
+      payer_name:              document.getElementById("payer_name").value.trim(),
+      procedure_code:          document.getElementById("procedure_code").value.trim(),
+      procedure_description:   document.getElementById("procedure_description").value.trim(),
+      diagnosis_code:          document.getElementById("diagnosis_code").value.trim(),
+      diagnosis_description:   document.getElementById("diagnosis_description").value.trim(),
+      ordering_provider:       document.getElementById("ordering_provider").value.trim(),
+      clinical_notes:          document.getElementById("clinical_notes").value.trim(),
+    };
+
+    try {
+      const res = await fetch("/authorize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(JSON.stringify(err.detail || err));
+      }
+
+      const d = await res.json();
+      renderResult(d);
+    } catch (err) {
+      document.getElementById("errorContent").style.display = "block";
+      document.getElementById("errorContent").textContent = "Error: " + err.message;
+    } finally {
+      btn.disabled = false;
+      spin.style.display = "none";
+      label.textContent = "Submit for Authorization";
+    }
+  }
+
+  function renderResult(d) {
+    document.getElementById("resultContent").style.display = "block";
+    document.getElementById("requestId").textContent = "ID: " + d.request_id;
+    document.getElementById("resultPatient").textContent = d.patient_name;
+    document.getElementById("resultSub").textContent = d.procedure + " · " + d.diagnosis;
+
+    const badge = document.getElementById("decisionBadge");
+    const dec = (d.decision || "").toLowerCase();
+    badge.textContent = d.decision || "—";
+    badge.className = "decision-badge " + (
+      dec === "approved" ? "badge-approved" :
+      dec === "denied"   ? "badge-denied"   : "badge-pended"
+    );
+
+    boolChip(document.getElementById("chipCovered"),  d.is_covered);
+    boolChip(document.getElementById("chipAuth"),     d.requires_auth);
+    boolChip(document.getElementById("chipCriteria"), d.criteria_met);
+
+    document.getElementById("rationale").textContent = d.decision_rationale || "—";
+
+    const missingSection = document.getElementById("missingDocsSection");
+    const missingList    = document.getElementById("missingDocsList");
+    if (d.missing_documentation && d.missing_documentation.length > 0) {
+      missingList.innerHTML = d.missing_documentation
+        .map(m => `<li>${m}</li>`).join("");
+      missingSection.style.display = "block";
+    } else {
+      missingSection.style.display = "none";
+    }
+
+    document.getElementById("providerLetter").textContent = d.provider_letter || "—";
+    document.getElementById("patientSummary").textContent = d.patient_summary || "—";
+
+    // Reset to provider letter tab
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".tab-btn")[0].classList.add("active");
+    document.getElementById("tabProvider").classList.add("active");
+  }
+</script>
+</body>
+</html>

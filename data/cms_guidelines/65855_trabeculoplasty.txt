@@ -1,0 +1,48 @@
+PROCEDURE: Laser Trabeculoplasty (SLT / ALT)
+CPT CODE: 65855
+SOURCE: CMS LCD / Payer Clinical Policy
+
+COVERED INDICATIONS
+
+Laser trabeculoplasty (Selective Laser Trabeculoplasty [SLT] or Argon Laser Trabeculoplasty [ALT], CPT 65855)
+is medically necessary when ALL of the following are met:
+
+1. Confirmed Diagnosis
+   - Primary open-angle glaucoma (POAG), ICD-10 H40.11x
+   - Pseudoexfoliative glaucoma, ICD-10 H40.14x
+   - Pigmentary glaucoma, ICD-10 H40.13x
+   - Ocular hypertension (OHT), ICD-10 H40.05x — when IOP consistently > 24 mmHg on two readings
+
+2. Inadequate IOP Control (any of the following)
+   - Target IOP not achieved on maximum tolerated medical therapy (one or more topical agents)
+   - Patient intolerant of or non-compliant with topical glaucoma medications
+   - As primary therapy (SLT) when medication side effects, cost, or adherence is a concern
+
+3. Open Angle Confirmed
+   - Gonioscopy documenting Shaffer grade ≥ 2 (open, non-appositional angle) in all quadrants
+   - Closed-angle glaucoma is NOT a covered indication for trabeculoplasty
+
+4. Documentation of Glaucomatous Damage or Risk
+   - Optic nerve evaluation: vertical cup-to-disc ratio ≥ 0.6 or asymmetry ≥ 0.2 between eyes, OR
+   - Documented glaucomatous visual field defect (Humphrey 24-2 or 30-2) consistent with optic nerve findings
+
+REQUIRED DOCUMENTATION
+
+- IOP measurements on current therapy (two readings, different visits)
+- Gonioscopy confirming open angle
+- Optic nerve photograph (stereoscopic disc photos or OCT RNFL)
+- Visual field test (Humphrey 24-2 or equivalent) within 6 months
+- List of current and prior glaucoma medications with documented reason for inadequacy or intolerance
+- Clinical notes confirming diagnosis of POAG, PXF glaucoma, pigmentary glaucoma, or OHT
+
+REPEAT TREATMENT
+
+- Repeat SLT (same eye) covered when prior response was ≥ 20% IOP reduction that subsequently waned
+- Minimum 12 months between treatments in the same eye
+- Documentation of prior treatment response required
+
+COVERAGE LIMITATIONS
+
+- Not covered for acute angle-closure glaucoma (different procedure: iridotomy, CPT 66761)
+- Not covered as a purely cosmetic or elective procedure
+- ALT and SLT are interchangeable for coverage purposes; SLT preferred per current guidelines

@@ -1,0 +1,44 @@
+PROCEDURE: Intravitreal Anti-VEGF Injection
+CPT CODE: 67028
+SOURCE: CMS LCD L33263 / Payer Clinical Policy
+
+COVERED INDICATIONS
+
+1. Neovascular (Wet) Age-Related Macular Degeneration (AMD)
+   ICD-10: H35.31, H35.32
+   - Active choroidal neovascularization (CNV) confirmed by fluorescein angiography (FA) or optical coherence
+     tomography angiography (OCTA)
+   - OCT demonstrating subretinal fluid, intraretinal fluid, or pigment epithelial detachment attributable to CNV
+   - Anti-VEGF agents covered: ranibizumab (Lucentis), aflibercept (Eylea), bevacizumab (Avastin), brolucizumab
+     (Beovu), faricimab (Vabysmo)
+
+2. Diabetic Macular Edema (DME)
+   ICD-10: E10.3211–E10.3219, E11.3211–E11.3219
+   - Center-involving DME confirmed by OCT (central subfield thickness ≥ 250 microns or clinically significant edema)
+   - Best-corrected visual acuity of 20/320 or better in the study eye
+   - Confirmed diagnosis of diabetes mellitus with documented macular edema on dilated fundus exam
+
+3. Macular Edema Following Retinal Vein Occlusion (RVO)
+   ICD-10: H34.811 (central), H34.821 (branch)
+   - Macular edema with OCT-confirmed central subfield thickness ≥ 250 microns
+   - Visual acuity impairment attributable to macular edema
+
+4. Myopic Choroidal Neovascularization
+   ICD-10: H44.20–H44.23
+   - Active subfoveal or juxtafoveal CNV in highly myopic eye (≥ –6.00 D or axial length ≥ 26.5 mm)
+
+REQUIRED DOCUMENTATION
+
+- Baseline best-corrected visual acuity (BCVA) in Snellen or ETDRS letters
+- OCT imaging (macular thickness map; central subfield thickness measurement)
+- Color fundus photography confirming diagnosis
+- Fluorescein angiography or OCTA if CNV diagnosis is uncertain
+- Clinical notes documenting indication and absence of contraindications
+- For retreatment: interval OCT and VA demonstrating treatment response or need for continued therapy
+
+COVERAGE LIMITATIONS
+
+- Not covered for dry AMD without CNV
+- Not covered for stable/inactive CNV without fluid on OCT
+- Frequency: up to monthly injections during loading phase; interval per treating physician thereafter
+- Bilateral same-day injections require documentation of bilateral active disease

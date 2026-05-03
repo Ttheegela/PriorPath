@@ -1,0 +1,52 @@
+PROCEDURE: Pars Plana Vitrectomy (PPV)
+CPT CODE: 67036
+SOURCE: CMS LCD L35481 / Payer Clinical Policy
+
+COVERED INDICATIONS
+
+1. Vitreous Hemorrhage (Non-Clearing)
+   ICD-10: H43.10–H43.13
+   - Dense vitreous hemorrhage obscuring posterior segment visualization
+   - Hemorrhage persisting > 4 weeks without spontaneous clearing (or > 1–2 weeks in diabetic patients)
+   - B-scan ultrasound confirming vitreous hemorrhage and ruling out retinal detachment
+
+2. Tractional Retinal Detachment (TRD) — Diabetic
+   ICD-10: H33.40–H33.43
+   - Fibrovascular proliferation causing tractional detachment threatening or involving the macula
+   - OCT or fundus exam documenting detachment with traction
+   - Combined traction-rhegmatogenous detachment is covered without waiting period
+
+3. Epiretinal Membrane (ERM)
+   ICD-10: H35.371–H35.373
+   - Visually significant ERM with BCVA 20/50 or worse in the operative eye, OR
+   - ERM causing metamorphopsia that significantly impacts quality of life
+   - OCT documentation of membrane with retinal distortion or thickening
+
+4. Macular Hole (Full-Thickness)
+   ICD-10: H35.341–H35.343
+   - Stage 2, 3, or 4 full-thickness macular hole on OCT
+   - Minimum diameter ≥ 250 microns; base diameter documented on OCT
+   - Stage 1 (impending) not covered without functional loss
+
+5. Retained Lens Fragments Post-Cataract Surgery
+   ICD-10: H59.021–H59.023
+   - Any retained cortical or nuclear material post-phacoemulsification
+   - Associated with elevated IOP, inflammation, or corneal decompensation
+
+6. Rhegmatogenous Retinal Detachment (RRD) with Vitrectomy Component
+   ICD-10: H33.001–H33.009
+   - Complex RRD requiring scleral buckling + vitrectomy or vitrectomy alone
+
+REQUIRED DOCUMENTATION
+
+- Color fundus photography and/or fundus fluorescein angiography
+- OCT imaging (for ERM, macular hole, TRD)
+- B-scan ultrasound (for vitreous hemorrhage obscuring view)
+- Visual acuity (BCVA)
+- Clinical examination findings documenting the indication
+- Operative plan
+
+COVERAGE LIMITATIONS
+
+- Elective vitrectomy for floaters (uncomplicated) is generally not covered
+- ERM with VA better than 20/40 and no metamorphopsia requires additional documentation of functional impact

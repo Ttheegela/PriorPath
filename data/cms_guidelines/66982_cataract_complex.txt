@@ -1,0 +1,45 @@
+PROCEDURE: Complex Cataract Surgery
+CPT CODE: 66982
+SOURCE: CMS LCD / Payer Clinical Policy
+
+COVERED INDICATIONS
+
+Complex cataract surgery (CPT 66982) is covered when BOTH of the following are met:
+(1) Standard cataract surgery criteria (see CPT 66984) are satisfied, AND
+(2) One or more of the following complicating factors is documented:
+
+COMPLICATING FACTORS (one required)
+
+1. Small Pupil
+   - Maximum pharmacologically dilated pupil diameter < 6.0 mm after maximal dilation
+   - Requires iris expansion devices (Malyugin ring, iris hooks) or pupilloplasty
+
+2. Dense, Mature, or Brunescent Cataract
+   - Nuclear density grade 4+ (LOCS III scale) or white/mature cataract
+   - Increased risk of posterior capsule rupture due to reduced red reflex and hard nucleus
+
+3. Pseudoexfoliation (PXF) Syndrome
+   - Clinical evidence of pseudoexfoliative material on lens capsule or pupillary margin
+   - Associated zonular weakness requiring additional surgical precautions (capsular tension ring, iris hooks)
+
+4. Prior Ocular Surgery
+   - Previous corneal transplant (penetrating keratoplasty, DSAEK, DMEK)
+   - Prior vitrectomy with silicone oil or gas
+   - Prior filtering surgery (trabeculectomy, tube shunt)
+   - Prior LASIK/PRK requiring special IOL calculation (Barrett True-K or similar formula)
+
+5. Traumatic Cataract with Structural Damage
+   - Ruptured or damaged anterior capsule
+   - Subluxated or dislocated lens requiring lensectomy or ACIOL
+
+6. Zonular Weakness / Lens Subluxation
+   - Documented zonular dialysis > 90 degrees
+   - Marfan syndrome, homocystinuria, or other ectopia lentis conditions
+   - Requires capsular tension ring or segment, iris-claw IOL, or scleral fixation
+
+REQUIRED DOCUMENTATION
+
+- All documentation required for CPT 66984 (see above)
+- Specific documentation of the complicating factor (e.g., dilated pupil measurements, slit-lamp photos,
+  prior operative reports, genetic diagnosis)
+- Operative plan documenting anticipated use of special equipment or technique
