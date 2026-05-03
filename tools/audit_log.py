@@ -70,3 +70,32 @@ async def log_pa_decision(
         .execute()
     )
     return record_id
+
+
+async def get_history(limit: int = 50) -> list[dict]:
+    """Return the most recent PA decisions across all patients."""
+    client = await _get_client()
+    result = await (
+        client.table("prior_auth_audit")
+        .select(
+            "id, created_at, request_id, patient_id, procedure_code, "
+            "diagnosis_code, payer_name, decision, criteria_met, is_covered, requires_auth"
+        )
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data
+
+
+async def get_patient_history(patient_id: str) -> list[dict]:
+    """Return all PA decisions for a specific patient."""
+    client = await _get_client()
+    result = await (
+        client.table("prior_auth_audit")
+        .select("*")
+        .eq("patient_id", patient_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return result.data

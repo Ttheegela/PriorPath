@@ -2,25 +2,30 @@
 PriorPath FastAPI application.
 
 Endpoints:
-  POST /authorize   — run full PA workflow
-  POST /demo        — run with pre-seeded ophthalmic scenarios
-  GET  /health      — health check
+  GET  /                     — frontend UI
+  POST /authorize            — run full PA workflow
+  POST /authorize/stream     — SSE streaming PA workflow with node progress
+  POST /demo                 — run with pre-seeded ophthalmic scenarios
+  GET  /history              — last 50 PA decisions (Supabase)
+  GET  /history/{patient_id} — PA history for a specific patient
+  GET  /health               — health check
 """
 
 from __future__ import annotations
 
+import json
 import pathlib
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from graph.workflow import pa_graph
 from models.state import PriorAuthRequest, PriorAuthState
-from tools.audit_log import init_db
+from tools.audit_log import get_history, get_patient_history, init_db
+from tools.qdrant_search import qdrant_tool
 
 _FRONTEND = pathlib.Path(__file__).parent.parent / "frontend"
 
@@ -28,6 +33,8 @@ _FRONTEND = pathlib.Path(__file__).parent.parent / "frontend"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    # Auto-seed Qdrant on startup — idempotent, re-ingests if collection is empty
+    await qdrant_tool._ensure_seeded()
     yield
 
 
@@ -41,6 +48,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -85,7 +93,7 @@ class DemoRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 _DEMO_SCENARIOS = {
-    1: {  # Anti-VEGF for wet AMD — should APPROVE
+    1: {
         "patient_id": "pt-001", "patient_name": "Maria Santos",
         "patient_dob": "1948-06-15", "insurance_id": "INS-001", "payer_name": "Aetna",
         "procedure_code": "67028", "procedure_description": "Intravitreal anti-VEGF injection",
@@ -97,7 +105,7 @@ _DEMO_SCENARIOS = {
             "Fundus photography confirms neovascular membrane. No prior anti-VEGF treatment."
         ),
     },
-    2: {  # Cataract surgery — should APPROVE
+    2: {
         "patient_id": "pt-002", "patient_name": "James O'Brien",
         "patient_dob": "1955-03-22", "insurance_id": "INS-003", "payer_name": "BlueCross",
         "procedure_code": "66984", "procedure_description": "Cataract extraction with IOL implantation",
@@ -109,7 +117,7 @@ _DEMO_SCENARIOS = {
             "Pre-op biometry complete. Informed consent obtained."
         ),
     },
-    3: {  # Anti-VEGF with insufficient documentation — should PEND
+    3: {
         "patient_id": "pt-003", "patient_name": "Linda Chen",
         "patient_dob": "1962-11-08", "insurance_id": "INS-002", "payer_name": "UnitedHealth",
         "procedure_code": "67028", "procedure_description": "Intravitreal anti-VEGF injection",
@@ -118,6 +126,53 @@ _DEMO_SCENARIOS = {
         "clinical_notes": "Patient has diabetic macular edema. Requesting anti-VEGF treatment.",
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _build_initial_state(req: AuthorizeRequest, request_id: str) -> PriorAuthState:
+    pa_request: PriorAuthRequest = {
+        "request_id": request_id,
+        "patient_id": req.patient_id,
+        "patient_name": req.patient_name,
+        "patient_dob": req.patient_dob,
+        "insurance_id": req.insurance_id,
+        "payer_name": req.payer_name,
+        "procedure_code": req.procedure_code,
+        "procedure_description": req.procedure_description,
+        "diagnosis_code": req.diagnosis_code,
+        "diagnosis_description": req.diagnosis_description,
+        "ordering_provider": req.ordering_provider,
+        "clinical_notes": req.clinical_notes,
+    }
+    return {
+        "request": pa_request,
+        "intake_summary": "", "extracted_procedure": "", "extracted_diagnosis": "",
+        "missing_fields": [], "is_covered": False, "coverage_details": "",
+        "requires_auth": False, "matched_criteria": [], "criteria_met": None,
+        "criteria_reasoning": "", "missing_documentation": [], "decision": "",
+        "decision_rationale": "", "provider_letter": "", "patient_summary": "",
+        "skip_to_notification": False, "error": None, "messages": [],
+    }
+
+
+def _build_response(req: AuthorizeRequest, request_id: str, result: PriorAuthState) -> AuthorizeResponse:
+    return AuthorizeResponse(
+        request_id=request_id,
+        patient_name=req.patient_name,
+        procedure=result.get("extracted_procedure", req.procedure_description),
+        diagnosis=result.get("extracted_diagnosis", req.diagnosis_description),
+        is_covered=result.get("is_covered", False),
+        requires_auth=result.get("requires_auth", False),
+        criteria_met=result.get("criteria_met"),
+        decision=result.get("decision", ""),
+        decision_rationale=result.get("decision_rationale", ""),
+        missing_documentation=result.get("missing_documentation", []),
+        provider_letter=result.get("provider_letter", ""),
+        patient_summary=result.get("patient_summary", ""),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -139,47 +194,38 @@ async def health():
 async def authorize(req: AuthorizeRequest):
     """Run the full prior authorization workflow."""
     request_id = str(uuid.uuid4())[:8]
-
-    pa_request: PriorAuthRequest = {
-        "request_id": request_id,
-        "patient_id": req.patient_id,
-        "patient_name": req.patient_name,
-        "patient_dob": req.patient_dob,
-        "insurance_id": req.insurance_id,
-        "payer_name": req.payer_name,
-        "procedure_code": req.procedure_code,
-        "procedure_description": req.procedure_description,
-        "diagnosis_code": req.diagnosis_code,
-        "diagnosis_description": req.diagnosis_description,
-        "ordering_provider": req.ordering_provider,
-        "clinical_notes": req.clinical_notes,
-    }
-
-    initial: PriorAuthState = {
-        "request": pa_request,
-        "intake_summary": "", "extracted_procedure": "", "extracted_diagnosis": "",
-        "missing_fields": [], "is_covered": False, "coverage_details": "",
-        "requires_auth": False, "matched_criteria": [], "criteria_met": None,
-        "criteria_reasoning": "", "missing_documentation": [], "decision": "",
-        "decision_rationale": "", "provider_letter": "", "patient_summary": "",
-        "skip_to_notification": False, "error": None, "messages": [],
-    }
-
+    initial = _build_initial_state(req, request_id)
     result: PriorAuthState = await pa_graph.ainvoke(initial)
+    return _build_response(req, request_id, result)
 
-    return AuthorizeResponse(
-        request_id=request_id,
-        patient_name=req.patient_name,
-        procedure=result.get("extracted_procedure", req.procedure_description),
-        diagnosis=result.get("extracted_diagnosis", req.diagnosis_description),
-        is_covered=result.get("is_covered", False),
-        requires_auth=result.get("requires_auth", False),
-        criteria_met=result.get("criteria_met"),
-        decision=result.get("decision", ""),
-        decision_rationale=result.get("decision_rationale", ""),
-        missing_documentation=result.get("missing_documentation", []),
-        provider_letter=result.get("provider_letter", ""),
-        patient_summary=result.get("patient_summary", ""),
+
+@app.post("/authorize/stream")
+async def authorize_stream(req: AuthorizeRequest):
+    """
+    SSE streaming PA workflow.
+    Yields one event per completed LangGraph node, then a final 'done' event
+    containing the full AuthorizeResponse payload.
+    """
+    request_id = str(uuid.uuid4())[:8]
+    initial = _build_initial_state(req, request_id)
+
+    async def event_stream():
+        final_state: PriorAuthState = dict(initial)  # type: ignore
+        try:
+            async for chunk in pa_graph.astream(initial, stream_mode="updates"):
+                for node_name, updates in chunk.items():
+                    final_state.update(updates)
+                    yield f"data: {json.dumps({'node': node_name})}\n\n"
+
+            response = _build_response(req, request_id, final_state)
+            yield f"data: {json.dumps({'done': True, 'result': response.model_dump()})}\n\n"
+        except Exception as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
@@ -194,6 +240,26 @@ async def demo(req: DemoRequest):
     """
     scenario = _DEMO_SCENARIOS.get(req.scenario, _DEMO_SCENARIOS[1])
     return await authorize(AuthorizeRequest(**scenario))
+
+
+@app.get("/history")
+async def history(limit: int = 50):
+    """Return the most recent PA decisions across all patients."""
+    try:
+        records = await get_history(limit=limit)
+        return {"records": records, "count": len(records)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/history/{patient_id}")
+async def patient_history(patient_id: str):
+    """Return all PA decisions for a specific patient."""
+    try:
+        records = await get_patient_history(patient_id)
+        return {"patient_id": patient_id, "records": records, "count": len(records)}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 if __name__ == "__main__":

@@ -42,26 +42,37 @@
       height: 56px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 16px;
       position: sticky;
       top: 0;
       z-index: 10;
     }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-icon {
       width: 32px; height: 32px;
       background: var(--accent);
       border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px; font-weight: 700; color: #fff;
+      font-size: 15px; font-weight: 700; color: #fff;
     }
-    .logo-text { font-size: 18px; font-weight: 600; color: var(--text); }
-    .logo-tag  { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    .logo-text { font-size: 17px; font-weight: 600; color: var(--text); }
+
+    /* ---- Nav tabs ---- */
+    .nav-tabs { display: flex; gap: 2px; margin-left: 16px; }
+    .nav-tab {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color .15s, background .15s, border-color .15s;
+    }
+    .nav-tab.active { color: var(--text); background: var(--surface2); border-color: var(--border); }
+    .nav-tab:hover:not(.active) { color: var(--text); }
+
     header .spacer { flex: 1; }
     .header-pill {
       font-size: 11px; color: var(--muted);
@@ -70,17 +81,19 @@
       padding: 3px 10px;
     }
 
-    /* ---- Layout ---- */
-    .layout {
+    /* ---- Views ---- */
+    .view { display: none; flex: 1; }
+    .view.active { display: flex; flex-direction: column; }
+
+    /* ---- NEW REQUEST layout ---- */
+    #viewNew .layout {
       display: grid;
-      grid-template-columns: 480px 1fr;
-      gap: 0;
-      flex: 1;
-      max-width: 1400px;
+      grid-template-columns: 460px 1fr;
+      gap: 20px;
+      max-width: 1380px;
       margin: 0 auto;
       width: 100%;
       padding: 24px;
-      gap: 20px;
       align-items: start;
     }
 
@@ -92,9 +105,9 @@
       overflow: hidden;
     }
     .panel-header {
-      padding: 14px 18px;
+      padding: 13px 18px;
       border-bottom: 1px solid var(--border);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
@@ -106,219 +119,240 @@
 
     /* ---- Scenario buttons ---- */
     .scenarios {
-      padding: 12px 18px;
+      padding: 11px 18px;
       border-bottom: 1px solid var(--border);
       display: flex;
-      gap: 8px;
+      gap: 7px;
       flex-wrap: wrap;
+      align-items: center;
     }
-    .scenarios label { font-size: 11px; color: var(--muted); align-self: center; margin-right: 2px; }
+    .scenarios label { font-size: 11px; color: var(--muted); }
     .scenario-btn {
-      font-size: 12px;
-      padding: 5px 12px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--surface2);
-      color: var(--text);
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
+      font-size: 12px; padding: 4px 11px;
+      border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text);
+      cursor: pointer; transition: border-color .15s;
     }
-    .scenario-btn:hover { border-color: var(--accent); background: var(--surface); }
+    .scenario-btn:hover { border-color: var(--accent); }
 
     /* ---- Form ---- */
-    form { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .field { display: flex; flex-direction: column; gap: 5px; }
-    .field label { font-size: 12px; color: var(--muted); font-weight: 500; }
+    form { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 11px; color: var(--muted); font-weight: 500; }
     .field input, .field textarea {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-size: 13px;
-      padding: 7px 10px;
-      outline: none;
-      transition: border-color .15s;
-      font-family: inherit;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 13px;
+      padding: 7px 10px; outline: none; transition: border-color .15s; font-family: inherit;
     }
     .field input:focus, .field textarea:focus { border-color: var(--accent); }
-    .field textarea { resize: vertical; min-height: 72px; }
-    .field.full { grid-column: 1 / -1; }
+    .field textarea { resize: vertical; min-height: 68px; }
 
-    /* ---- Submit ---- */
-    .submit-row { display: flex; gap: 10px; align-items: center; }
+    /* ---- Submit row ---- */
+    .submit-row { display: flex; gap: 9px; align-items: center; }
     .btn-submit {
-      flex: 1;
-      padding: 10px 0;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background .15s, opacity .15s;
+      flex: 1; padding: 9px 0; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background .15s, opacity .15s;
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-submit:hover { background: var(--accent-dk); }
     .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
     .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      display: none;
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin .7s linear infinite; display: none;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .btn-clear {
-      padding: 10px 16px;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 13px;
-      cursor: pointer;
-      transition: border-color .15s, color .15s;
+      padding: 9px 14px; background: transparent; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+      cursor: pointer; transition: border-color .15s, color .15s;
     }
     .btn-clear:hover { border-color: var(--red); color: var(--red); }
 
     /* ---- Result panel ---- */
-    .result-panel { position: sticky; top: 80px; }
+    .result-panel { position: sticky; top: 76px; }
 
     .empty-state {
-      padding: 60px 24px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      color: var(--muted);
-      text-align: center;
+      padding: 56px 24px; display: flex; flex-direction: column;
+      align-items: center; gap: 12px; color: var(--muted); text-align: center;
     }
-    .empty-icon { font-size: 48px; opacity: .4; }
-    .empty-state p { font-size: 14px; line-height: 1.5; max-width: 280px; }
+    .empty-icon { font-size: 44px; opacity: .35; }
+    .empty-state p { font-size: 13px; line-height: 1.6; max-width: 260px; }
+
+    /* ---- Progress steps ---- */
+    .progress-panel { padding: 20px 24px; }
+    .progress-title { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 10px 0; position: relative;
+    }
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 12px; top: 36px;
+      width: 2px; height: calc(100% - 12px);
+      background: var(--border);
+    }
+    .step.done::after { background: var(--green); }
+    .step-dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; flex-shrink: 0; z-index: 1;
+      transition: border-color .3s, background .3s;
+    }
+    .step.done .step-dot { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+    .step.active .step-dot { border-color: var(--accent); background: var(--surface2); }
+    .step.skipped .step-dot { border-color: var(--border); opacity: .4; }
+    .step-dot .dot-spinner {
+      width: 12px; height: 12px;
+      border: 2px solid rgba(47,129,247,.3); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    .step-info { padding-top: 2px; }
+    .step-name { font-size: 13px; font-weight: 500; }
+    .step-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .step.done .step-name { color: var(--green); }
+    .step.active .step-name { color: var(--accent); }
+    .step.skipped .step-name { color: var(--muted); }
 
     /* ---- Decision badge ---- */
     .decision-banner {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 16px;
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px;
     }
     .decision-badge {
-      font-size: 13px;
-      font-weight: 700;
-      padding: 6px 16px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
+      font-size: 12px; font-weight: 700; padding: 5px 14px;
+      border-radius: 20px; text-transform: uppercase; letter-spacing: .08em;
     }
     .badge-approved  { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green); }
     .badge-pended    { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
     .badge-denied    { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red); }
-
     .decision-meta { flex: 1; }
     .decision-patient { font-size: 15px; font-weight: 600; }
     .decision-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
     /* ---- Result body ---- */
-    .result-body { padding: 18px 24px; }
-
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-bottom: 18px;
-    }
+    .result-body { padding: 16px 22px; }
+    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
     .info-chip {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 9px 11px;
     }
-    .info-chip .chip-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-    .info-chip .chip-value { font-size: 14px; font-weight: 600; margin-top: 3px; }
-    .chip-value.yes  { color: var(--green); }
-    .chip-value.no   { color: var(--red); }
+    .chip-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .chip-value { font-size: 14px; font-weight: 600; margin-top: 3px; }
+    .chip-value.yes { color: var(--green); }
+    .chip-value.no  { color: var(--red); }
     .chip-value.null { color: var(--muted); }
 
-    /* ---- Rationale ---- */
+    .rationale-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 7px; }
     .rationale-box {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 14px;
-      font-size: 13px;
-      line-height: 1.65;
-      color: var(--text);
-      margin-bottom: 16px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px; font-size: 13px; line-height: 1.65;
+      margin-bottom: 14px;
     }
-    .rationale-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 8px; }
-
-    /* ---- Missing docs ---- */
-    .missing-docs {
-      margin-bottom: 16px;
-    }
-    .missing-docs-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 8px; }
-    .missing-docs ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .missing-docs { margin-bottom: 14px; }
+    .missing-docs ul { list-style: none; display: flex; flex-direction: column; gap: 5px; margin-top: 7px; }
     .missing-docs li {
-      font-size: 13px;
-      padding: 7px 12px;
-      background: var(--yellow-bg);
-      border: 1px solid var(--yellow);
-      border-radius: 6px;
-      color: var(--yellow);
-      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; padding: 6px 11px;
+      background: var(--yellow-bg); border: 1px solid var(--yellow);
+      border-radius: 6px; color: var(--yellow); display: flex; align-items: center; gap: 7px;
     }
     .missing-docs li::before { content: "⚠"; }
 
     /* ---- Tabs ---- */
     .tabs { border-top: 1px solid var(--border); }
-    .tab-list {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-    }
+    .tab-list { display: flex; border-bottom: 1px solid var(--border); }
     .tab-btn {
-      padding: 10px 18px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--muted);
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      transition: color .15s, border-color .15s;
+      padding: 9px 16px; font-size: 13px; font-weight: 500; color: var(--muted);
+      background: transparent; border: none; border-bottom: 2px solid transparent;
+      cursor: pointer; transition: color .15s, border-color .15s;
     }
     .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
     .tab-btn:hover:not(.active) { color: var(--text); }
-    .tab-pane { display: none; padding: 16px 20px; }
+    .tab-pane { display: none; padding: 14px 18px; }
     .tab-pane.active { display: block; }
     .letter-content {
-      font-size: 13px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      color: var(--text);
-      max-height: 360px;
-      overflow-y: auto;
+      font-size: 13px; line-height: 1.7; white-space: pre-wrap; color: var(--text);
+      max-height: 340px; overflow-y: auto;
     }
-    .letter-content::-webkit-scrollbar { width: 6px; }
+    .letter-content::-webkit-scrollbar { width: 5px; }
     .letter-content::-webkit-scrollbar-track { background: var(--surface2); }
     .letter-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
     /* ---- Error ---- */
     .error-box {
-      margin: 20px;
-      padding: 14px;
-      background: var(--red-bg);
-      border: 1px solid var(--red);
-      border-radius: 6px;
-      font-size: 13px;
-      color: var(--red);
+      margin: 18px; padding: 13px;
+      background: var(--red-bg); border: 1px solid var(--red);
+      border-radius: 6px; font-size: 13px; color: var(--red);
     }
 
+    /* ---- HISTORY VIEW ---- */
+    #viewHistory { padding: 24px; }
+    .history-header {
+      max-width: 1200px; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .history-header h2 { font-size: 18px; font-weight: 600; }
+    .history-header span { font-size: 13px; color: var(--muted); }
+
+    .history-filters {
+      max-width: 1200px; margin: 0 auto 14px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .filter-input {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 13px;
+      padding: 7px 12px; outline: none; transition: border-color .15s;
+      width: 240px;
+    }
+    .filter-input:focus { border-color: var(--accent); }
+    .btn-refresh {
+      padding: 7px 14px; background: var(--surface2); color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+      cursor: pointer; transition: border-color .15s, color .15s;
+    }
+    .btn-refresh:hover { border-color: var(--accent); color: var(--text); }
+
+    .history-table-wrap {
+      max-width: 1200px; margin: 0 auto;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--surface2); }
+    th {
+      padding: 10px 14px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .05em;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 11px 14px; font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    .badge-sm {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 2px 9px; border-radius: 20px; text-transform: uppercase;
+    }
+    .badge-sm.approved { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+    .badge-sm.pended   { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+    .badge-sm.denied   { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+
+    .history-empty {
+      padding: 48px; text-align: center; color: var(--muted); font-size: 14px;
+    }
+    .history-loading { padding: 40px; text-align: center; color: var(--muted); font-size: 13px; }
+
     @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; padding: 12px; }
+      #viewNew .layout { grid-template-columns: 1fr; padding: 12px; }
       .result-panel { position: static; }
       .info-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -330,224 +364,333 @@
   <a class="logo" href="/">
     <div class="logo-icon">PP</div>
     <span class="logo-text">PriorPath</span>
-    <span class="logo-tag">Prior Authorization Engine</span>
   </a>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="switchView('viewNew', this)">New Request</button>
+    <button class="nav-tab" onclick="switchView('viewHistory', this)">History</button>
+  </nav>
   <div class="spacer"></div>
   <span class="header-pill">LangGraph · Claude · Qdrant · Supabase</span>
 </header>
 
-<div class="layout">
+<!-- ============================= NEW REQUEST ============================= -->
+<div class="view active" id="viewNew">
+  <div class="layout">
 
-  <!-- ===== LEFT: Request Form ===== -->
-  <div class="panel">
-    <div class="panel-header">
-      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      New Authorization Request
-    </div>
-
-    <div class="scenarios">
-      <label>Quick fill:</label>
-      <button class="scenario-btn" onclick="fillScenario(1)">Wet AMD — Anti-VEGF</button>
-      <button class="scenario-btn" onclick="fillScenario(2)">Cataract Surgery</button>
-      <button class="scenario-btn" onclick="fillScenario(3)">DME Thin Notes</button>
-    </div>
-
-    <form id="paForm" onsubmit="submitForm(event)">
-      <div class="row">
-        <div class="field">
-          <label>Patient Name *</label>
-          <input id="patient_name" type="text" placeholder="Maria Santos" required />
-        </div>
-        <div class="field">
-          <label>Date of Birth *</label>
-          <input id="patient_dob" type="text" placeholder="1948-06-15" required />
-        </div>
-      </div>
-      <div class="row">
-        <div class="field">
-          <label>Patient ID *</label>
-          <input id="patient_id" type="text" placeholder="pt-001" required />
-        </div>
-        <div class="field">
-          <label>Insurance / Member ID *</label>
-          <input id="insurance_id" type="text" placeholder="INS-001" required />
-        </div>
-      </div>
-      <div class="field">
-        <label>Payer Name *</label>
-        <input id="payer_name" type="text" placeholder="Aetna" required />
-      </div>
-      <div class="row">
-        <div class="field">
-          <label>CPT / Procedure Code *</label>
-          <input id="procedure_code" type="text" placeholder="67028" required />
-        </div>
-        <div class="field">
-          <label>Diagnosis Code (ICD-10) *</label>
-          <input id="diagnosis_code" type="text" placeholder="H35.32" required />
-        </div>
-      </div>
-      <div class="field">
-        <label>Procedure Description *</label>
-        <input id="procedure_description" type="text" placeholder="Intravitreal anti-VEGF injection" required />
-      </div>
-      <div class="field">
-        <label>Diagnosis Description *</label>
-        <input id="diagnosis_description" type="text" placeholder="Exudative age-related macular degeneration" required />
-      </div>
-      <div class="field">
-        <label>Ordering Provider *</label>
-        <input id="ordering_provider" type="text" placeholder="Dr. Priya Sharma, MD (Retinal Surgery)" required />
-      </div>
-      <div class="field">
-        <label>Clinical Notes</label>
-        <textarea id="clinical_notes" placeholder="Patient presents with wet AMD confirmed by OCT…"></textarea>
-      </div>
-
-      <div class="submit-row">
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <div class="spinner" id="spinner"></div>
-          <span id="submitLabel">Submit for Authorization</span>
-        </button>
-        <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- ===== RIGHT: Result Panel ===== -->
-  <div class="panel result-panel" id="resultPanel">
-    <div class="empty-state" id="emptyState">
-      <div class="empty-icon">🏥</div>
-      <p>Submit a prior authorization request to see the AI determination here.</p>
-    </div>
-
-    <div id="resultContent" style="display:none">
+    <!-- Left: form -->
+    <div class="panel">
       <div class="panel-header">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        Determination
-        <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="requestId"></span>
+        New Authorization Request
       </div>
 
-      <div class="decision-banner">
-        <div class="decision-meta">
-          <div class="decision-patient" id="resultPatient"></div>
-          <div class="decision-sub" id="resultSub"></div>
-        </div>
-        <div class="decision-badge" id="decisionBadge"></div>
+      <div class="scenarios">
+        <label>Quick fill:</label>
+        <button class="scenario-btn" onclick="fillScenario(1)">Wet AMD</button>
+        <button class="scenario-btn" onclick="fillScenario(2)">Cataract</button>
+        <button class="scenario-btn" onclick="fillScenario(3)">DME Thin Notes</button>
       </div>
 
-      <div class="result-body">
-        <div class="info-grid">
-          <div class="info-chip">
-            <div class="chip-label">Covered</div>
-            <div class="chip-value" id="chipCovered"></div>
+      <form id="paForm" onsubmit="submitForm(event)">
+        <div class="row">
+          <div class="field">
+            <label>Patient Name *</label>
+            <input id="patient_name" type="text" placeholder="Maria Santos" required />
           </div>
-          <div class="info-chip">
-            <div class="chip-label">Auth Required</div>
-            <div class="chip-value" id="chipAuth"></div>
-          </div>
-          <div class="info-chip">
-            <div class="chip-label">Criteria Met</div>
-            <div class="chip-value" id="chipCriteria"></div>
+          <div class="field">
+            <label>Date of Birth *</label>
+            <input id="patient_dob" type="text" placeholder="1948-06-15" required />
           </div>
         </div>
-
-        <div class="rationale-label">Decision Rationale</div>
-        <div class="rationale-box" id="rationale"></div>
-
-        <div class="missing-docs" id="missingDocsSection" style="display:none">
-          <div class="missing-docs-label">Missing Documentation</div>
-          <ul id="missingDocsList"></ul>
+        <div class="row">
+          <div class="field">
+            <label>Patient ID *</label>
+            <input id="patient_id" type="text" placeholder="pt-001" required />
+          </div>
+          <div class="field">
+            <label>Member ID *</label>
+            <input id="insurance_id" type="text" placeholder="INS-001" required />
+          </div>
         </div>
-      </div>
-
-      <div class="tabs">
-        <div class="tab-list">
-          <button class="tab-btn active" onclick="switchTab(this,'tabProvider')">Provider Letter</button>
-          <button class="tab-btn" onclick="switchTab(this,'tabPatient')">Patient Summary</button>
+        <div class="field">
+          <label>Payer Name *</label>
+          <input id="payer_name" type="text" placeholder="Aetna" required />
         </div>
-        <div class="tab-pane active" id="tabProvider">
-          <pre class="letter-content" id="providerLetter"></pre>
+        <div class="row">
+          <div class="field">
+            <label>CPT Code *</label>
+            <input id="procedure_code" type="text" placeholder="67028" required />
+          </div>
+          <div class="field">
+            <label>Diagnosis (ICD-10) *</label>
+            <input id="diagnosis_code" type="text" placeholder="H35.32" required />
+          </div>
         </div>
-        <div class="tab-pane" id="tabPatient">
-          <div class="letter-content" id="patientSummary"></div>
+        <div class="field">
+          <label>Procedure Description *</label>
+          <input id="procedure_description" type="text" placeholder="Intravitreal anti-VEGF injection" required />
         </div>
-      </div>
+        <div class="field">
+          <label>Diagnosis Description *</label>
+          <input id="diagnosis_description" type="text" placeholder="Exudative age-related macular degeneration" required />
+        </div>
+        <div class="field">
+          <label>Ordering Provider *</label>
+          <input id="ordering_provider" type="text" placeholder="Dr. Priya Sharma, MD" required />
+        </div>
+        <div class="field">
+          <label>Clinical Notes</label>
+          <textarea id="clinical_notes" placeholder="OCT findings, visual acuity, prior treatments…"></textarea>
+        </div>
+        <div class="submit-row">
+          <button type="submit" class="btn-submit" id="submitBtn">
+            <div class="spinner" id="spinner"></div>
+            <span id="submitLabel">Submit for Authorization</span>
+          </button>
+          <button type="button" class="btn-clear" onclick="clearForm()">Clear</button>
+        </div>
+      </form>
     </div>
 
-    <div id="errorContent" class="error-box" style="display:none"></div>
-  </div>
+    <!-- Right: result -->
+    <div class="panel result-panel" id="resultPanel">
 
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🏥</div>
+        <p>Submit a prior authorization request to see the AI determination here.</p>
+      </div>
+
+      <!-- Progress steps (shown while streaming) -->
+      <div id="progressSection" style="display:none">
+        <div class="panel-header">Processing Authorization…</div>
+        <div class="progress-panel">
+          <div class="steps" id="stepsContainer">
+            <div class="step" id="step-intake">
+              <div class="step-dot" id="dot-intake">1</div>
+              <div class="step-info">
+                <div class="step-name">Intake</div>
+                <div class="step-desc">Parsing request and extracting clinical fields</div>
+              </div>
+            </div>
+            <div class="step" id="step-eligibility">
+              <div class="step-dot" id="dot-eligibility">2</div>
+              <div class="step-info">
+                <div class="step-name">Eligibility</div>
+                <div class="step-desc">Checking payer coverage and PA requirements</div>
+              </div>
+            </div>
+            <div class="step" id="step-clinical">
+              <div class="step-dot" id="dot-clinical">3</div>
+              <div class="step-info">
+                <div class="step-name">Clinical Review</div>
+                <div class="step-desc">RAG against CMS guidelines, criteria evaluation</div>
+              </div>
+            </div>
+            <div class="step" id="step-decision">
+              <div class="step-dot" id="dot-decision">4</div>
+              <div class="step-info">
+                <div class="step-name">Decision</div>
+                <div class="step-desc">Generating determination and rationale</div>
+              </div>
+            </div>
+            <div class="step" id="step-notification">
+              <div class="step-dot" id="dot-notification">5</div>
+              <div class="step-info">
+                <div class="step-name">Notification</div>
+                <div class="step-desc">Composing provider letter and patient summary</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div id="resultContent" style="display:none">
+        <div class="panel-header">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+          Determination
+          <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="requestId"></span>
+        </div>
+
+        <div class="decision-banner">
+          <div class="decision-meta">
+            <div class="decision-patient" id="resultPatient"></div>
+            <div class="decision-sub" id="resultSub"></div>
+          </div>
+          <div class="decision-badge" id="decisionBadge"></div>
+        </div>
+
+        <div class="result-body">
+          <div class="info-grid">
+            <div class="info-chip">
+              <div class="chip-label">Covered</div>
+              <div class="chip-value" id="chipCovered"></div>
+            </div>
+            <div class="info-chip">
+              <div class="chip-label">Auth Required</div>
+              <div class="chip-value" id="chipAuth"></div>
+            </div>
+            <div class="info-chip">
+              <div class="chip-label">Criteria Met</div>
+              <div class="chip-value" id="chipCriteria"></div>
+            </div>
+          </div>
+          <div class="rationale-label">Decision Rationale</div>
+          <div class="rationale-box" id="rationale"></div>
+          <div class="missing-docs" id="missingDocsSection" style="display:none">
+            <div class="rationale-label">Missing Documentation</div>
+            <ul id="missingDocsList"></ul>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab-list">
+            <button class="tab-btn active" onclick="switchTab(this,'tabProvider')">Provider Letter</button>
+            <button class="tab-btn" onclick="switchTab(this,'tabPatient')">Patient Summary</button>
+          </div>
+          <div class="tab-pane active" id="tabProvider">
+            <pre class="letter-content" id="providerLetter"></pre>
+          </div>
+          <div class="tab-pane" id="tabPatient">
+            <div class="letter-content" id="patientSummary"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="errorContent" class="error-box" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= HISTORY ============================= -->
+<div class="view" id="viewHistory">
+  <div class="history-header">
+    <h2>Authorization History</h2>
+    <span id="historyCount"></span>
+  </div>
+  <div class="history-filters">
+    <input class="filter-input" id="historySearch" type="text" placeholder="Filter by patient ID, CPT, decision…" oninput="filterHistory()" />
+    <button class="btn-refresh" onclick="loadHistory()">↻ Refresh</button>
+  </div>
+  <div class="history-table-wrap">
+    <div class="history-loading" id="historyLoading">Loading…</div>
+    <div class="history-empty" id="historyEmpty" style="display:none">No authorization records found.</div>
+    <table id="historyTable" style="display:none">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Patient ID</th>
+          <th>CPT</th>
+          <th>Diagnosis</th>
+          <th>Payer</th>
+          <th>Decision</th>
+          <th>Criteria Met</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
+  // ── Scenarios ──────────────────────────────────────────────────────────────
   const SCENARIOS = {
     1: {
-      patient_id: "pt-001", patient_name: "Maria Santos", patient_dob: "1948-06-15",
-      insurance_id: "INS-001", payer_name: "Aetna",
-      procedure_code: "67028", procedure_description: "Intravitreal anti-VEGF injection",
-      diagnosis_code: "H35.32", diagnosis_description: "Exudative age-related macular degeneration, bilateral",
-      ordering_provider: "Dr. Priya Sharma, MD (Retinal Surgery)",
-      clinical_notes: "Patient presents with wet AMD confirmed by OCT showing active choroidal neovascularization. " +
-        "Baseline VA: 20/80 OD. OCT central subfield thickness: 412 microns. " +
-        "Fundus photography confirms neovascular membrane. No prior anti-VEGF treatment."
+      patient_id:"pt-001",patient_name:"Maria Santos",patient_dob:"1948-06-15",
+      insurance_id:"INS-001",payer_name:"Aetna",procedure_code:"67028",
+      procedure_description:"Intravitreal anti-VEGF injection",diagnosis_code:"H35.32",
+      diagnosis_description:"Exudative age-related macular degeneration, bilateral",
+      ordering_provider:"Dr. Priya Sharma, MD (Retinal Surgery)",
+      clinical_notes:"Patient presents with wet AMD confirmed by OCT showing active choroidal neovascularization. Baseline VA: 20/80 OD. OCT central subfield thickness: 412 microns. Fundus photography confirms neovascular membrane. No prior anti-VEGF treatment."
     },
     2: {
-      patient_id: "pt-002", patient_name: "James O'Brien", patient_dob: "1955-03-22",
-      insurance_id: "INS-003", payer_name: "BlueCross",
-      procedure_code: "66984", procedure_description: "Cataract extraction with IOL implantation",
-      diagnosis_code: "H26.9", diagnosis_description: "Unspecified cataract",
-      ordering_provider: "Dr. Alan Kim, MD (Ophthalmology)",
-      clinical_notes: "Patient has progressive nuclear sclerotic cataract. Best corrected VA: 20/60 OS. " +
-        "Slit-lamp confirms dense lens opacity. Patient reports difficulty driving and reading. " +
-        "Pre-op biometry complete. Informed consent obtained."
+      patient_id:"pt-002",patient_name:"James O'Brien",patient_dob:"1955-03-22",
+      insurance_id:"INS-003",payer_name:"BlueCross",procedure_code:"66984",
+      procedure_description:"Cataract extraction with IOL implantation",diagnosis_code:"H26.9",
+      diagnosis_description:"Unspecified cataract",
+      ordering_provider:"Dr. Alan Kim, MD (Ophthalmology)",
+      clinical_notes:"Patient has progressive nuclear sclerotic cataract. Best corrected VA: 20/60 OS. Slit-lamp confirms dense lens opacity. Patient reports difficulty driving and reading. Pre-op biometry complete. Informed consent obtained."
     },
     3: {
-      patient_id: "pt-003", patient_name: "Linda Chen", patient_dob: "1962-11-08",
-      insurance_id: "INS-002", payer_name: "UnitedHealth",
-      procedure_code: "67028", procedure_description: "Intravitreal anti-VEGF injection",
-      diagnosis_code: "H36.0", diagnosis_description: "Diabetic retinopathy with macular edema",
-      ordering_provider: "Dr. Marcus Webb, MD",
-      clinical_notes: "Patient has diabetic macular edema. Requesting anti-VEGF treatment."
+      patient_id:"pt-003",patient_name:"Linda Chen",patient_dob:"1962-11-08",
+      insurance_id:"INS-002",payer_name:"UnitedHealth",procedure_code:"67028",
+      procedure_description:"Intravitreal anti-VEGF injection",diagnosis_code:"H36.0",
+      diagnosis_description:"Diabetic retinopathy with macular edema",
+      ordering_provider:"Dr. Marcus Webb, MD",
+      clinical_notes:"Patient has diabetic macular edema. Requesting anti-VEGF treatment."
     }
   };
 
   function fillScenario(n) {
     const s = SCENARIOS[n];
-    Object.keys(s).forEach(k => {
-      const el = document.getElementById(k);
-      if (el) el.value = s[k];
-    });
+    Object.keys(s).forEach(k => { const el = document.getElementById(k); if (el) el.value = s[k]; });
+  }
+  function clearForm() { document.getElementById("paForm").reset(); }
+
+  // ── View switching ─────────────────────────────────────────────────────────
+  function switchView(viewId, btn) {
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+    document.getElementById(viewId).classList.add("active");
+    btn.classList.add("active");
+    if (viewId === "viewHistory") loadHistory();
   }
 
-  function clearForm() {
-    document.getElementById("paForm").reset();
-  }
-
+  // ── Tab switching ──────────────────────────────────────────────────────────
   function switchTab(btn, paneId) {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
+    btn.closest(".tab-list").querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    btn.closest(".tabs").querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById(paneId).classList.add("active");
   }
 
+  // ── Chip helpers ───────────────────────────────────────────────────────────
   function boolChip(el, val) {
-    if (val === null || val === undefined) {
-      el.textContent = "N/A";
-      el.className = "chip-value null";
-    } else if (val) {
-      el.textContent = "Yes";
-      el.className = "chip-value yes";
-    } else {
-      el.textContent = "No";
-      el.className = "chip-value no";
-    }
+    if (val === null || val === undefined) { el.textContent = "N/A"; el.className = "chip-value null"; }
+    else if (val) { el.textContent = "Yes"; el.className = "chip-value yes"; }
+    else { el.textContent = "No"; el.className = "chip-value no"; }
   }
 
+  // ── Step progress ──────────────────────────────────────────────────────────
+  const STEP_ORDER = ["intake","eligibility","clinical","decision","notification"];
+
+  function resetSteps() {
+    STEP_ORDER.forEach(n => {
+      const step = document.getElementById("step-" + n);
+      const dot  = document.getElementById("dot-" + n);
+      step.className = "step";
+      dot.innerHTML  = (STEP_ORDER.indexOf(n) + 1).toString();
+    });
+  }
+
+  function markStepActive(name) {
+    const step = document.getElementById("step-" + name);
+    const dot  = document.getElementById("dot-" + name);
+    if (!step) return;
+    step.className = "step active";
+    dot.innerHTML = '<div class="dot-spinner"></div>';
+  }
+
+  function markStepDone(name) {
+    const step = document.getElementById("step-" + name);
+    const dot  = document.getElementById("dot-" + name);
+    if (!step) return;
+    step.className = "step done";
+    dot.innerHTML = "✓";
+  }
+
+  function markStepSkipped(name) {
+    const step = document.getElementById("step-" + name);
+    if (!step) return;
+    step.className = "step skipped";
+  }
+
+  // ── Form submit (SSE streaming) ────────────────────────────────────────────
   async function submitForm(e) {
     e.preventDefault();
     const btn   = document.getElementById("submitBtn");
@@ -556,27 +699,32 @@
 
     btn.disabled = true;
     spin.style.display = "block";
-    label.textContent = "Processing…";
+    label.textContent = "Submitting…";
+
+    // Reset UI
     document.getElementById("emptyState").style.display = "none";
     document.getElementById("resultContent").style.display = "none";
     document.getElementById("errorContent").style.display = "none";
+    document.getElementById("progressSection").style.display = "block";
+    resetSteps();
+    markStepActive("intake");
 
     const payload = {
-      patient_id:              document.getElementById("patient_id").value.trim(),
-      patient_name:            document.getElementById("patient_name").value.trim(),
-      patient_dob:             document.getElementById("patient_dob").value.trim(),
-      insurance_id:            document.getElementById("insurance_id").value.trim(),
-      payer_name:              document.getElementById("payer_name").value.trim(),
-      procedure_code:          document.getElementById("procedure_code").value.trim(),
-      procedure_description:   document.getElementById("procedure_description").value.trim(),
-      diagnosis_code:          document.getElementById("diagnosis_code").value.trim(),
-      diagnosis_description:   document.getElementById("diagnosis_description").value.trim(),
-      ordering_provider:       document.getElementById("ordering_provider").value.trim(),
-      clinical_notes:          document.getElementById("clinical_notes").value.trim(),
+      patient_id:            document.getElementById("patient_id").value.trim(),
+      patient_name:          document.getElementById("patient_name").value.trim(),
+      patient_dob:           document.getElementById("patient_dob").value.trim(),
+      insurance_id:          document.getElementById("insurance_id").value.trim(),
+      payer_name:            document.getElementById("payer_name").value.trim(),
+      procedure_code:        document.getElementById("procedure_code").value.trim(),
+      procedure_description: document.getElementById("procedure_description").value.trim(),
+      diagnosis_code:        document.getElementById("diagnosis_code").value.trim(),
+      diagnosis_description: document.getElementById("diagnosis_description").value.trim(),
+      ordering_provider:     document.getElementById("ordering_provider").value.trim(),
+      clinical_notes:        document.getElementById("clinical_notes").value.trim(),
     };
 
     try {
-      const res = await fetch("/authorize", {
+      const res = await fetch("/authorize/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -587,9 +735,64 @@
         throw new Error(JSON.stringify(err.detail || err));
       }
 
-      const d = await res.json();
-      renderResult(d);
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let   buffer  = "";
+      const completedNodes = new Set();
+
+      label.textContent = "Processing…";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep incomplete line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const raw = line.slice(6).trim();
+          if (!raw) continue;
+
+          let msg;
+          try { msg = JSON.parse(raw); } catch { continue; }
+
+          if (msg.error) throw new Error(msg.error);
+
+          if (msg.node) {
+            // Mark previous active node done
+            STEP_ORDER.forEach(n => {
+              const el = document.getElementById("step-" + n);
+              if (el && el.classList.contains("active")) markStepDone(n);
+            });
+            completedNodes.add(msg.node);
+            // Find next step to activate
+            const idx = STEP_ORDER.indexOf(msg.node);
+            if (idx >= 0 && idx < STEP_ORDER.length - 1) {
+              const next = STEP_ORDER[idx + 1];
+              if (!completedNodes.has(next)) markStepActive(next);
+            }
+          }
+
+          if (msg.done && msg.result) {
+            // Mark all remaining as done or skipped
+            STEP_ORDER.forEach(n => {
+              const el = document.getElementById("step-" + n);
+              if (!el) return;
+              if (completedNodes.has(n)) markStepDone(n);
+              else if (el.classList.contains("active")) markStepDone(n);
+              else markStepSkipped(n);
+            });
+
+            await new Promise(r => setTimeout(r, 400)); // brief pause to show completion
+            document.getElementById("progressSection").style.display = "none";
+            renderResult(msg.result);
+          }
+        }
+      }
     } catch (err) {
+      document.getElementById("progressSection").style.display = "none";
       document.getElementById("errorContent").style.display = "block";
       document.getElementById("errorContent").textContent = "Error: " + err.message;
     } finally {
@@ -599,6 +802,7 @@
     }
   }
 
+  // ── Render result ──────────────────────────────────────────────────────────
   function renderResult(d) {
     document.getElementById("resultContent").style.display = "block";
     document.getElementById("requestId").textContent = "ID: " + d.request_id;
@@ -606,12 +810,9 @@
     document.getElementById("resultSub").textContent = d.procedure + " · " + d.diagnosis;
 
     const badge = document.getElementById("decisionBadge");
-    const dec = (d.decision || "").toLowerCase();
-    badge.textContent = d.decision || "—";
-    badge.className = "decision-badge " + (
-      dec === "approved" ? "badge-approved" :
-      dec === "denied"   ? "badge-denied"   : "badge-pended"
-    );
+    const dec   = (d.decision || "").toLowerCase();
+    badge.textContent  = d.decision || "—";
+    badge.className    = "decision-badge " + (dec === "approved" ? "badge-approved" : dec === "denied" ? "badge-denied" : "badge-pended");
 
     boolChip(document.getElementById("chipCovered"),  d.is_covered);
     boolChip(document.getElementById("chipAuth"),     d.requires_auth);
@@ -619,24 +820,86 @@
 
     document.getElementById("rationale").textContent = d.decision_rationale || "—";
 
-    const missingSection = document.getElementById("missingDocsSection");
-    const missingList    = document.getElementById("missingDocsList");
+    const missSec  = document.getElementById("missingDocsSection");
+    const missList = document.getElementById("missingDocsList");
     if (d.missing_documentation && d.missing_documentation.length > 0) {
-      missingList.innerHTML = d.missing_documentation
-        .map(m => `<li>${m}</li>`).join("");
-      missingSection.style.display = "block";
+      missList.innerHTML = d.missing_documentation.map(m => `<li>${m}</li>`).join("");
+      missSec.style.display = "block";
     } else {
-      missingSection.style.display = "none";
+      missSec.style.display = "none";
     }
 
     document.getElementById("providerLetter").textContent = d.provider_letter || "—";
     document.getElementById("patientSummary").textContent = d.patient_summary || "—";
 
     // Reset to provider letter tab
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".tab-btn")[0].classList.add("active");
+    document.querySelectorAll("#resultContent .tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("#resultContent .tab-pane").forEach(p => p.classList.remove("active"));
+    document.querySelector("#resultContent .tab-btn").classList.add("active");
     document.getElementById("tabProvider").classList.add("active");
+  }
+
+  // ── History ────────────────────────────────────────────────────────────────
+  let _allRecords = [];
+
+  async function loadHistory() {
+    document.getElementById("historyLoading").style.display = "block";
+    document.getElementById("historyEmpty").style.display   = "none";
+    document.getElementById("historyTable").style.display   = "none";
+    document.getElementById("historyCount").textContent     = "";
+
+    try {
+      const res  = await fetch("/history?limit=100");
+      const data = await res.json();
+      _allRecords = data.records || [];
+      renderHistory(_allRecords);
+    } catch (err) {
+      document.getElementById("historyLoading").textContent = "Failed to load history: " + err.message;
+    }
+  }
+
+  function filterHistory() {
+    const q = document.getElementById("historySearch").value.toLowerCase();
+    if (!q) { renderHistory(_allRecords); return; }
+    const filtered = _allRecords.filter(r =>
+      (r.patient_id    || "").toLowerCase().includes(q) ||
+      (r.procedure_code|| "").toLowerCase().includes(q) ||
+      (r.diagnosis_code|| "").toLowerCase().includes(q) ||
+      (r.payer_name    || "").toLowerCase().includes(q) ||
+      (r.decision      || "").toLowerCase().includes(q)
+    );
+    renderHistory(filtered);
+  }
+
+  function renderHistory(records) {
+    document.getElementById("historyLoading").style.display = "none";
+    document.getElementById("historyCount").textContent = records.length + " record" + (records.length !== 1 ? "s" : "");
+
+    if (!records.length) {
+      document.getElementById("historyEmpty").style.display = "block";
+      document.getElementById("historyTable").style.display = "none";
+      return;
+    }
+
+    document.getElementById("historyTable").style.display = "table";
+    document.getElementById("historyEmpty").style.display = "none";
+
+    const body = document.getElementById("historyBody");
+    body.innerHTML = records.map(r => {
+      const dec   = (r.decision || "").toLowerCase();
+      const badge = `<span class="badge-sm ${dec}">${r.decision || "—"}</span>`;
+      const crit  = r.criteria_met === true ? "✓" : r.criteria_met === false ? "✗" : "—";
+      const date  = r.created_at ? new Date(r.created_at).toLocaleString() : "—";
+      return `<tr>
+        <td style="color:var(--muted);font-size:12px">${date}</td>
+        <td>${r.patient_id || "—"}</td>
+        <td><code style="font-size:12px;color:var(--accent)">${r.procedure_code || "—"}</code></td>
+        <td style="font-size:12px;color:var(--muted)">${r.diagnosis_code || "—"}</td>
+        <td style="font-size:12px">${r.payer_name || "—"}</td>
+        <td>${badge}</td>
+        <td style="text-align:center;color:${r.criteria_met === true ? 'var(--green)' : r.criteria_met === false ? 'var(--red)' : 'var(--muted)'}">${crit}</td>
+      </tr>`;
+    }).join("");
   }
 </script>
 </body>
