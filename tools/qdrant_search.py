@@ -108,7 +108,8 @@ class QdrantSearchTool:
 
     def __init__(self) -> None:
         url = os.getenv("QDRANT_URL", "http://localhost:6333")
-        self.client = AsyncQdrantClient(url=url)
+        api_key = os.getenv("QDRANT_API_KEY")  # required for Qdrant Cloud, omit for local
+        self.client = AsyncQdrantClient(url=url, api_key=api_key)
         self._seeded = False
 
     async def _ensure_seeded(self) -> None:

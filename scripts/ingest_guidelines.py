@@ -34,7 +34,8 @@ CPT_META: dict[str, dict[str, str]] = {
 
 async def ingest(force: bool = False) -> None:
     url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    client = AsyncQdrantClient(url=url)
+    api_key = os.getenv("QDRANT_API_KEY")  # required for Qdrant Cloud
+    client = AsyncQdrantClient(url=url, api_key=api_key)
 
     txt_files = sorted(DATA_DIR.glob("*.txt"))
     if not txt_files:
