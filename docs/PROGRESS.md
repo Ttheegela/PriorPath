@@ -1,4 +1,4 @@
-# PriorPath v2 — Progress Log (Plans 1 and 2)
+# PriorPath v2 — Progress Log (Plans 1 to 3)
 
 _Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
 
@@ -7,20 +7,21 @@ PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill a
 - Design spec: `docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md`
 - Plan 1: `docs/superpowers/plans/2026-10-01-priorpath-v2-plan1-core-engine.md`
 - Plan 2: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan2-backend-ai.md`
+- Plan 3: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan3-reviewer-ui.md`
 
 ---
 
 ## At a glance
 
-| | Plan 1 (core engine) | Plan 2 (backend, database, AI) |
-|---|---|---|
-| Dates | 2026-10-01 | 2026-10-02 |
-| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) |
-| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters |
-| Tests at end | 73 | 183 |
-| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` |
+| | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) |
+|---|---|---|---|
+| Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 |
+| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 8 tasks (see git log) |
+| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI |
+| Tests at end | 73 | 183 | backend 189, web 39 + 1 E2E |
+| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` |
 
-Both plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
+All three plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
 
 ---
 
@@ -107,14 +108,51 @@ Compared on the 12 demo flags by grounding-pass rate:
 
 ---
 
+## Plan 3 — Reviewer UI
+
+### What was built
+| Screen | Details |
+|---|---|
+| Case queue | Filter by status, sort by overcharge, "New case" upload of FHIR JSON (up to 4 MB). Row links open the case. |
+| Case detail | Line table with flag badges; flags grouped as Billing errors, Price outliers and Leads (always labelled separately); evidence, explanation, estimated overcharge; Accept, or Reject with a reason; header totals. Code numbers only, no CPT descriptors. |
+| Letter review | Draft from accepted flags only, editable text, approve, download .txt. |
+| Audit log | Per-case timeline and a global view. |
+| Plumbing | `ensureWorkspace()` is memoized so the first workspace-scoped call finishes before any other (no double workspaces). Money is shown with `Intl.NumberFormat` and never computed in the UI. Copy says the data is synthetic and nothing is sent anywhere. |
+| E2E | One Playwright smoke test on the demo data: open the top-overcharge case, accept a flag, draft and approve the letter, download it. Runs in CI as a third job; `PLAYWRIGHT_BASE_URL=https://priorpath.vercel.app npm run e2e` runs it against production. |
+
+### Key decisions in Plan 3
+1. **FastAPI serves the UI** (`app.frontend("/", directory=public)`, mounted only when `public/` exists). A Vercel preview showed that a root `public/` built during the deploy is not served as static files.
+2. **Query-string routing** instead of a router library (no new runtime dependency).
+3. **oxlint** from the Vite template as the linter; the frontend chain must be warning-free.
+4. **User directive: black-and-white UI.** Black, white and neutral grays only; state is conveyed by words and weight, never color.
+5. E2E uses a single server (built UI and API on port 8000), so CI builds the UI first and needs no proxy.
+
+### What reviews caught (and fixed) in Plan 3
+| Task | Problem found | Fix |
+|---|---|---|
+| 2 | An unanchored `public/` git-ignore rule hid the favicon; the favicon was colored | Rule anchored to `/public/`; favicon made monochrome |
+| 5 | Stale case shown when the id changed; "not found" state was sticky; a lint warning | Case reset on id change, not-found cleared, warning removed |
+| 5 | Cancel on the reject form kept the typed reason | Cancel clears the reason |
+| 7 | Audit-log error was sticky after a later success; timeline did not refresh after letter or explanation actions | Error cleared on success; timeline reloads after those actions |
+
+### Verification
+- Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 189 tests pass.
+- Frontend chain (lint warning-free, vitest, build): 39 tests pass.
+- Local E2E against Docker Postgres: 1 passed.
+
+---
+
 ## How to run it
 
 ```bash
 # local
 docker compose up -d db
 source .venv/bin/activate
-pytest -q                                   # 183 tests against Docker Postgres
+pytest -q                                   # 189 tests against Docker Postgres
 python -m evals.run --n 300 --seed 7        # rule-engine eval gate
+
+# UI: unit tests and browser smoke test (needs the DB env vars; builds the UI and starts uvicorn)
+cd web && npm test && npm run e2e && cd ..
 
 # production smoke test
 python scripts/smoke.py https://priorpath.vercel.app --require-explanations
@@ -125,5 +163,4 @@ Rebuilding the demo or migrating production needs secrets, so those steps run in
 ---
 
 ## What's next
-- **Plan 3:** React reviewer UI (case queue, case detail with flags, letter review) so the app is usable without `/api/docs`.
-- **Plan 4:** PDF bills (vision extraction + line review), Presidio redaction, Langfuse tracing and an LLM-judge faithfulness eval, README rewrite, and the remaining spec §16 items (eval negative plants, Q3 2026 reference data).
+- **Plan 4:** PDF bills (vision extraction + line review screen), Presidio redaction, Langfuse tracing and an LLM-judge faithfulness eval, README rewrite, and the remaining spec §16 items (eval negative plants, Q3 2026 reference data).

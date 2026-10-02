@@ -1,8 +1,7 @@
 > **v2 in progress (branch `v2-bill-audit`):** PriorPath is being rebuilt as an AI medical bill auditor. Design: `docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md`. The text below describes v1.
 
-> **Try the v2 API:** open https://priorpath.vercel.app/api/docs. Your browser gets its own demo workspace with
-> 10 synthetic claims. Try `GET /api/cases`, then `POST /api/cases/{id}/explain`, `PATCH /api/flags/{id}`,
-> `POST /api/cases/{id}/letter`, `POST /api/letters/{id}/approve`, and `GET /api/letters/{id}/export`.
+> **Try v2:** open https://priorpath.vercel.app — your browser gets its own demo workspace with 10 synthetic claims.
+> Open a case, accept a billing error, draft and approve the dispute letter, then download it. The API is documented at `/api/docs`.
 
 # PriorPath — Multi-Agent Prior Authorization Engine
 
