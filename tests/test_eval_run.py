@@ -9,6 +9,9 @@ def test_engine_scores_perfectly_on_fixture_generated_claims() -> None:
     assert report.clean_fp == 0
     for score in report.scores.values():
         assert score.precision == 1.0 and score.recall == 1.0, score
+    # the small fixture reference can only plant R1, R2, R4; R3/R5 rely on the real-subset CI eval
+    for rule in ("R1", "R2", "R4"):
+        assert report.scores[rule].support > 0, rule
 
 
 def test_false_positive_and_miss_are_counted() -> None:
