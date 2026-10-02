@@ -17,8 +17,9 @@ Rule = Callable[[Claim, Reference, RuleConfig], list[Flag]]
 def _all_rules() -> list[Rule]:
     from app.rules.coverage import check_coverage
     from app.rules.duplicates import check_duplicates
+    from app.rules.ncci import check_ncci
 
-    return [check_coverage, check_duplicates]
+    return [check_coverage, check_duplicates, check_ncci]
 
 
 ALL_RULES: list[Rule] = _all_rules()
