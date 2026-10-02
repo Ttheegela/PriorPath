@@ -1,12 +1,19 @@
+# ruff: noqa: E501 - docstring carries the verbatim long invocation
 """Build data/reference/subset from raw CMS downloads (run locally, not in CI).
 
-Example:
-  python scripts/build_reference_subset.py \
-    --ptp data/reference/raw/ptp_practitioner_f1.xlsx --ptp data/reference/raw/ptp_practitioner_f2.xlsx \
-    --mue data/reference/raw/mue_practitioner.xlsx --pfs data/reference/raw/PPRRVU26.csv \
+Example (the invocation used to build the committed subset):
+  PYTHONPATH=. python scripts/build_reference_subset.py \
+    --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f1/ccipra-v323r0-f1.TXT \
+    --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f2/ccipra-v323r0-f2.TXT \
+    --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f3/ccipra-v323r0-f3.txt \
+    --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f4/ccipra-v323r0-f4.txt \
+    --mue data/reference/raw/medicare-ncci-2026-q4-practitioner-services-mue-table/MCR_MUE_PractitionerServices_Eff_10-01-2026.csv \
+    --pfs data/reference/raw/rvu26d-updated-08-26-2026/PPRRVU2026_Oct_nonQPP.csv \
     --codes data/reference/codes.txt \
     --ncci NCCI-2026Q4:2026-10-01:2026-12-31 --mue-version MUE-2026Q4:2026-10-01:2026-12-31 \
-    --pfs-version PFS-2026:2026-01-01:2026-12-31 --out data/reference/subset
+    --pfs-version PFS-2026D:2026-10-01:2026-12-31 --out data/reference/subset
+
+Raw files: see data/reference/SOURCES.md (download requires accepting the AMA/CMS license).
 """
 
 import argparse

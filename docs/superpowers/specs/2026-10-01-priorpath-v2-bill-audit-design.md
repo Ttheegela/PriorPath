@@ -252,3 +252,13 @@ The README shows the latest table plus a "known misses" list (error types no rul
 2. Synthea output's CPT/HCPCS coverage (decides whether Synthea is used at all).
 3. Exact CMS file names/URLs for the current NCCI, MUE and PFS releases.
 4. Python bundle size with Presidio + spaCy small + LangGraph stays under 500 MB.
+
+---
+
+## 16. Carry-over requirements for Plan 2 (from the Plan 1 final review)
+
+1. R4 status I is Medicare-specific: codes like 80320, 77061/77062 are valid CPT for commercial payers. Once the claim carries payer type, status-I flags become `lead` unless the payer is Medicare; status D stays `error`. Keep the eval gate meaningful by adding a status-D code from an older RVU release or splitting R4 into R4-D / R4-I.
+2. Case totals must not double-count: when summing est_overcharge for a case or queue row, cap each line's total at that line's billed charge (e.g. a `case_overcharge(claim, flags)` helper with a test for an R2 column-2 line that is also an R5 outlier).
+3. Strengthen the eval gate with negative plants: an indicator-1 NCCI pair carrying 59/XS (expect no R2), a facility-POS line priced between 3x facility and 3x non-facility rate handling (expect R5 only per the facility rate), repeat-modifier 76/91 duplicates (expect no R1), 26/TC lines (expect no R5). The README must state what the gate covers.
+4. Reference coverage: add Q3 2026 NCCI/MUE and RVU26C so bills dated July-September 2026 are auditable; add overlap validation for versions of the same kind in load_normalized and make generate's coverage window handle multiple versions.
+5. Pseudonyms: replace unsalted 8-hex sha256 with HMAC-SHA256 keyed by a server secret and at least 16 hex chars before pseudonyms are stored.

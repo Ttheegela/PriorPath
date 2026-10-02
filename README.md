@@ -1,3 +1,5 @@
+> **v2 in progress (branch `v2-bill-audit`):** PriorPath is being rebuilt as an AI medical bill auditor. Design: `docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md`. The text below describes v1.
+
 # PriorPath — Multi-Agent Prior Authorization Engine
 
 > LangGraph-orchestrated prior authorization system for ophthalmic procedures.  
