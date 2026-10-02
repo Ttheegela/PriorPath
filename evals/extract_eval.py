@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections import Counter
+import os
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +37,14 @@ class Metrics:
     true: int = 0
     pages: int = 0
     errors: int = 0  # extracted rows dropped by validation
+    by: dict[str, Metrics] = field(default_factory=dict)  # per layout and clean/noisy, top level only
+
+    def add(self, matched: int, pred: int, true: int, pages: int, errors: int) -> None:
+        self.tp += matched
+        self.pred += pred
+        self.true += true
+        self.pages += pages
+        self.errors += errors
 
     @property
     def precision(self) -> float:
@@ -64,11 +72,19 @@ def match_lines(true: list[LineItem], pred: list[LineItem]) -> dict[int, str]:
     return {i: free[k].pop(0) for i, p in enumerate(pred) if (k := line_key(p)) in free and free[k]}
 
 
+def is_noisy(i: int) -> bool:
+    return (i // 3) % 2 == 1  # layout is i % 3, so every layout appears both clean and noisy
+
+
+def groups(i: int) -> tuple[str, str]:
+    return LAYOUTS[i % 3], "noisy" if is_noisy(i) else "clean"
+
+
 def build_dataset(labeled: list[LabeledClaim]) -> Dataset:
     out: Dataset = []
     for i, lc in enumerate(labeled):
         pdf = render_bill(lc.claim, LAYOUTS[i % 3])
-        if i % 3 == 2:
+        if is_noisy(i):
             pdf = add_scan_noise(pdf, seed=i)
         out.append((lc, pdf_page_images(pdf)))
     return out
@@ -83,15 +99,13 @@ def _rebuild(lc: LabeledClaim, ext: ExtractionResult, matched: dict[int, str]) -
 def run_eval(dataset: Dataset, read: PageReader, ref: Reference) -> tuple[Metrics, Report]:
     m = Metrics()
     rebuilt = []
-    for lc, pngs in dataset:
+    for i, (lc, pngs) in enumerate(dataset):
         pages = [parse_page(read(f"{lc.claim.id}/{n}", png), n) for n, png in enumerate(pngs, 1)]
         ext = merge(pages)
         matched = match_lines(lc.claim.lines, ext.lines)
-        m.tp += len(matched)
-        m.pred += len(ext.lines)
-        m.true += len(lc.claim.lines)
-        m.pages += len(pngs)
-        m.errors += len(ext.errors)
+        stats = (len(matched), len(ext.lines), len(lc.claim.lines), len(pngs), len(ext.errors))
+        for g in (None, *groups(i)):
+            (m if g is None else m.by.setdefault(g, Metrics())).add(*stats)
         rebuilt.append(_rebuild(lc, ext, matched))
     # via_fhir=False: a claim with no extracted lines must still count its expected flags as misses
     return m, evaluate(rebuilt, ref, via_fhir=False)
@@ -110,7 +124,11 @@ def gate_failures(m: Metrics, report: Report) -> list[str]:
 
 
 def live_reader(client: VisionClient, pages: dict[str, Any]) -> PageReader:
+    """Reads via the model and records into `pages`; keys already in `pages` are not re-read."""
+
     def read(key: str, png: bytes) -> dict[str, Any]:
+        if key in pages:
+            return pages[key]  # type: ignore[no-any-return]
         pages[key] = raw = client.extract(png, PAGE_SCHEMA, EXTRACT_PROMPT)
         return raw
 
@@ -129,11 +147,28 @@ def replay_reader(path: Path) -> PageReader:
 
 
 def save_recording(path: Path, model: str, pages: dict[str, Any]) -> None:
+    """Atomic: a crash mid-write never replaces a complete recording."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"model": model, "pages": pages}, indent=1, sort_keys=True) + "\n")
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"model": model, "pages": pages}, indent=1, sort_keys=True) + "\n")
+    tmp.replace(path)
 
 
-def to_markdown(m: Metrics, report: Report, model: str, layouts: Counter[str]) -> str:
+def load_pages(path: Path, model: str) -> dict[str, Any]:
+    """Pages already recorded for this model, so an interrupted --record run resumes."""
+    if not path.exists():
+        return {}
+    rec = json.loads(path.read_text())
+    return dict(rec["pages"]) if rec.get("model") == model else {}
+
+
+def _lines_json(m: Metrics) -> dict[str, Any]:
+    d = {**asdict(m), "f1": m.f1}
+    d["by"] = {k: {**asdict(g), "f1": g.f1} for k, g in m.by.items()}
+    return d
+
+
+def to_markdown(m: Metrics, report: Report, model: str) -> str:
     head = [
         f"Model: `{model}`; pages read: {m.pages}; rows dropped by validation: {m.errors}",
         "",
@@ -150,7 +185,12 @@ def to_markdown(m: Metrics, report: Report, model: str, layouts: Counter[str]) -
         f"(recall gate {MIN_RECALL} for rules with support >= {MIN_SUPPORT}; "
         "negative-plant false positives 0).",
         "",
-        f"Layouts: {', '.join(f'{k} {v}' for k, v in sorted(layouts.items()))}",
+        "| Group | Pages | Precision | Recall | F1 |",
+        "|---|---|---|---|---|",
+        *(
+            f"| {k} | {g.pages} | {g.precision:.3f} | {g.recall:.3f} | {g.f1:.3f} |"
+            for k, g in sorted(m.by.items())
+        ),
         "",
     ]
     return "\n".join(head) + report.to_markdown() + "\n"
@@ -172,30 +212,27 @@ def main(argv: list[str] | None = None) -> int:
     dataset = build_dataset(generate(ref, a.n, a.seed))
     pages: dict[str, Any] = {}
     if a.record:
-        import os
-
         key = os.environ.get("OPENROUTER_API_KEY")
         if not key:
             print("--record needs OPENROUTER_API_KEY")
             return 2
         model = a.record
-        read = live_reader(OpenRouterVisionClient(key, model), pages)
         path = a.recorded / f"extraction-{model.replace('/', '-')}.json"
+        pages = load_pages(path, model)
+        read = live_reader(OpenRouterVisionClient(key, model), pages)
     else:
         model = json.loads(a.replay.read_text())["model"]
         read = replay_reader(a.replay)
     try:
         m, report = run_eval(dataset, read, ref)
     finally:
-        if a.record:  # keep partial recordings so a failed run is not paid for twice
+        if a.record:  # partial progress is saved; rerunning resumes from it
             save_recording(path, model, pages)
-    layouts = Counter(LAYOUTS[i % 3] for i in range(a.n))
-    text = to_markdown(m, report, model, layouts)
+    text = to_markdown(m, report, model)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(text)
     a.out.with_suffix(".json").write_text(
-        json.dumps({"model": model, "n": a.n, "seed": a.seed, "lines": {**asdict(m), "f1": m.f1}}, indent=2)
-        + "\n"
+        json.dumps({"model": model, "n": a.n, "seed": a.seed, "lines": _lines_json(m)}, indent=2) + "\n"
     )
     print(text)
     failures = gate_failures(m, report) if a.replay else []  # gates apply to committed recordings only

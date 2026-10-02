@@ -61,6 +61,7 @@ EXTRACT_PROMPT = (
 )
 
 _FIELDS = ("code", "modifiers", "units", "charge", "date_of_service")
+_NO_POS = {"", "-", "\u2013", "n/a", "na", "none"}  # POS legitimately not shown
 _BLANK_POS = {"value": "", "confidence": 0.0}  # older recordings and fakes omit place_of_service
 
 
@@ -85,10 +86,11 @@ def _line(raw: dict[str, Any], line_id: str) -> LineItem:
     vals = {k: raw[k]["value"] for k in keys}
     conf = {k: min(1.0, max(0.0, float(_num(raw[k]["confidence"])))) for k in keys}
     pos = vals["place_of_service"]
-    if pos in ("", None):
+    shown = not (pos is None or (isinstance(pos, str) and pos.strip().lower() in _NO_POS))
+    if shown and not (isinstance(pos, str) and len(pos) == 2 and pos.isascii() and pos.isdigit()):
+        pos, conf["place_of_service"] = None, 0.0  # unreadable POS: keep the line, send it to review
+    elif not shown:
         pos = None
-    elif not (isinstance(pos, str) and len(pos) == 2 and pos.isascii() and pos.isdigit()):
-        raise ValueError("place of service must be two digits")
     if not isinstance(vals["modifiers"], list) or not all(isinstance(m, str) for m in vals["modifiers"]):
         raise TypeError("modifiers must be a list of strings")
     units = _num(vals["units"])
@@ -106,7 +108,7 @@ def _line(raw: dict[str, Any], line_id: str) -> LineItem:
         date_of_service=date.fromisoformat(vals["date_of_service"]),
         place_of_service=pos,
         source=LineSource.EXTRACTED,
-        confidence=min(conf[k] for k in (*_FIELDS, *(("place_of_service",) if pos else ()))),
+        confidence=min(conf[k] for k in (*_FIELDS, *(("place_of_service",) if shown else ()))),
         field_confidence=conf,
     )
 

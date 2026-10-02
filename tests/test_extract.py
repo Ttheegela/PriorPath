@@ -43,10 +43,24 @@ def test_valid_rows_become_extracted_line_items() -> None:
 
 
 def test_place_of_service_is_parsed_validated_and_optional() -> None:
-    res = parse_page(page(row(pos="22"), row(pos=""), row(pos=None), row(pos="2"), row(pos="AB")), 1)
+    res = parse_page(page(row(pos="22"), row(pos=""), row(pos=None)), 1)
     assert [ln.place_of_service for ln in res.lines] == ["22", None, None]
-    assert res.lines[0].field_confidence["place_of_service"] == 0.99
-    assert len(res.errors) == 2 and all("place of service" in e for e in res.errors)
+    assert res.lines[0].field_confidence["place_of_service"] == 0.99 and not res.errors
+
+
+def test_unreadable_place_of_service_keeps_line_for_review() -> None:
+    for bad in ("1l", "112", "AB"):
+        res = parse_page(page(row(pos=bad)), 1)
+        ln = res.lines[0]
+        assert not res.errors and ln.place_of_service is None
+        assert ln.field_confidence["place_of_service"] == 0.0 and ln.confidence == 0.0
+        assert needs_review(res.lines)
+
+
+def test_place_of_service_not_shown_does_not_lower_confidence() -> None:
+    for blank in ("-", "\u2013", " N/A ", "na", "None", ""):
+        ln = parse_page(page(row(pos=blank, conf=0.99)), 1).lines[0]
+        assert ln.place_of_service is None and ln.confidence == 0.99 and not needs_review([ln])
 
 
 def test_bad_rows_are_dropped_with_page_and_row_named() -> None:

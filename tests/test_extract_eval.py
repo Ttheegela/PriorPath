@@ -8,7 +8,9 @@ from evals.extract_eval import (
     Metrics,
     build_dataset,
     gate_failures,
+    is_noisy,
     live_reader,
+    load_pages,
     main,
     replay_reader,
     run_eval,
@@ -111,6 +113,32 @@ def test_record_replay_round_trip(dataset, tmp_path: Path) -> None:  # type: ign
     assert m1 == m2 and r1.to_markdown() == r2.to_markdown()
 
 
+def test_every_layout_is_both_clean_and_noisy() -> None:
+    assert {(i % 3, is_noisy(i)) for i in range(30)} == {(a, b) for a in range(3) for b in (False, True)}
+
+
+def test_per_group_metrics_cover_layouts_and_noise(dataset) -> None:  # type: ignore[no-untyped-def]
+    m, report = run_eval(dataset, _truth_reader([lc for lc, _ in dataset]), FIXTURE_REF)
+    assert set(m.by) == {"table", "statement", "compact", "clean", "noisy"}
+    assert m.by["clean"].pages + m.by["noisy"].pages == m.pages
+
+
+def test_record_resumes_from_existing_recording_and_saves_atomically(dataset, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
+    truth = _truth_reader([lc for lc, _ in dataset])
+    keys = [f"{lc.claim.id}/{i}" for lc, pngs in dataset for i in range(1, len(pngs) + 1)]
+    path = tmp_path / "extraction-m.json"
+    save_recording(path, "m", {k: truth(k, b"") for k in keys[:3]})
+    assert not list(tmp_path.glob("*.tmp"))
+    assert load_pages(path, "other-model") == {}
+    pages = load_pages(path, "m")
+    client = _Truth(dataset, truth)
+    calls: list[str] = []
+    orig = client.read
+    client.read = lambda k, png: (calls.append(k), orig(k, png))[1]  # type: ignore[method-assign]
+    run_eval(dataset, live_reader(client, pages), FIXTURE_REF)
+    assert calls == keys[3:] and sorted(pages) == sorted(keys)
+
+
 def test_replay_missing_key_is_an_error(dataset, tmp_path: Path) -> None:  # type: ignore[no-untyped-def]
     path = tmp_path / "r.json"
     save_recording(path, "m", {})
@@ -136,6 +164,20 @@ def test_cli_replay_writes_results_and_gates(tmp_path: Path, capsys: pytest.Capt
     code = main(argv)
     assert code == 0, capsys.readouterr().out
     assert "vendor/x" in out.read_text() and (tmp_path / "extraction.json").exists()
+
+
+def test_cli_replay_exits_nonzero_naming_the_failed_metric(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    ds = build_dataset(generate(FIXTURE_REF, 6, 11))
+    pages: dict[str, Any] = {}
+    lossy = _truth_reader([lc for lc, _ in ds], drop_every=2)
+    run_eval(ds, live_reader(_Truth(ds, lossy), pages), FIXTURE_REF)
+    path = tmp_path / "extraction-x.json"
+    save_recording(path, "vendor/x", pages)
+    argv = ["--n", "6", "--seed", "11", "--ref", str(FIXTURE_DIR), "--replay", str(path)]
+    assert main([*argv, "--out", str(tmp_path / "o.md")]) == 1
+    assert "GATE FAILED: line F1" in capsys.readouterr().out
 
 
 def test_metrics_f1_zero_safe() -> None:
