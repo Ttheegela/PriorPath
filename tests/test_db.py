@@ -20,6 +20,16 @@ def test_database_url_rewrites_driver(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", os.environ.get("TEST_DATABASE_URL", "x"))
 
 
+def test_engine_bounds_connect_and_skips_prepared_statements(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.db import session
+
+    seen: dict[str, object] = {}
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@h/db")
+    monkeypatch.setattr(session, "create_engine", lambda url, **kw: seen.update(kw))
+    session.get_engine.__wrapped__()
+    assert seen["connect_args"] == {"prepare_threshold": None, "connect_timeout": 10}
+
+
 def test_migration_creates_tables(db: Engine) -> None:
     names = set(inspect(db).get_table_names())
     assert {

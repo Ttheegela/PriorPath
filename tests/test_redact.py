@@ -404,6 +404,23 @@ def test_identifier_running_off_the_page_is_masked_to_the_edge() -> None:
     assert left < page.get_size()[0] == right
 
 
+def test_annotation_text_is_not_sent_to_the_model_but_reviewer_sees_it() -> None:
+    pdf = FPDF(unit="pt", format="Letter")
+    pdf.add_page()
+    pdf.set_font("Helvetica", "", 11)
+    pdf.text(72, 72, "Itemized statement for services rendered")
+    pdf.free_text_annotation("Patient: Jane Q Doe  Member ID: XQH4471029", x=72, y=200, w=300, h=30)
+    data = bytes(pdf.output())
+    (model,), _ = pdf_page_images_with_redaction(data)
+    box = (int(72 * SCALE), int(200 * SCALE), int(372 * SCALE), int(230 * SCALE))  # fpdf y is from the top
+
+    def darkest(jpeg: bytes) -> int:
+        return min(Image.open(io.BytesIO(jpeg)).convert("L").crop(box).tobytes())
+
+    assert darkest(model) > 200  # annotation not drawn: no dark text pixels
+    assert darkest(render_page(data, 1)) < 50  # the /pages original still shows it
+
+
 def test_mask_converts_pdf_points_to_pixels() -> None:
     img = Image.new("RGB", (200, 100), "white")  # a 100 x 50 pt page at scale 2
     out = mask(img, [(10, 30, 20, 40)], (100, 50), 2)

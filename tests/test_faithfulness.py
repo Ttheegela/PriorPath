@@ -8,6 +8,7 @@ import pytest
 from app.llm.cache import explanation_cache_key
 from app.models import Evidence, Flag, Severity
 from evals.faithfulness import (
+    PROMPT_VERSION,
     Item,
     OpenRouterJudge,
     build_items,
@@ -108,7 +109,7 @@ def test_main_replay_missing_recorded_key_exits_2(tmp_path: Path, monkeypatch: p
     monkeypatch.chdir(Path(__file__).resolve().parent.parent)
     out = tmp_path / "faithfulness.md"
     rec = tmp_path / "rec.json"
-    rec.write_text(json.dumps({"model": "m", "judgments": {}}))
+    rec.write_text(json.dumps({"model": "m", "prompt_version": PROMPT_VERSION, "judgments": {}}))
     assert main(["--replay", str(rec), "--out", str(out)]) == 2  # real demo keys missing from the recording
 
 
@@ -143,12 +144,43 @@ def test_judge_request_has_schema_reasoning_and_token_budget() -> None:
     assert list(kw["response_format"]["json_schema"]["schema"]["properties"])[-1] == "verdict"
 
 
-def test_judge_length_finish_errors_and_junk_is_recorded_raw() -> None:
+def test_judge_length_finish_and_junk_are_recorded_and_unjudged() -> None:
     j, _ = _judge("{}", finish="length")
-    with pytest.raises(RuntimeError):
-        j(_items(1)[0])
+    items = _items(1)
+    raw = j(items[0])
+    assert raw == {"raw": "", "finish_reason": "length"}
+    assert score(items, {items[0].key: raw}).unjudged == 1
     j, _ = _judge("not json")
     assert j(_items(1)[0]) == {"raw": "not json"}
+
+
+def test_judge_transport_errors_still_raise() -> None:
+    j, _ = _judge("{}")
+
+    def down(**kw: Any) -> Any:
+        raise ConnectionError("down")
+
+    j._client.chat.completions.create = down  # type: ignore[method-assign]
+    with pytest.raises(ConnectionError):
+        j(_items(1)[0])
+
+
+def test_recording_with_another_prompt_is_not_resumed_and_not_replayed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    items = _items(1)
+    path = tmp_path / "f.json"
+    save_recording(path, "m", {items[0].key: FAITHFUL})
+    assert json.loads(path.read_text())["prompt_version"] == PROMPT_VERSION
+    assert load_recorded(path, "m") == {items[0].key: FAITHFUL}
+    for stale in ("judge-v1", None):
+        rec = json.loads(path.read_text())
+        rec["prompt_version"] = stale
+        path.write_text(json.dumps(rec))
+        assert load_recorded(path, "m") == {}
+        assert "starting fresh" in capsys.readouterr().out
+        with pytest.raises(ValueError, match="prompt"):
+            replay(items, path)
 
 
 def test_main_replay_gate_failure_exits_nonzero(

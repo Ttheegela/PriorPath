@@ -159,3 +159,20 @@ def test_committed_demo_seeds_every_recorded_bill(db: Engine) -> None:
         pdf = list(s.scalars(select(Case).where(Case.source == "pdf")))
         assert len(pdf) == n
         assert all(s.scalar(select(CaseDocument).where(CaseDocument.case_id == c.id)) for c in pdf)
+
+
+def test_build_demo_extracts_from_redacted_pages(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.ingest.pdf import pdf_page_images
+    from scripts import build_demo
+    from tests.fakes import FakeVision
+
+    v = FakeVision([{"lines": []}] * 20)
+    monkeypatch.setattr(build_demo, "BILLS", tmp_path / "bills")
+    monkeypatch.setattr(build_demo, "BILL_CLAIMS", tmp_path / "bill_claims.json")
+    monkeypatch.setattr(build_demo, "EXTRACTIONS", tmp_path / "pdf_extractions.json")
+    monkeypatch.setattr(build_demo, "default_vision_client", lambda: v)
+    assert build_demo._build_bills(True, False, FIXTURE_REF) == 0
+    pdfs = [f.read_bytes() for f in sorted((tmp_path / "bills").glob("*.pdf"))]
+    sent = [img for img, _ in v.calls]
+    assert sent == [p for pdf in pdfs for p in pdf_page_images(pdf, redact=True)]
+    assert sent != [p for pdf in pdfs for p in pdf_page_images(pdf)]  # the bills do have identifiers

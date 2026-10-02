@@ -1,4 +1,6 @@
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import Any
 
@@ -46,6 +48,7 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> FakeLangfuse:
     monkeypatch.setattr(observability, "_client", None)
     monkeypatch.setattr(observability, "_pending", 0)
     monkeypatch.setattr(observability, "_warned", False)
+    monkeypatch.setattr(observability, "_flusher", None)
     monkeypatch.setattr(observability, "_factory", lambda: f)
     return f
 
@@ -73,12 +76,18 @@ def test_disabled_without_keys_never_builds_client(monkeypatch: pytest.MonkeyPat
 
 
 def test_generation_has_model_usage_and_only_allowed_metadata(fake: FakeLangfuse) -> None:
-    md: dict[str, str | int | float | bool] = {"rule_id": "R1", "provider": "Clinic", "pages": 2}
+    md: dict[str, str | int | float | bool] = {
+        "rule_id": "R1",
+        "provider": "Clinic",
+        "page_no": 2,
+        "pages": 3,
+        "workspace": "ws-1",
+    }
     with observability.trace_llm("explain", model="m1", kind="explain", metadata=md) as span:
         span.end({"ok": True, "finish_reason": "stop", "letter": "Dear Jane"}, {"input": 3, "output": 4})
     (obs,) = fake.observations
     assert obs.kwargs["as_type"] == "generation" and obs.kwargs["model"] == "m1"
-    assert obs.kwargs["metadata"] == {"rule_id": "R1", "pages": 2, "kind": "explain"}
+    assert obs.kwargs["metadata"] == {"rule_id": "R1", "page_no": 2, "kind": "explain"}
     (upd,) = obs.updates
     assert upd["usage_details"] == {"input": 3, "output": 4}
     assert upd["output"]["ok"] is True and "letter" not in upd["output"]
@@ -247,3 +256,39 @@ def test_vision_parse_failure_keeps_usage_and_finish_reason(
     assert obs.updates[-1]["usage_details"] == {"input": 11, "output": 7}
     assert obs.updates[-1]["output"]["finish_reason"] == "stop"
     assert obs.updates[-1]["output"]["ok"] is False
+
+
+def test_flush_is_single_flight(fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch) -> None:
+    release = threading.Event()
+    calls: list[int] = []
+
+    def slow() -> None:
+        calls.append(1)
+        release.wait(5)
+
+    monkeypatch.setattr(fake, "flush", slow)
+    monkeypatch.setattr(observability, "_FLUSH_BUDGET_SECONDS", 0.05)
+    _traced()
+    observability.flush()  # over budget: its worker is still running
+    _traced()
+    observability.flush()  # skipped, the span stays pending
+    assert len(calls) == 1 and observability.has_pending()
+    release.set()
+    assert observability._flusher is not None
+    observability._flusher.join(5)
+    observability.flush()
+    assert len(calls) == 2 and not observability.has_pending()
+
+
+def test_client_is_built_once_under_concurrency(fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch) -> None:
+    built: list[int] = []
+
+    def slow_factory() -> FakeLangfuse:
+        built.append(1)
+        time.sleep(0.05)
+        return fake
+
+    monkeypatch.setattr(observability, "_factory", slow_factory)
+    with ThreadPoolExecutor(8) as pool:
+        clients = list(pool.map(lambda _: observability._get(), range(8)))
+    assert built == [1] and all(c is fake for c in clients)

@@ -105,7 +105,7 @@ def _build_bills(extract: bool, explain: bool, ref: InMemoryReference) -> int:
             continue
         data = BILLS.joinpath(f"{c.id}.pdf").read_bytes()
         try:
-            pages = pdf_page_images(data)
+            pages = pdf_page_images(data, redact=True)  # what production sends the model
             m = merge([extract_page(png, n, vision) for n, png in enumerate(pages, start=1)])
         except (VisionError, PdfError) as exc:
             print(

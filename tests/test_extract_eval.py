@@ -149,6 +149,36 @@ def test_replay_missing_key_is_an_error(dataset, tmp_path: Path) -> None:  # typ
         run_eval(dataset, replay_reader(path), FIXTURE_REF)
 
 
+def test_recordings_store_provenance_and_mismatches_are_not_resumed_or_replayed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "r.json"
+    save_recording(path, "m", {"C1/1": {"lines": []}})
+    rec = json.loads(path.read_text())
+    assert (rec["prompt_version"], rec["redacted"]) == ("extract-v2", True)
+    assert load_pages(path, "m") == {"C1/1": {"lines": []}}
+    replay_reader(path)
+    for change in ({"redacted": False}, {"prompt_version": "extract-v1"}):
+        path.write_text(json.dumps(rec | change))
+        assert load_pages(path, "m") == {}
+        assert "starting fresh" in capsys.readouterr().out
+        with pytest.raises(ValueError, match="recorded with"):
+            replay_reader(path)
+
+
+def test_legacy_recording_is_plan4_provenance(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """No provenance fields = unredacted extract-v2: replays (with a warning) but is never resumed."""
+    path = tmp_path / "r.json"
+    path.write_text(json.dumps({"model": "m", "pages": {"C1/1": {"lines": []}}}))
+    assert load_pages(path, "m") == {}
+    replay_reader(path)
+    assert "predates redaction" in capsys.readouterr().out
+
+
+def test_committed_recording_still_replays() -> None:
+    replay_reader(Path(__file__).resolve().parent.parent / "evals/recorded/extraction.json")
+
+
 def test_live_reader_uses_the_page_schema_and_prompt() -> None:
     v = FakeVision([{"lines": []}])
     pages: dict[str, Any] = {}

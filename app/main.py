@@ -56,7 +56,7 @@ def health() -> JSONResponse:
         with get_engine().connect() as conn, conn.begin():
             conn.execute(text("SET LOCAL statement_timeout = '2s'"))
             conn.execute(text("SELECT 1"))
-    except SQLAlchemyError:
+    except (SQLAlchemyError, RuntimeError):  # RuntimeError: DATABASE_URL unset
         log.exception("health check: database unavailable")
         return JSONResponse({"status": "degraded", "db": "unavailable"}, status_code=503)
     reference = [v.ref_version for v in get_reference().versions]

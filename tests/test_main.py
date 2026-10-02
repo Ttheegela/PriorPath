@@ -34,6 +34,16 @@ def test_health_503_without_leaking_when_db_down(monkeypatch: pytest.MonkeyPatch
     assert "postgresql" not in resp.text
 
 
+def test_health_503_when_database_url_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.db.session import get_engine
+
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setattr(main, "get_engine", get_engine.__wrapped__)  # uncached: reads the env now
+    resp = client.get("/api/health")
+    assert resp.status_code == 503
+    assert resp.json() == {"status": "degraded", "db": "unavailable"}
+
+
 def test_docs_served_under_api() -> None:
     assert client.get("/api/docs").status_code == 200
 

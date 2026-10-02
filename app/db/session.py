@@ -22,7 +22,9 @@ def database_url() -> str:
 def get_engine() -> Engine:
     # ponytail: NullPool — serverless instances don't keep pools warm; Neon's pooled URL does the pooling
     # (pgbouncer rejects server-side prepared statements, hence prepare_threshold=None).
-    return create_engine(database_url(), poolclass=NullPool, connect_args={"prepare_threshold": None})
+    return create_engine(
+        database_url(), poolclass=NullPool, connect_args={"prepare_threshold": None, "connect_timeout": 10}
+    )
 
 
 def get_session() -> Iterator[Session]:

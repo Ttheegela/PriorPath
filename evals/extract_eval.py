@@ -18,7 +18,7 @@ from typing import Any
 
 from app.ingest.pdf import pdf_page_images
 from app.llm.extract import EXTRACT_PROMPT, PAGE_SCHEMA, ExtractionResult, merge, parse_page
-from app.llm.vision import OpenRouterVisionClient, VisionClient
+from app.llm.vision import PROMPT_VERSION, OpenRouterVisionClient, VisionClient
 from app.models import LineItem
 from app.reference.base import Reference
 from app.reference.normalized import load_normalized
@@ -31,6 +31,7 @@ Dataset = list[tuple[LabeledClaim, list[bytes]]]
 MIN_F1 = 0.95
 MIN_RECALL = 0.90
 MIN_SUPPORT = 3
+REDACTED = True  # build_dataset renders pages the way production sends them
 
 
 @dataclass
@@ -89,7 +90,7 @@ def build_dataset(labeled: list[LabeledClaim]) -> Dataset:
         pdf = render_bill(lc.claim, LAYOUTS[i % 3])
         if is_noisy(i):
             pdf = add_scan_noise(pdf, seed=i)
-        out.append((lc, pdf_page_images(pdf, redact=True)))  # what production sends the model
+        out.append((lc, pdf_page_images(pdf, redact=REDACTED)))  # what production sends the model
     return out
 
 
@@ -138,8 +139,23 @@ def live_reader(client: VisionClient, pages: dict[str, Any]) -> PageReader:
     return read
 
 
+def _provenance(rec: dict[str, Any]) -> tuple[str, bool]:
+    """(prompt version, redacted); recordings from before these were stored are Plan 4's."""
+    return rec.get("prompt_version", "extract-v2"), rec.get("redacted", False)
+
+
 def replay_reader(path: Path) -> PageReader:
-    pages: dict[str, Any] = json.loads(path.read_text())["pages"]
+    rec = json.loads(path.read_text())
+    prompt, redacted = _provenance(rec)
+    if prompt != PROMPT_VERSION:
+        raise ValueError(f"{path.name} was recorded with prompt {prompt}, not {PROMPT_VERSION}")
+    # ponytail: a legacy recording (no provenance) replays with a warning so CI stays green until the
+    # release re-record replaces it; an explicit redacted mismatch is refused.
+    if redacted != REDACTED:
+        if "redacted" in rec:
+            raise ValueError(f"{path.name} was recorded with redacted={redacted}, not {REDACTED}")
+        print(f"WARNING: {path.name} predates redaction (unredacted pages); re-record it")
+    pages: dict[str, Any] = rec["pages"]
 
     def read(key: str, png: bytes) -> dict[str, Any]:
         if key not in pages:
@@ -153,16 +169,20 @@ def save_recording(path: Path, model: str, pages: dict[str, Any]) -> None:
     """Atomic: a crash mid-write never replaces a complete recording."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"model": model, "pages": pages}, indent=1, sort_keys=True) + "\n")
+    rec = {"model": model, "prompt_version": PROMPT_VERSION, "redacted": REDACTED, "pages": pages}
+    tmp.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
     tmp.replace(path)
 
 
 def load_pages(path: Path, model: str) -> dict[str, Any]:
-    """Pages already recorded for this model, so an interrupted --record run resumes."""
+    """Pages already recorded for this model, prompt and redaction, so an interrupted --record run resumes."""
     if not path.exists():
         return {}
     rec = json.loads(path.read_text())
-    return dict(rec["pages"]) if rec.get("model") == model else {}
+    if (rec.get("model"), *_provenance(rec)) != (model, PROMPT_VERSION, REDACTED):
+        print(f"{path.name}: recorded with another model, prompt or redaction setting; starting fresh")
+        return {}
+    return dict(rec["pages"])
 
 
 def candidate_path(recorded: Path, model: str) -> Path:
@@ -239,7 +259,11 @@ def main(argv: list[str] | None = None) -> int:
         read = live_reader(OpenRouterVisionClient(key, model), pages)
     else:
         model = json.loads(a.replay.read_text())["model"]
-        read = replay_reader(a.replay)
+        try:
+            read = replay_reader(a.replay)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return 2
     try:
         m, report = run_eval(dataset, read, ref)
     finally:

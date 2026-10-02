@@ -11,10 +11,7 @@ from typing import Any, Literal
 
 log = logging.getLogger(__name__)
 Scalar = str | int | float | bool
-ALLOWED = {
-    "rule_id", "prompt_version", "pages", "page_no", "finish_reason", "ok", "error_type", "workspace",
-    "kind", "latency_ms",
-}  # fmt: skip
+ALLOWED = {"rule_id", "prompt_version", "page_no", "finish_reason", "ok", "error_type", "kind", "latency_ms"}
 _TIMEOUT_SECONDS = 3  # SDK HTTP timeout
 
 _client: Any = None
@@ -22,6 +19,7 @@ _pending = 0  # spans ended since the last flush (guarded by _lock)
 _lock = threading.Lock()
 _FLUSH_BUDGET_SECONDS = 2.0  # langfuse's flush() is unbounded (force_flush 30 s + queue joins)
 _warned = False
+_flusher: threading.Thread | None = None  # the one flush in flight, if any
 
 
 def _build() -> Any:
@@ -48,9 +46,10 @@ def _warn(exc: Exception) -> None:
 
 def _get() -> Any:
     global _client
-    if _client is None:
-        _client = _factory()
-    return _client
+    with _lock:
+        if _client is None:
+            _client = _factory()
+        return _client
 
 
 def _clean(d: dict[str, Scalar]) -> dict[str, Scalar]:
@@ -114,13 +113,10 @@ def has_pending() -> bool:
 
 
 def flush() -> None:
-    """Deliver pending spans; waits at most the budget (the daemon worker may outlive it)."""
-    global _pending
+    """Deliver pending spans; waits at most the budget (the daemon worker may outlive it).
+    Single-flight: while a previous flush is still running, spans stay pending for the next request."""
+    global _pending, _flusher
     client = _client
-    with _lock:
-        n, _pending = _pending, 0
-    if n == 0 or client is None:
-        return
 
     def run() -> None:
         try:
@@ -128,8 +124,14 @@ def flush() -> None:
         except Exception as exc:
             _warn(exc)
 
-    worker = threading.Thread(target=run, daemon=True)
-    worker.start()
+    with _lock:
+        if _flusher is not None and _flusher.is_alive():
+            return
+        n, _pending = _pending, 0
+        if n == 0 or client is None:
+            return
+        _flusher = worker = threading.Thread(target=run, daemon=True)
+        worker.start()
     worker.join(_FLUSH_BUDGET_SECONDS)
     if worker.is_alive():
         _warn(TimeoutError("flush exceeded budget"))

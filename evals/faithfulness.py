@@ -105,8 +105,8 @@ class OpenRouterJudge:
             choice = response.choices[0]
             ok = choice.finish_reason == "stop"
             span.end({"ok": ok, "finish_reason": str(choice.finish_reason)}, usage_of(response))
-            if not ok:
-                raise RuntimeError(f"judge response incomplete: {choice.finish_reason}")
+            if not ok:  # e.g. "length": recorded and scored as unjudged rather than aborting the run
+                return {"raw": "", "finish_reason": str(choice.finish_reason)}
             content = choice.message.content or ""
             try:
                 parsed = json.loads(content)
@@ -183,17 +183,22 @@ def gate_failures(r: Result) -> list[str]:
 
 
 def load_recorded(path: Path, model: str) -> dict[str, Any]:
+    """Judgments to resume from; a recording made with another model or prompt is ignored."""
     if not path.exists():
         return {}
     rec = json.loads(path.read_text())
-    return dict(rec["judgments"]) if rec.get("model") == model else {}
+    if (rec.get("model"), rec.get("prompt_version")) != (model, PROMPT_VERSION):
+        print(f"{path.name}: recorded with {rec.get('model')}/{rec.get('prompt_version')}; starting fresh")
+        return {}
+    return dict(rec["judgments"])
 
 
 def save_recording(path: Path, model: str, judgments: dict[str, Any]) -> None:
     """Atomic: a crash mid-write never replaces a complete recording."""
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"model": model, "judgments": judgments}, indent=1, sort_keys=True) + "\n")
+    rec = {"model": model, "prompt_version": PROMPT_VERSION, "judgments": judgments}
+    tmp.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
     tmp.replace(path)
 
 
@@ -210,7 +215,10 @@ def record(items: list[Item], judge: Judge, path: Path, model: str) -> dict[str,
 
 
 def replay(items: list[Item], path: Path) -> dict[str, Any]:
-    judgments: dict[str, Any] = json.loads(path.read_text())["judgments"]
+    rec = json.loads(path.read_text())
+    if (prompt := rec.get("prompt_version")) != PROMPT_VERSION:
+        raise ValueError(f"{path.name} was judged with prompt {prompt}, not {PROMPT_VERSION}")
+    judgments: dict[str, Any] = rec["judgments"]
     for it in items:
         if it.key not in judgments:
             raise KeyError(f"{it.key} not in recording {path.name}")
@@ -276,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
         model = json.loads(a.replay.read_text())["model"]
         try:
             raw = replay(items, a.replay)
-        except KeyError as e:
+        except (KeyError, ValueError) as e:
             print(f"ERROR: {e.args[0]}")
             return 2
     r = score(items, raw)
