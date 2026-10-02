@@ -1,4 +1,5 @@
 import uuid
+from typing import Any
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -12,7 +13,12 @@ from app.services.audit_log import record
 
 
 def create_cases(
-    session: Session, ws: Workspace, claims: list[Claim], payer_type: str, actor: str = "reviewer"
+    session: Session,
+    ws: Workspace,
+    claims: list[Claim],
+    payer_type: str,
+    actor: str = "reviewer",
+    extra_detail: dict[str, Any] | None = None,
 ) -> list[Case]:
     cases = []
     for claim in claims:
@@ -30,7 +36,8 @@ def create_cases(
             "case_uploaded",
             case_id=case.id,
             actor=actor,
-            detail={"claim_id": claim.id, "lines": len(claim.lines), "payer_type": payer_type},
+            detail={"claim_id": claim.id, "lines": len(claim.lines), "payer_type": payer_type}
+            | (extra_detail or {}),
         )
         cases.append(case)
     return cases

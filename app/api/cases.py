@@ -21,6 +21,7 @@ from app.api.schemas import (
     LineOut,
     LinesEdit,
     ParseErrorOut,
+    RedactionSummary,
     UploadResult,
 )
 from app.db.models import Case, CaseDocument, FlagRow, Letter
@@ -109,7 +110,7 @@ def upload_pdf(
         raise HTTPException(status_code=503, detail="PDF extraction is not configured on this server")
     ensure_capacity(session)
     try:
-        case, errors = create_pdf_case(session, ws, body, payer_type, ref, vision)
+        case, errors, redaction = create_pdf_case(session, ws, body, payer_type, ref, vision)
     except PdfError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except OverBudget:
@@ -127,6 +128,7 @@ def upload_pdf(
     return UploadResult(
         cases=[summarize(case, case_flags(session, case.id))],
         errors=[ParseErrorOut(path=p, message=m) for p, m in errors],
+        redaction=RedactionSummary.model_validate(redaction),
     )
 
 

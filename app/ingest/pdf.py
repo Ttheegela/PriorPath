@@ -3,6 +3,8 @@ import threading
 
 import pypdfium2 as pdfium
 
+from app.ingest.redact import PageRedaction, analyzer, find_phi_boxes, mask
+
 MAX_PAGES = 10
 RENDER_DPI = 150
 MAX_PIXELS = 20_000_000
@@ -59,12 +61,14 @@ def render_page(data: bytes, page_no: int) -> bytes:
             doc.close()
 
 
-def _encode(page: pdfium.PdfPage, scale: float) -> bytes:
+def _encode(page: pdfium.PdfPage, scale: float, redaction: PageRedaction | None = None) -> bytes:
     bitmap = page.render(scale=scale)
     try:
         img = bitmap.to_pil()
         if img.mode not in ("L", "RGB"):
             img = img.convert("RGB")
+        if redaction and redaction.boxes:
+            img = mask(img, redaction.boxes, page.get_size(), scale)
         buf = io.BytesIO()
         img.save(buf, format="JPEG", quality=JPEG_QUALITY)
         return buf.getvalue()
@@ -84,8 +88,19 @@ def _render(doc: pdfium.PdfDocument, i: int) -> bytes:
         page.close()
 
 
-def pdf_page_images(data: bytes) -> list[bytes]:
-    """Every page as JPEG, in order."""
+def pdf_page_images(data: bytes, *, redact: bool = False) -> list[bytes]:
+    """Every page as JPEG, in order; with redact, identifiers on text-layer pages are blacked out."""
+    return _pages(data, redact)[0]
+
+
+def pdf_page_images_with_redaction(data: bytes) -> tuple[list[bytes], list[PageRedaction]]:
+    """Model-bound page images, masked where the page has a text layer, plus what was done per page."""
+    return _pages(data, True)
+
+
+def _pages(data: bytes, redact: bool) -> tuple[list[bytes], list[PageRedaction]]:
+    if redact:
+        analyzer()  # load spaCy before taking the pdfium lock, not while holding it
     with _PDFIUM_LOCK:
         doc = _open(data)
         try:
@@ -100,13 +115,17 @@ def pdf_page_images(data: bytes) -> list[bytes]:
                 if w * scale * h * scale > MAX_PIXELS:
                     raise PdfError(f"page {i + 1} is too large (over 20 megapixels at {RENDER_DPI} DPI)")
             images: list[bytes] = []
+            redactions: list[PageRedaction] = []
             for i in range(n):
                 page = doc[i]
                 try:
-                    images.append(_encode(page, scale))
+                    r = find_phi_boxes(page) if redact else None
+                    images.append(_encode(page, scale, r))
+                    if r is not None:
+                        redactions.append(r)
                 finally:
                     page.close()
-            return images
+            return images, redactions
         except pdfium.PdfiumError as exc:
             raise PdfError(UNREADABLE) from exc
         finally:

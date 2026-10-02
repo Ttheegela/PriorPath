@@ -1,11 +1,13 @@
 import hashlib
+from collections import Counter
 from time import monotonic
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.db.models import Case, CaseDocument, Workspace
 from app.ingest.fhir import pseudonym
-from app.ingest.pdf import pdf_page_images
+from app.ingest.pdf import pdf_page_images_with_redaction
 from app.llm.extract import extract_page, merge, needs_review
 from app.llm.vision import VisionClient
 from app.models import Claim, LineItem
@@ -38,6 +40,7 @@ def store_pdf_case(
     payer_type: str,
     ref: InMemoryReference,
     actor: str = "reviewer",
+    redaction: dict[str, Any] | None = None,
 ) -> Case:
     """Create the case and its stored PDF from already-extracted lines (no model call)."""
     digest = hashlib.sha256(data).hexdigest()
@@ -49,7 +52,8 @@ def store_pdf_case(
         lines=lines,
         source="pdf",
     )
-    (case,) = create_cases(session, ws, [claim], payer_type, actor)
+    extra = {"redaction": redaction} if redaction is not None else None
+    (case,) = create_cases(session, ws, [claim], payer_type, actor, extra)
     session.add(CaseDocument(case_id=case.id, content=data, page_count=page_count))
     if needs_review(lines):
         case.status = "needs_line_review"
@@ -65,9 +69,17 @@ def create_pdf_case(
     payer_type: str,
     ref: InMemoryReference,
     vision: VisionClient,
-) -> tuple[Case, list[tuple[str, str]]]:
+) -> tuple[Case, list[tuple[str, str]], dict[str, Any]]:
     started = monotonic()
-    pages = pdf_page_images(data)  # PdfError -> caller maps to 422
+    pages, redactions = pdf_page_images_with_redaction(data)  # PdfError -> caller maps to 422
+    entities: Counter[str] = Counter()
+    for r in redactions:
+        entities.update(r.entities)
+    redaction = {
+        "pages_redacted": sum(r.redactable for r in redactions),
+        "pages_not_redactable": sum(not r.redactable for r in redactions),
+        "entities": dict(entities),
+    }
     if llm_budget.remaining(session, ws.id, "extract") < len(pages):
         raise OverBudget()  # fail fast, before any model call
     results = []
@@ -92,10 +104,11 @@ def create_pdf_case(
         merged.lines,
         payer_type,
         ref,
+        redaction=redaction,
     )
     # Model-supplied text can be huge; keep the "page N, row M" prefix and cap the rest.
     errors = []
     for e in merged.errors:
         path, _, message = e.partition(": ")
         errors.append((path, message[:MAX_ERROR_CHARS]))
-    return case, errors
+    return case, errors, redaction

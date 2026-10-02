@@ -15,7 +15,9 @@ Do not upload real patient data. The demo is not HIPAA compliant:
   Neon (Postgres), OpenRouter (model routing) or the model providers OpenRouter forwards to.
 - **No user accounts or authentication.** Anyone with the URL gets an anonymous workspace.
 - **No role-based access control.** Every workspace has one implicit reviewer role.
-- **No redaction of PDF page images** before they reach a hosted model *(Plan 4; redaction planned with Presidio in Plan 5)*.
+- **Redaction of PDF page images is best-effort only** *(Plan 5)*: identifiers are blacked out on pages with a text
+  layer (see [PDF redaction](#pdf-redaction)), but scanned pages, images inside a page and anything the detector
+  misses reach the hosted model unredacted.
 - **No breach-notification process,** incident-response plan or named security owner.
 - **No formal risk assessment,** security policies, workforce training or vendor review.
 - **Audit log is deleted with the workspace** after about a day, so it cannot serve as a retained access record.
@@ -84,13 +86,39 @@ provider's retention window; check the Neon project's history retention setting.
 | Data | Recipient | When |
 |---|---|---|
 | One flag at a time: rule id, severity, finding message, evidence row (codes, dates, units, modifiers, rates, release version) and estimated overcharge | OpenRouter, which forwards to the configured model provider (`EXPLAIN_MODEL`) | When a reviewer asks for explanations. Patient pseudonym, provider and payer names are **not** sent. Demo-case explanations are precomputed. |
-| PDF page images (JPEG, one per page), unredacted *(Plan 4)* | OpenRouter → the configured vision model (`EXTRACT_MODEL`) | On PDF upload, only after the uploader confirms the bill is synthetic or a test bill (`confirm_synthetic=true`); otherwise the upload is refused. Redaction (Presidio) is planned for Plan 5. |
+| PDF page images (JPEG, one per page), with identifiers blacked out on text-layer pages *(Plan 5)*; scanned pages are sent as they are | OpenRouter → the configured vision model (`EXTRACT_MODEL`) | On PDF upload, only after the uploader confirms the bill is synthetic or a test bill (`confirm_synthetic=true`); otherwise the upload is refused. See [PDF redaction](#pdf-redaction). |
 | Request logs and error stack traces | Vercel | Always. AI failure logs record the error type, not the prompt. |
 | Uptime checks of `/api/health` | UptimeRobot | Periodically; no user data. |
 
 Langfuse keys are configured, but tracing is not wired into the code yet; when it is, inputs must be redacted (spec §6).
 OpenRouter and model providers have their own logging and retention policies, which vary by provider;
 verify current vendor terms. Assume anything sent may be retained by them.
+
+## PDF redaction
+
+*(Plan 5)* Before a PDF page image is sent to the vision model, `app/ingest/redact.py` reads the page's text
+layer, runs Microsoft Presidio (with the small spaCy English model, loaded only on the PDF upload path) over the
+page text, and paints a black box over every match on the rendered image. It is a best-effort safeguard for
+synthetic and test bills, not de-identification, and the synthetic-bill confirmation is still required for every PDF.
+
+**Blacked out:** person names (`PERSON`), phone numbers, email addresses, US Social Security numbers, locations
+(`LOCATION`), and labelled identifiers (`MEMBER_ID`: the value after "Member ID", "Subscriber #", "Policy number",
+"MRN", "Patient ID" and similar). Because the small model misses many names and street lines, the value after
+"Patient:", "Patient name:", "Guarantor:", "Insured:" and "Address:" labels is also blacked out.
+
+**Never blacked out:** procedure codes, modifiers, units, charges, dates of service, place of service, the
+claim/account number, and provider and payer names. Dates are not a redacted type, and tests check that no box
+touches a billing field on any of the three bill layouts.
+
+**Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
+or a page where a match would fall outside the page is sent unmasked and counted as not redactable. Text drawn
+inside embedded images, an address that wraps to a second line without a label, and anything Presidio does not
+detect are not covered.
+
+**Reported:** the upload response and the `case_uploaded` audit event carry
+`{"pages_redacted", "pages_not_redactable", "entities": {type: count}}` (counts only, never the redacted text).
+`pages_redacted` counts pages that were checked and masked where needed. The reviewer's own page view
+(`/api/cases/{id}/pages/{n}`) shows the original upload, since it is the uploader's own document.
 
 ## Pseudonyms
 

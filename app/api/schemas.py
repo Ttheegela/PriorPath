@@ -70,9 +70,16 @@ class ParseErrorOut(BaseModel):
     message: str
 
 
+class RedactionSummary(BaseModel):
+    pages_redacted: int
+    pages_not_redactable: int
+    entities: dict[str, int]
+
+
 class UploadResult(BaseModel):
     cases: list[CaseSummary]
     errors: list[ParseErrorOut]
+    redaction: RedactionSummary | None = None  # PDF uploads only
 
 
 class FlagUpdate(BaseModel):

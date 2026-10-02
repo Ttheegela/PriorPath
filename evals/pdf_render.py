@@ -65,6 +65,10 @@ def _header(pdf: FPDF, claim: Claim, patient_name: str) -> None:
         f"Payer: {claim.payer or ''}",
         f"Claim / account number: {claim.id}",
         f"Patient: {patient_name}",
+        # Fixed synthetic identifiers so redaction has something to find on every bill.
+        "Address: 1200 Maple Avenue, Springfield, IL 62704",
+        "Phone: (217) 555-0143",
+        "Member ID: XQH4471029",
     ):
         pdf.cell(0, 6, text, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(5)

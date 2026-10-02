@@ -65,10 +65,15 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
           <input type="file" accept=".json,application/json,.pdf,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         {file && isPdf(file) && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-            This is a synthetic or test bill (page images are sent to an AI model)
-          </label>
+          <div className="flex flex-col text-sm">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} aria-describedby="pdf-redaction-help" />
+              This is a synthetic or test bill (page images are sent to an AI model)
+            </label>
+            <span id="pdf-redaction-help" className="text-neutral-600">
+              Names, phone numbers, addresses and member IDs are blacked out before the AI model sees text-based PDFs; scanned images can't be redacted.
+            </span>
+          </div>
         )}
         <label className="flex flex-col text-sm">
           Payer type
