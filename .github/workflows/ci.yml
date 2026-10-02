@@ -44,6 +44,13 @@ jobs:
           else
             echo "no promoted extraction recording yet; skipping extraction eval"
           fi
+      - run: |
+          if [ -f evals/recorded/faithfulness.json ]; then
+            python -m evals.faithfulness --replay evals/recorded/faithfulness.json
+            git diff --exit-code evals/results
+          else
+            echo "no faithfulness recording yet; skipping faithfulness eval"
+          fi
   frontend:
     runs-on: ubuntu-latest
     defaults:

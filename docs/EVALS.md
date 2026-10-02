@@ -45,7 +45,15 @@ The negative plants were checked by mutation: removing the 76/91 exemption, the 
 - PDF extraction and end-to-end PDF recall. These are scored by a separate eval, `python -m evals.extract_eval`
   (line F1 gate 0.95, end-to-end recall gate 0.90, replayed from a recording in `evals/recorded/`), with results
   in `evals/results/extraction.md`.
-- Explanation and letter quality. The number check has unit tests but no gate here.
+- Letter quality. The explanation number check has unit tests but no gate here.
+- Explanation faithfulness is scored by `python -m evals.faithfulness`: a judge model (default
+  `google/gemini-2.5-flash`, not the explanation model) checks each explanation in `data/demo/explanations.json`
+  against its flag (rule text, severity, message, evidence row, estimated overcharge). The flags are rebuilt by auditing
+  the demo claims, and an explanation matching no flag is an error. Faithfulness = faithful / total, with junk judge
+  output counted as unjudged and not faithful; the gate is 0.90 when replaying `evals/recorded/faithfulness.json`
+  (record with `--record MODEL`, needs `OPENROUTER_API_KEY`). Results and every unfaithful item are in
+  `evals/results/faithfulness.md`. It is an LLM judge over 15 demo explanations, so treat the rate as a smoke
+  signal, not a precise measurement.
 - Payer-aware R4 (status I is a lead for non-Medicare payers); the eval claims are Medicare.
 - MUE adjudication edge cases beyond per-line vs per-day, and NCCI deletion dates inside a quarter (unit-tested only).
 - Real bills. Every claim is synthetic, built from the same rules the engine encodes, so a perfect score shows the
