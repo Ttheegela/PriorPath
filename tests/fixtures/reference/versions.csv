@@ -1,0 +1,4 @@
+ref_version,kind,valid_from,valid_to
+NCCI-TEST,ncci,2026-10-01,2026-12-31
+MUE-TEST,mue,2026-10-01,2026-12-31
+PFS-TEST,pfs,2026-01-01,2026-12-31
