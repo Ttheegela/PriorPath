@@ -3,6 +3,13 @@ import os
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://priorpath:priorpath@localhost:5433/priorpath_test"
 )
+
+import pytest  # noqa: E402
+from sqlalchemy.engine import make_url  # noqa: E402
+
+if "test" not in (make_url(TEST_DATABASE_URL).database or ""):
+    pytest.exit("TEST_DATABASE_URL must point at a test database", returncode=2)
+
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ.setdefault("SESSION_SECRET", "test-session-secret")
 os.environ.setdefault("CRON_SECRET", "test-cron-secret")
@@ -11,7 +18,6 @@ os.environ.pop("OPENROUTER_API_KEY", None)
 
 from collections.abc import Iterator  # noqa: E402
 
-import pytest  # noqa: E402
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
 from sqlalchemy import Engine, text  # noqa: E402

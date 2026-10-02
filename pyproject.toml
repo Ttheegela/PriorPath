@@ -17,7 +17,7 @@ dependencies = [
 [tool.ruff]
 line-length = 110
 target-version = "py312"
-extend-exclude = ["migrations/versions"]
+extend-exclude = ["migrations/versions", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
