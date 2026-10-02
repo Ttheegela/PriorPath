@@ -6,10 +6,12 @@ from typing import Any, Protocol
 
 from openai import OpenAI
 
-from app.llm.client import OPENROUTER_BASE_URL
+from app.llm.client import OPENROUTER_BASE_URL, usage_of
+from app.observability import Span, trace_llm
 
 log = logging.getLogger(__name__)
 DEFAULT_EXTRACT_MODEL = "google/gemini-2.5-flash-lite"
+PROMPT_VERSION = "extract-v2"
 
 
 class VisionError(RuntimeError):
@@ -25,7 +27,16 @@ class OpenRouterVisionClient:
         self._client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL, timeout=timeout, max_retries=0)
         self._model = model
 
-    def extract(self, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
+    def extract(
+        self, image_jpeg: bytes, schema: dict[str, Any], prompt: str, page_no: int | None = None
+    ) -> dict[str, Any]:
+        meta: dict[str, str | int | float | bool] = {"prompt_version": PROMPT_VERSION}
+        if page_no is not None:
+            meta["page_no"] = page_no
+        with trace_llm("extract", model=self._model, kind="extract", metadata=meta) as span:
+            return self._extract(span, image_jpeg, schema, prompt)
+
+    def _extract(self, span: Span, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
         url = "data:image/jpeg;base64," + base64.b64encode(image_jpeg).decode()
         try:
             response = self._client.chat.completions.create(
@@ -52,7 +63,14 @@ class OpenRouterVisionClient:
         if not response.choices:
             raise VisionError("vision response was empty")
         choice = response.choices[0]
+        usage = usage_of(response)
         if choice.finish_reason != "stop":
+            fail: dict[str, str | int | float | bool] = {
+                "ok": False,
+                "finish_reason": str(choice.finish_reason),
+                "error_type": "VisionError",
+            }
+            span.end(fail, usage)
             raise VisionError(f"vision response incomplete: {choice.finish_reason}")
         try:
             parsed = json.loads(choice.message.content or "")
@@ -60,6 +78,7 @@ class OpenRouterVisionClient:
             raise VisionError("vision response was not JSON") from exc
         if not isinstance(parsed, dict):
             raise VisionError("vision response was not a JSON object")
+        span.end({"ok": True, "finish_reason": "stop"}, usage)
         return parsed
 
 
