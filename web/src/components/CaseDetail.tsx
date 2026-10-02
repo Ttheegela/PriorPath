@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ApiError, auditCase, getCase, messageOf, streamExplanations, type CaseDetail as Detail, type Flag } from "../lib/api";
 import { money, SEVERITY_GROUPS, statusLabel } from "../lib/format";
 import FlagCard from "./FlagCard";
+import LetterPanel from "./LetterPanel";
 
 const EXPLAINABLE = new Set(["pending", "unavailable"]);
 
@@ -162,6 +163,7 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
           </section>
         );
       })}
+      <LetterPanel key={`${detail.letter?.id}:${detail.letter?.body}`} caseDetail={detail} onChange={reload} />
     </div>
   );
 }

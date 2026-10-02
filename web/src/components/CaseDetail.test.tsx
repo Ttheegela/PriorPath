@@ -134,3 +134,13 @@ test("cancel clears the reject reason", async () => {
   await userEvent.click(card.getByRole("button", { name: "Reject" }));
   expect(card.getByLabelText("Reason")).toHaveValue("");
 });
+
+test("an approved letter locks Run audit and every Accept", async () => {
+  const approved = { id: "l1", status: "approved" as const, body: "Dear provider", flag_ids: ["f1"], created_at: "2026-10-02T10:00:00Z", approved_at: "2026-10-02T11:00:00Z" };
+  vi.stubGlobal("fetch", vi.fn(async () => json(detail({ letter: approved }))));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  expect(await screen.findByRole("button", { name: "Run audit" })).toBeDisabled();
+  const accepts = screen.getAllByRole("button", { name: "Accept" });
+  expect(accepts.length).toBeGreaterThan(0);
+  for (const b of accepts) expect(b).toBeDisabled();
+});
