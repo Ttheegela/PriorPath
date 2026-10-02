@@ -15,17 +15,31 @@ def _date_or_none(v: str) -> date | None:
     return date.fromisoformat(v) if v else None
 
 
+def check_no_overlap(versions: list[RefVersion]) -> None:
+    """Two versions of the same kind must not both be valid on any date (lookups would be ambiguous)."""
+    for kind in {v.kind for v in versions}:
+        same = sorted((v for v in versions if v.kind == kind), key=lambda v: v.valid_from)
+        for a, b in zip(same, same[1:], strict=False):
+            if b.valid_from <= a.valid_to:
+                raise ValueError(
+                    f"{a.ref_version} ({a.valid_from}..{a.valid_to}) and {b.ref_version} "
+                    f"({b.valid_from}..{b.valid_to}) overlap; versions of kind {kind!r} must not overlap"
+                )
+
+
 def load_normalized(directory: Path) -> InMemoryReference:
+    versions = [
+        RefVersion(
+            r["ref_version"],
+            r["kind"],
+            date.fromisoformat(r["valid_from"]),
+            date.fromisoformat(r["valid_to"]),
+        )
+        for r in _rows(directory / "versions.csv")
+    ]
+    check_no_overlap(versions)
     return InMemoryReference(
-        versions=[
-            RefVersion(
-                r["ref_version"],
-                r["kind"],
-                date.fromisoformat(r["valid_from"]),
-                date.fromisoformat(r["valid_to"]),
-            )
-            for r in _rows(directory / "versions.csv")
-        ],
+        versions=versions,
         ptp_edits=[
             PtpEdit(
                 r["col1"],

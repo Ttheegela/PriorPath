@@ -1,6 +1,9 @@
+import shutil
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+
+import pytest
 
 from app.reference.normalized import load_normalized, write_normalized
 from tests.helpers import FIXTURE_DIR, FIXTURE_REF
@@ -47,3 +50,44 @@ def test_write_then_load_round_trips(tmp_path: Path) -> None:
     assert again.fees == FIXTURE_REF.fees
     assert again.code_statuses == FIXTURE_REF.code_statuses
     assert {p.name for p in tmp_path.iterdir()} == {p.name for p in FIXTURE_DIR.iterdir()}
+
+
+def _with_versions(tmp_path: Path, *rows: str) -> Path:
+    shutil.copytree(FIXTURE_DIR, tmp_path, dirs_exist_ok=True)
+    (tmp_path / "versions.csv").write_text("ref_version,kind,valid_from,valid_to\n" + "\n".join(rows) + "\n")
+    return tmp_path
+
+
+def test_overlapping_versions_of_one_kind_are_rejected(tmp_path: Path) -> None:
+    d = _with_versions(
+        tmp_path,
+        "NCCI-Q3,ncci,2026-07-01,2026-10-01",
+        "NCCI-TEST,ncci,2026-10-01,2026-12-31",
+        "MUE-TEST,mue,2026-10-01,2026-12-31",
+        "PFS-TEST,pfs,2026-01-01,2026-12-31",
+    )
+    with pytest.raises(ValueError, match="NCCI-Q3.*NCCI-TEST.*overlap"):
+        load_normalized(d)
+
+
+def test_adjacent_versions_load_and_resolve_by_date(tmp_path: Path) -> None:
+    d = _with_versions(
+        tmp_path,
+        "NCCI-Q3,ncci,2026-07-01,2026-09-30",
+        "NCCI-TEST,ncci,2026-10-01,2026-12-31",
+        "MUE-TEST,mue,2026-10-01,2026-12-31",
+        "PFS-TEST,pfs,2026-01-01,2026-12-31",
+    )
+    ref = load_normalized(d)
+    q3, q4 = ref.version_for("ncci", date(2026, 9, 30)), ref.version_for("ncci", date(2026, 10, 1))
+    assert q3 is not None and q3.ref_version == "NCCI-Q3"
+    assert q4 is not None and q4.ref_version == "NCCI-TEST"
+
+
+def test_committed_subset_covers_july_to_december_2026() -> None:
+    ref = load_normalized(Path("data/reference/subset"))
+    for dos in (date(2026, 7, 1), date(2026, 9, 30), date(2026, 10, 1), date(2026, 12, 31)):
+        assert ref.covers(dos), dos
+    assert not ref.covers(date(2026, 6, 30)) and not ref.covers(date(2027, 1, 1))
+    q3 = {v.ref_version for v in ref.versions if v.valid_from == date(2026, 7, 1)}
+    assert q3 == {"NCCI-2026Q3", "MUE-2026Q3", "PFS-2026C"}

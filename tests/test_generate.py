@@ -1,7 +1,11 @@
 from collections import Counter
+from datetime import date
 
+import pytest
+
+from app.reference.base import InMemoryReference, RefVersion
 from app.rules.price import FACILITY_POS
-from evals.generate import NEGATIVE_KINDS, PLANTABLE, generate
+from evals.generate import NEGATIVE_KINDS, PLANTABLE, coverage_window, generate
 from tests.helpers import FIXTURE_REF
 
 
@@ -80,3 +84,30 @@ def test_r5_plants_include_facility_lines_priced_in_the_band() -> None:
             assert 3 * fee.facility * x.units < x.charge < 3 * fee.nonfacility * x.units
             band += 1
     assert band > 0
+
+
+def _ref(*versions: tuple[str, str, str, str]) -> InMemoryReference:
+    vs = [RefVersion(n, k, date.fromisoformat(a), date.fromisoformat(b)) for n, k, a, b in versions]
+    return InMemoryReference(vs, [], [], [], [])
+
+
+def test_coverage_window_spans_consecutive_versions() -> None:
+    ref = _ref(
+        ("N3", "ncci", "2026-07-01", "2026-09-30"),
+        ("N4", "ncci", "2026-10-01", "2026-12-31"),
+        ("M3", "mue", "2026-07-01", "2026-09-30"),
+        ("M4", "mue", "2026-10-01", "2026-12-31"),
+        ("P", "pfs", "2026-01-01", "2026-12-31"),
+    )
+    assert coverage_window(ref) == (date(2026, 7, 1), date(2026, 12, 31))
+
+
+def test_coverage_window_rejects_a_gap_between_versions() -> None:
+    ref = _ref(
+        ("N2", "ncci", "2026-04-01", "2026-06-30"),
+        ("N4", "ncci", "2026-10-01", "2026-12-31"),
+        ("M", "mue", "2026-04-01", "2026-12-31"),
+        ("P", "pfs", "2026-04-01", "2026-12-31"),
+    )
+    with pytest.raises(ValueError, match="gap"):
+        coverage_window(ref)

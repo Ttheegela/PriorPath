@@ -2,6 +2,9 @@
   "n": 300,
   "seed": 7,
   "reference": [
+    "NCCI-2026Q3",
+    "MUE-2026Q3",
+    "PFS-2026C",
     "NCCI-2026Q4",
     "MUE-2026Q4",
     "PFS-2026D"

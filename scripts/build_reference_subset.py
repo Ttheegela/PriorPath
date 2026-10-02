@@ -1,7 +1,19 @@
 # ruff: noqa: E501 - docstring carries the verbatim long invocation
 """Build data/reference/subset from raw CMS downloads (run locally, not in CI).
 
-Example (the invocation used to build the committed subset):
+The committed subset holds two releases, built oldest first. Step 1 writes 2026 Q3 (July-September):
+  PYTHONPATH=. python scripts/build_reference_subset.py \
+    --ptp data/reference/raw/medicare-ncci-2026q3-practitioner-ptp-edits-ccipra-v322r0-f1/ccipra-v322r0-f1.TXT \
+    --ptp data/reference/raw/medicare-ncci-2026q3-practitioner-ptp-edits-ccipra-v322r0-f2/ccipra-v322r0-f2.TXT \
+    --ptp data/reference/raw/medicare-ncci-2026q3-practitioner-ptp-edits-ccipra-v322r0-f3/ccipra-v322r0-f3.txt \
+    --ptp data/reference/raw/medicare-ncci-2026q3-practitioner-ptp-edits-ccipra-v322r0-f4/ccipra-v322r0-f4.txt \
+    --mue data/reference/raw/medicare-ncci-2026-q3-practitioner-services-mue-table/MCR_MUE_PractitionerServices_Eff_07-01-2026.csv \
+    --pfs data/reference/raw/rvu26c-updated-06-30-2026/PPRRVU2026_Jul_nonQPP.csv \
+    --codes data/reference/codes.txt \
+    --ncci NCCI-2026Q3:2026-07-01:2026-09-30 --mue-version MUE-2026Q3:2026-07-01:2026-09-30 \
+    --pfs-version PFS-2026C:2026-07-01:2026-09-30 --out data/reference/subset
+
+Step 2 appends 2026 Q4 (October-December), keeping Q3 via --existing:
   PYTHONPATH=. python scripts/build_reference_subset.py \
     --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f1/ccipra-v323r0-f1.TXT \
     --ptp data/reference/raw/medicare-ncci-2026q4-practitioner-ptp-edits-ccipra-v323r0-f2/ccipra-v323r0-f2.TXT \
@@ -11,7 +23,7 @@ Example (the invocation used to build the committed subset):
     --pfs data/reference/raw/rvu26d-updated-08-26-2026/PPRRVU2026_Oct_nonQPP.csv \
     --codes data/reference/codes.txt \
     --ncci NCCI-2026Q4:2026-10-01:2026-12-31 --mue-version MUE-2026Q4:2026-10-01:2026-12-31 \
-    --pfs-version PFS-2026D:2026-10-01:2026-12-31 --out data/reference/subset
+    --pfs-version PFS-2026D:2026-10-01:2026-12-31 --existing data/reference/subset --out data/reference/subset
 
 Raw files: see data/reference/SOURCES.md (download requires accepting the AMA/CMS license).
 """
@@ -25,7 +37,7 @@ from pathlib import Path
 
 from app.reference.base import INVALID_STATUSES, InMemoryReference, RefVersion
 from app.reference.cms_adapters import parse_mue, parse_pfs, parse_ptp
-from app.reference.normalized import write_normalized
+from app.reference.normalized import check_no_overlap, load_normalized, write_normalized
 
 
 def _cell(v: object) -> str:
@@ -62,6 +74,7 @@ def main() -> int:
     p.add_argument("--mue-version", required=True)
     p.add_argument("--pfs-version", required=True)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--existing", type=Path, help="normalized dir whose releases are kept alongside this one")
     a = p.parse_args()
 
     codes = {c.strip().upper() for c in a.codes.read_text().split() if c.strip()}
@@ -82,10 +95,17 @@ def main() -> int:
     fees = [f for f in fees if f.code in codes]
     statuses = [s for s in statuses if s.code in codes]
 
-    write_normalized(InMemoryReference([ncci, mue_v, pfs_v], ptp, mue, fees, statuses), a.out)
     invalid = sum(s.status in INVALID_STATUSES for s in statuses)
     by_ind = {i: sum(e.modifier_indicator == i for e in ptp) for i in "019"}
     print(f"ptp={len(ptp)} {by_ind} mue={len(mue)} fees={len(fees)} codes={len(statuses)} invalid={invalid}")
+    versions = [ncci, mue_v, pfs_v]
+    if a.existing:
+        old = load_normalized(a.existing)
+        versions = old.versions + versions
+        check_no_overlap(versions)
+        ptp, mue = old.ptp_edits + ptp, old.mue_limits + mue
+        fees, statuses = old.fees + fees, old.code_statuses + statuses
+    write_normalized(InMemoryReference(versions, ptp, mue, fees, statuses), a.out)
     if by_ind["0"] < 10 or by_ind["1"] < 10 or invalid < 1:
         print(
             "Subset too thin: need >=10 PTP pairs with indicator 0 and 1, "

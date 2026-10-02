@@ -50,6 +50,11 @@ def coverage_window(ref: InMemoryReference) -> tuple[date, date]:
     lo, hi = max(starts), min(ends)
     if lo > hi:
         raise ValueError("reference versions do not overlap")
+    gaps = [
+        lo + timedelta(days=i) for i in range((hi - lo).days + 1) if not ref.covers(lo + timedelta(days=i))
+    ]
+    if gaps:
+        raise ValueError(f"reference coverage has a gap from {gaps[0]} to {gaps[-1]}")
     return lo, hi
 
 
