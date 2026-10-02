@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import workspace
+from app.api import cases, workspace
 from app.api.deps import get_reference
 
 app = FastAPI(
@@ -12,6 +12,7 @@ app = FastAPI(
     redoc_url=None,
 )
 app.include_router(workspace.router)
+app.include_router(cases.router)
 
 
 @app.get("/api/health")
