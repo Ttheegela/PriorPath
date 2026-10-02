@@ -17,10 +17,12 @@ Rule = Callable[[Claim, Reference, RuleConfig], list[Flag]]
 def _all_rules() -> list[Rule]:
     from app.rules.coverage import check_coverage
     from app.rules.duplicates import check_duplicates
+    from app.rules.invalid_code import check_invalid_code
     from app.rules.mue import check_mue
     from app.rules.ncci import check_ncci
+    from app.rules.price import check_price
 
-    return [check_coverage, check_duplicates, check_ncci, check_mue]
+    return [check_coverage, check_duplicates, check_ncci, check_mue, check_invalid_code, check_price]
 
 
 ALL_RULES: list[Rule] = _all_rules()
