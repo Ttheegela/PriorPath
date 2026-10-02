@@ -173,3 +173,19 @@ def test_other_workspace_gets_404(db: Engine) -> None:
     other = TestClient(app)
     assert other.get(f"/api/cases/{case_id}/pages/1").status_code == 404
     assert other.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A")]}).status_code == 404
+
+
+def test_page_endpoint_renders_only_the_requested_page(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    import pypdfium2 as pdfium
+
+    c = client(FakeVision([fv(sample_claim()), fv(sample_claim())]))
+    r = post_pdf(c, two_page_pdf())
+    assert r.status_code == 201 and r.json()["cases"][0]["page_count"] == 2
+    renders: list[int] = []
+    original = pdfium.PdfPage.render
+    monkeypatch.setattr(
+        pdfium.PdfPage, "render", lambda self, *a, **k: (renders.append(1), original(self, *a, **k))[1]
+    )
+    page = c.get(f"/api/cases/{r.json()['cases'][0]['id']}/pages/2")
+    assert page.status_code == 200 and renders == [1]
+    assert page.headers["cache-control"] == "private, max-age=3600"

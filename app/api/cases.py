@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import ValidationError
 from sqlalchemy import delete, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import LLMDep, RefDep, SessionDep, VisionDep, WorkspaceDep
 from app.api.schemas import (
@@ -26,7 +26,7 @@ from app.api.schemas import (
 from app.db.models import Case, CaseDocument, FlagRow, Letter
 from app.db.session import get_engine
 from app.ingest.fhir import parse_fhir
-from app.ingest.pdf import PdfError, pdf_page_images
+from app.ingest.pdf import PdfError, render_page
 from app.llm.vision import VisionError
 from app.models import LineItem, LineSource
 from app.rules import PayerType
@@ -129,7 +129,10 @@ def upload_pdf(
 @router.get("/api/cases", response_model=list[CaseSummary])
 def list_cases(ws: WorkspaceDep, session: SessionDep) -> list[CaseSummary]:
     cases = session.scalars(
-        select(Case).where(Case.workspace_id == ws.id).order_by(Case.created_at.desc(), Case.id.desc())
+        select(Case)
+        .options(selectinload(Case.document))
+        .where(Case.workspace_id == ws.id)
+        .order_by(Case.created_at.desc(), Case.id.desc())
     )
     # ponytail: one flags query per case; fine for demo-sized workspaces, batch it if lists grow past ~100.
     return [summarize(c, case_flags(session, c.id)) for c in cases]
@@ -159,8 +162,11 @@ def get_page(case_id: uuid.UUID, page: int, ws: WorkspaceDep, session: SessionDe
     doc = session.get(CaseDocument, case.id)
     if doc is None or not 1 <= page <= doc.page_count:
         raise HTTPException(status_code=404, detail="page not found")
-    # ponytail: re-renders every page per request; cache or render one page if bills get long.
-    return Response(pdf_page_images(doc.content)[page - 1], media_type="image/png")
+    return Response(
+        render_page(doc.content, page),
+        media_type="image/png",
+        headers={"Cache-Control": "private, max-age=3600"},  # stored PDFs never change
+    )
 
 
 @router.patch("/api/cases/{case_id}/lines", response_model=CaseDetail)
@@ -190,7 +196,7 @@ def edit_lines(case_id: uuid.UUID, edit: LinesEdit, ws: WorkspaceDep, session: S
     claim.lines = lines
     case.claim = claim.model_dump(mode="json")
     session.execute(delete(FlagRow).where(FlagRow.case_id == case.id))
-    session.execute(delete(Letter).where(Letter.case_id == case.id))  # only drafts can exist here
+    session.execute(delete(Letter).where(Letter.case_id == case.id, Letter.status == "draft"))
     case.status = "uploaded"
     record(session, ws.id, "lines_edited", case_id=case.id, detail={"lines": len(lines)})
     session.commit()
