@@ -71,7 +71,7 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
               This is a synthetic or test bill (page images are sent to an AI model)
             </label>
             <span id="pdf-redaction-help" className="text-neutral-600">
-              Names, phone numbers, addresses and member IDs are blacked out before the AI model sees text-based PDFs; scanned images can't be redacted.
+              We try to black out names, phone numbers, addresses and member IDs before the AI model sees text-based PDFs; scanned images can't be redacted.
             </span>
           </div>
         )}

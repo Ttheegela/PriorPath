@@ -90,7 +90,9 @@ provider's retention window; check the Neon project's history retention setting.
 | Request logs and error stack traces | Vercel | Always. AI failure logs record the error type, not the prompt. |
 | Uptime checks of `/api/health` | UptimeRobot | Periodically; no user data. |
 
-Langfuse keys are configured, but tracing is not wired into the code yet; when it is, inputs must be redacted (spec §6).
+Langfuse tracing *(Plan 5)* records only the model id, prompt version, timing, token usage and outcome
+(finish reason, success or error type) of each AI call, plus counts and a hashed workspace id. Prompts,
+completions, page images, PDF bytes and patient, provider or payer names are never sent (`app/observability.py`).
 OpenRouter and model providers have their own logging and retention policies, which vary by provider;
 verify current vendor terms. Assume anything sent may be retained by them.
 
@@ -101,24 +103,29 @@ layer, runs Microsoft Presidio (with the small spaCy English model, loaded only 
 page text, and paints a black box over every match on the rendered image. It is a best-effort safeguard for
 synthetic and test bills, not de-identification, and the synthetic-bill confirmation is still required for every PDF.
 
-**Blacked out:** person names (`PERSON`), phone numbers, email addresses, US Social Security numbers, locations
+**Targeted:** person names (`PERSON`), phone numbers, email addresses, US Social Security numbers, locations
 (`LOCATION`), and labelled identifiers (`MEMBER_ID`: the value after "Member ID", "Subscriber #", "Policy number",
-"MRN", "Patient ID" and similar). Because the small model misses many names and street lines, the value after
-"Patient:", "Patient name:", "Guarantor:", "Insured:" and "Address:" labels is also blacked out.
+"Patient ID", "MRN" and similar; values longer than 20 characters are not matched). Because the small model misses
+many names and street lines, the value after "Patient:", "Patient name:", "Guarantor:", "Insured:" and
+"Address:" labels is also targeted, up to the end of the line or a column gap. Matches scoring below 0.5 are
+dropped, so a phone number usually needs a nearby word such as "phone" or "tel".
 
-**Never blacked out:** procedure codes, modifiers, units, charges, dates of service, place of service, the
-claim/account number, and provider and payer names. Dates are not a redacted type, and tests check that no box
-touches a billing field on any of the three bill layouts.
+**Not targeted:** procedure codes, modifiers, units, charges, dates of service and place of service. Dates are
+not a redacted type; name and place matches from the language model that contain a digit are dropped; phone
+matches need a separator and are dropped on rows that carry a dollar amount or a date. This is checked by tests on
+generated bills of every layout, but it is not a guarantee: a provider name, payer name or claim number may be
+masked if it looks like a person's name or a labelled ID.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
-or a page where a match would fall outside the page is sent unmasked and counted as not redactable. Text drawn
-inside embedded images, an address that wraps to a second line without a label, and anything Presidio does not
-detect are not covered.
+or a page whose text and character positions don't line up is sent unmasked and counted as not redactable. A
+match that runs off the page edge is masked up to the edge and the page is counted as partially redacted. Text
+inside embedded images, an address line that wraps without a label, and anything Presidio does not detect are
+not covered.
 
 **Reported:** the upload response and the `case_uploaded` audit event carry
-`{"pages_redacted", "pages_not_redactable", "entities": {type: count}}` (counts only, never the redacted text).
-`pages_redacted` counts pages that were checked and masked where needed. The reviewer's own page view
-(`/api/cases/{id}/pages/{n}`) shows the original upload, since it is the uploader's own document.
+`{"pages_redacted", "pages_not_redactable", "pages_partially_redacted", "entities": {type: count}}` (counts only,
+never the redacted text). `pages_redacted` counts pages that were checked and masked where needed. The reviewer's
+own page view (`/api/cases/{id}/pages/{n}`) shows the original upload, since it is the uploader's own document.
 
 ## Pseudonyms
 

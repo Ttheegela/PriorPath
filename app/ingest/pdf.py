@@ -119,6 +119,8 @@ def _pages(data: bytes, redact: bool) -> tuple[list[bytes], list[PageRedaction]]
             for i in range(n):
                 page = doc[i]
                 try:
+                    # ponytail: Presidio runs under the pdfium lock (~15 ms/page warm); split text
+                    # extraction from analysis if concurrent PDF uploads start queueing on it
                     r = find_phi_boxes(page) if redact else None
                     images.append(_encode(page, scale, r))
                     if r is not None:

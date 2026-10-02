@@ -73,6 +73,7 @@ class ParseErrorOut(BaseModel):
 class RedactionSummary(BaseModel):
     pages_redacted: int
     pages_not_redactable: int
+    pages_partially_redacted: int  # a match ran off the page edge; masked up to the edge
     entities: dict[str, int]
 
 

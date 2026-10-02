@@ -78,6 +78,7 @@ def create_pdf_case(
     redaction = {
         "pages_redacted": sum(r.redactable for r in redactions),
         "pages_not_redactable": sum(not r.redactable for r in redactions),
+        "pages_partially_redacted": sum(r.clipped for r in redactions),
         "entities": dict(entities),
     }
     if llm_budget.remaining(session, ws.id, "extract") < len(pages):

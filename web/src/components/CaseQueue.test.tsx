@@ -154,7 +154,7 @@ test("a PDF upload is blocked until the synthetic-bill box is ticked, then sent 
   expect(await screen.findByRole("alert")).toHaveTextContent(/confirm/i);
   expect(fetchMock).toHaveBeenCalledTimes(1);
   expect(screen.getByLabelText(CONFIRM)).toHaveAccessibleDescription(
-    "Names, phone numbers, addresses and member IDs are blacked out before the AI model sees text-based PDFs; scanned images can't be redacted.",
+    "We try to black out names, phone numbers, addresses and member IDs before the AI model sees text-based PDFs; scanned images can't be redacted.",
   );
   await userEvent.click(screen.getByLabelText(CONFIRM));
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));

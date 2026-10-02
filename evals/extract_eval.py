@@ -89,7 +89,7 @@ def build_dataset(labeled: list[LabeledClaim]) -> Dataset:
         pdf = render_bill(lc.claim, LAYOUTS[i % 3])
         if is_noisy(i):
             pdf = add_scan_noise(pdf, seed=i)
-        out.append((lc, pdf_page_images(pdf)))
+        out.append((lc, pdf_page_images(pdf, redact=True)))  # what production sends the model
     return out
 
 

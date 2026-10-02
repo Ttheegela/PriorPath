@@ -1,6 +1,8 @@
 import io
+import socket
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 import pypdfium2 as pdfium
@@ -10,7 +12,10 @@ from PIL import Image
 from sqlalchemy import Engine
 
 from app.ingest.pdf import RENDER_DPI, pdf_page_images, pdf_page_images_with_redaction, render_page
-from app.ingest.redact import REDACT_ENTITIES, analyzer, find_phi_boxes, mask
+from app.ingest.redact import find_phi_boxes, mask, matches
+from app.models import Claim
+from app.reference.normalized import load_normalized
+from evals.generate import generate
 from evals.pdf_render import LAYOUTS, add_scan_noise, render_bill
 from tests.api_helpers import sample_claim
 from tests.helpers import line
@@ -100,29 +105,107 @@ def test_identifiers_are_found_and_masked() -> None:
         assert _darkness(masked, box, height) < 30, needle
 
 
-@pytest.mark.parametrize("layout", LAYOUTS)
-def test_billing_fields_are_never_masked(layout: str) -> None:
-    claim = _claim()
-    for page in pdfium.PdfDocument(render_bill(claim, layout)):
+def _masked_rows(pdf: bytes, fields: set[str]) -> list[str]:
+    """Printed rows holding any of `fields` that a redaction box touches."""
+    out = []
+    for page in pdfium.PdfDocument(pdf):
         r = find_phi_boxes(page)
-        assert r.redactable and r.boxes
+        assert r.redactable
         tp = page.get_textpage()
         text = tp.get_text_range()
-        fields = {"Claim / account number: EOB-1", "Total:"}
-        for ln in claim.lines:
-            fields |= {ln.code, f"${ln.charge:.2f}", ln.date_of_service.strftime("%m/%d/%Y")}
-        # every printed row holding a billing field: code, modifiers, units, POS, charge, date, claim id
-        rows = [row for row in text.split("\r\n") if any(f in row for f in fields)]
-        assert len(rows) >= len(claim.lines)
-        for row in rows:
-            start = text.index(row)
-            for box in _boxes_of(tp, start, start + len(row)):
-                assert not any(_overlaps(box, rb) for rb in r.boxes), row
+        start = 0
+        for row in text.split("\r\n"):
+            boxes = _boxes_of(tp, start, start + len(row))
+            start += len(row) + 2
+            if any(f in row for f in fields) and any(_overlaps(b, rb) for b in boxes for rb in r.boxes):
+                out.append(row)
+    return out
+
+
+def _billing_fields(claim: Claim) -> set[str]:
+    """Code, charge and date of every line (rows holding them also hold modifiers, units and POS)."""
+    fields = {claim.id, "Total:"}
+    for ln in claim.lines:
+        fields |= {ln.code, f"${ln.charge:.2f}", ln.date_of_service.strftime("%m/%d/%Y")}
+    return fields
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_billing_rows_are_not_masked(layout: str) -> None:
+    claim = _claim()
+    assert _masked_rows(render_bill(claim, layout), _billing_fields(claim)) == []
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_billing_rows_are_not_masked_on_generated_bills(layout: str) -> None:
+    # spaCy's small model once tagged dates, codes and claim numbers as names/places on these bills
+    masked = []
+    for lc in generate(load_normalized(Path("data/reference/subset")), 50, 7):
+        masked += _masked_rows(render_bill(lc.claim, layout), _billing_fields(lc.claim))
+    assert masked == []
+
+
+def _page(*rows: str) -> bytes:
+    pdf = FPDF(unit="mm", format="Letter")
+    pdf.add_page()
+    pdf.set_font("Helvetica", "", 11)
+    pdf.cell(0, 6, "Itemized statement for services rendered", new_x="LMARGIN", new_y="NEXT")
+    for row in rows:
+        pdf.cell(0, 6, row, new_x="LMARGIN", new_y="NEXT")
+    return bytes(pdf.output())
+
+
+def test_name_on_a_billing_row_is_masked_but_the_code_is_not() -> None:
+    pdf = _page("10/15/2026 J1100 - 10 11 $12.00", "Patient: Alex Example   J1100 1 11 $30.00")
+    page = pdfium.PdfDocument(pdf)[0]
+    r = find_phi_boxes(page)
+    tp = page.get_textpage()
+    assert any(_covers(rb, _find(tp, NAME)) for rb in r.boxes)
+    text = tp.get_text_range()
+    for needle in ("10/15/2026 J1100 - 10 11 $12.00", "J1100 1 11 $30.00"):
+        i = text.index(needle)
+        assert not any(_overlaps(b, rb) for b in _boxes_of(tp, i, i + len(needle)) for rb in r.boxes)
+
+
+def _found(text: str) -> list[tuple[str, str]]:
+    return [(m.entity_type, text[m.start : m.end]) for m in matches(text)]
 
 
 def test_a_label_with_no_value_does_not_reach_into_the_next_row() -> None:
-    text = "Member ID:\r\n96372 1 11 $30.00\r\nPatient:\r\nQty 2 POS 11\r\nAddress:\r\n10/15/2026 99213\r\n"
-    assert analyzer().analyze(text, language="en", entities=list(REDACT_ENTITIES)) == []
+    assert (
+        _found(
+            "Member ID:\r\n96372 1 11 $30.00\r\nPatient:\r\nQty 2 POS 11\r\nAddress:\r\n10/15/2026 99213\r\n"
+        )
+        == []
+    )
+
+
+def test_digit_runs_are_not_phone_numbers() -> None:
+    assert _found("99213 25 1 11 $150.00\r\nNPI 1234567893\r\nAccount 412345678\r\n") == []
+    assert _found("Billing office phone 217-555-0143") == [("PHONE_NUMBER", "217-555-0143")]
+
+
+def test_member_ids() -> None:
+    assert _found("MRN: 1234567\r\nMRN 7654321\r\n") == [("MEMBER_ID", "1234567"), ("MEMBER_ID", "7654321")]
+    assert _found("Member ID: ABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n") == []  # too long: no half mask
+
+
+def test_address_stops_at_a_column_gap() -> None:
+    text = "Address: 1200 Maple Avenue, Springfield, IL 62704   Date of service 10/15/2026"
+    assert ("LOCATION", "1200 Maple Avenue, Springfield, IL 62704") in _found(text)
+    assert all("10/15/2026" not in value and "Date" not in value for _, value in _found(text))
+
+
+def test_email_detection_makes_no_network_call(monkeypatch: pytest.MonkeyPatch) -> None:
+    def refuse(*a: Any, **k: Any) -> None:
+        raise AssertionError("network call")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    assert _found("Questions: billing.help@example-clinic.org") == [
+        ("EMAIL_ADDRESS", "billing.help@example-clinic.org")
+    ]
 
 
 def test_scanned_page_is_not_redactable() -> None:
@@ -142,14 +225,17 @@ def test_rotated_page_is_not_redactable() -> None:
     assert not r.redactable and r.boxes == []
 
 
-def test_identifier_outside_the_page_is_not_redactable() -> None:
+def test_identifier_running_off_the_page_is_masked_to_the_edge() -> None:
     pdf = FPDF(unit="mm", format="Letter")
     pdf.add_page()
     pdf.set_font("Helvetica", "", 11)
     pdf.text(20, 20, "Itemized statement for services rendered")
-    pdf.text(230, 40, "Member ID: XQH4471029")  # Letter is 215.9 mm wide
-    r = find_phi_boxes(pdfium.PdfDocument(bytes(pdf.output()))[0])
-    assert not r.redactable and r.boxes == []
+    pdf.text(190, 40, "Member ID: XQH4471029")  # Letter is 215.9 mm wide: the value runs off the edge
+    page = pdfium.PdfDocument(bytes(pdf.output()))[0]
+    r = find_phi_boxes(page)
+    assert r.redactable and r.clipped and r.entities == {"MEMBER_ID": 1}
+    ((left, _, right, _),) = r.boxes
+    assert left < page.get_size()[0] == right
 
 
 def test_mask_converts_pdf_points_to_pixels() -> None:
@@ -182,6 +268,7 @@ def test_model_sees_masked_page_and_reviewer_sees_original(db: Engine) -> None:
     assert r.status_code == 201, r.text
     red = r.json()["redaction"]
     assert red["pages_redacted"] == 1 and red["pages_not_redactable"] == 0
+    assert red["pages_partially_redacted"] == 0
     assert red["entities"]["PERSON"] >= 1 and red["entities"]["MEMBER_ID"] == 1
     assert _darkness(v.images[0], name, height) < 30
     stored = render_page(pdf, 1)
@@ -195,7 +282,12 @@ def test_model_sees_masked_page_and_reviewer_sees_original(db: Engine) -> None:
 def test_scanned_upload_reports_not_redactable(db: Engine) -> None:
     r = post_pdf(client(RecordingVision()), add_scan_noise(render_bill(_claim(), "table"), seed=1))  # type: ignore[arg-type]
     assert r.status_code == 201, r.text
-    assert r.json()["redaction"] == {"pages_redacted": 0, "pages_not_redactable": 1, "entities": {}}
+    assert r.json()["redaction"] == {
+        "pages_redacted": 0,
+        "pages_not_redactable": 1,
+        "pages_partially_redacted": 0,
+        "entities": {},
+    }
 
 
 def test_fhir_routes_never_import_presidio(db: Engine) -> None:
