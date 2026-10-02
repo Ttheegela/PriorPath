@@ -6,11 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
-from app.api.deps import SessionDep, WorkspaceDep
+from app.api.deps import RefDep, SessionDep, WorkspaceDep
 from app.api.schemas import CaseDetail, CaseSummary, FlagOut, LetterOut, LineOut, ParseErrorOut, UploadResult
 from app.db.models import Case, Letter
 from app.ingest.fhir import parse_fhir
 from app.rules import PayerType
+from app.services.audit_run import run_audit
 from app.services.cases import case_flags, create_cases, get_case_or_404, summarize, to_claim
 
 router = APIRouter()
@@ -79,3 +80,11 @@ def case_detail(session: SessionDep, case: Case) -> CaseDetail:
 @router.get("/api/cases/{case_id}", response_model=CaseDetail)
 def get_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep) -> CaseDetail:
     return case_detail(session, get_case_or_404(session, ws, case_id))
+
+
+@router.post("/api/cases/{case_id}/audit", response_model=CaseDetail)
+def audit_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, ref: RefDep) -> CaseDetail:
+    case = get_case_or_404(session, ws, case_id)
+    run_audit(session, case, ref)
+    session.commit()
+    return case_detail(session, case)
