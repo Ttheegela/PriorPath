@@ -220,9 +220,9 @@ Compared on the 12 demo flags by grounding-pass rate:
 | 8. Portfolio entry | `content/projects/priorpath.md` in the portfolio-website repo (commit a4feebb, not pushed); release numbers are added in Task 9. |
 
 ### Release numbers (Task 9)
-These are recorded at release, from the user's terminal with an OpenRouter key, and committed with their results files:
-- **Extraction with redaction on:** the 30-bill extraction eval is re-recorded with `google/gemini-2.5-flash-lite` on redacted page images and compared with the pre-redaction recording (line F1 0.980). It is promoted only if it still passes the gates (line F1 0.95, end-to-end recall 0.90). The new numbers go in `evals/results/extraction.md` and the README.
-- **Faithfulness:** the judge run over the 15 demo explanations; the rate, per-rule counts and every unfaithful item go in `evals/results/faithfulness.md` and the README.
+Recorded at release from the user's terminal with an OpenRouter key, and committed with their results files:
+- **Extraction with redaction on:** the 30-bill extraction eval re-recorded with `google/gemini-2.5-flash-lite` on redacted page images and promoted: line F1 0.980 (150/153), gates pass (line F1 0.95, end-to-end recall 0.90), the same F1 as the pre-redaction recording (the renderer also gained header lines, so this is not a measure of redaction's cost). Table 1.000, compact 1.000, statement 0.930; clean 0.987, noisy 0.973; end-to-end rule recall 1.000 on every rule; negative-plant false positives 0. Details in `evals/results/extraction.md`.
+- **Faithfulness:** judge `google/gemini-2.5-flash` over the 15 demo explanations: 0.933 (14/15), gate 0.90 passed (R1, R3, R4 all faithful; R5 2/3). The one unfaithful item (R5, B0002) said an outlier "requires" asking for itemized justification where the rule only "justifies" asking, an overclaim the judge caught. Indicative only (n=15). Details in `evals/results/faithfulness.md`.
 - **Bundle size and cold start** with Presidio and spaCy, checked on a preview deploy (Vercel's Python limit is 500 MB), and one Langfuse trace each for an explanation and a PDF upload, checked for no images or PHI.
 
 ### Key decisions and rulings in Plan 5
@@ -247,13 +247,12 @@ These are recorded at release, from the user's terminal with an OpenRouter key, 
 | Release (Plan 4) | The vision model returned confidence 0 for lines with no modifiers, so clean bills went to line review | Empty modifier list counts as confidence 1; the prompt asks for it (e7944e3) |
 
 ### Verification
-- Backend chain (ruff, format, mypy, pytest, alembic check, rule eval, stale-results check, extraction replay): 381 passed.
+- Backend chain (ruff, format, mypy, pytest, alembic check, rule eval, stale-results check, extraction and faithfulness replay): 392 passed.
 - Frontend unit tests: 72 passed.
 - Release checks (Task 9): preview bundle size and cold start, Langfuse traces, CI green, production health, E2E, smoke and one live text-layer PDF upload showing `pages_redacted: 1`.
 
 ### Known limits (logged, not blocking)
 - Redaction is best-effort on text-layer pages only and is not de-identification; the synthetic-bill confirmation stays required for every PDF. Limits are listed in `docs/SECURITY.md`.
-- The database connection has no connect timeout, so a database that never answers can hold a request to the platform limit; with `DATABASE_URL` unset the health check returns 500, not 503.
 - Langfuse flush has no single-flight guard, so timed-out flush threads can pile up during a long Langfuse outage.
 - Recordings don't store the prompt version, so a replay can't refuse output recorded with an older prompt.
 - Presidio runs under the pdfium lock (one PDF at a time per instance).

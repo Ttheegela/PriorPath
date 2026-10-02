@@ -52,8 +52,9 @@ The negative plants were checked by mutation: removing the 76/91 exemption, the 
   the demo claims, and an explanation matching no flag is an error. Faithfulness = faithful / total, with junk judge
   output counted as unjudged and not faithful; the gate is 0.90 when replaying `evals/recorded/faithfulness.json`
   (record with `--record MODEL`, needs `OPENROUTER_API_KEY`). Results and every unfaithful item are in
-  `evals/results/faithfulness.md`. It is an LLM judge over 15 demo explanations, so treat the rate as a smoke
-  signal, not a precise measurement.
+  `evals/results/faithfulness.md`. Result: 0.933 (14/15; gate 0.90 passed). The one unfaithful item (R5, B0002) said an
+  outlier "requires" asking for an itemized justification where the rule only "justifies" asking. It is an LLM judge
+  over 15 demo explanations, so treat the rate as a smoke signal, not a precise measurement.
 - Payer-aware R4 (status I is a lead for non-Medicare payers); the eval claims are Medicare.
 - MUE adjudication edge cases beyond per-line vs per-day, and NCCI deletion dates inside a quarter (unit-tested only).
 - Real bills. Every claim is synthetic, built from the same rules the engine encodes, so a perfect score shows the

@@ -64,6 +64,7 @@ def render_page(data: bytes, page_no: int) -> bytes:
 def _encode(page: pdfium.PdfPage, scale: float, redaction: PageRedaction | None = None) -> bytes:
     # Annotation and form-field appearances aren't in the text layer redaction reads, so model-bound
     # renders (redaction is not None) leave them out; the reviewer's original keeps them.
+    # Form widgets aren't drawn (no form environment); never init_forms() here: it would draw widget values.
     bitmap = page.render(scale=scale, draw_annots=redaction is None)
     try:
         img = bitmap.to_pil()
