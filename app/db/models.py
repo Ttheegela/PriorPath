@@ -65,6 +65,7 @@ class Letter(Base):
     case_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
     flag_ids: Mapped[list[str]] = mapped_column(JSONB)
     body: Mapped[str] = mapped_column(Text)
+    generated_body: Mapped[str] = mapped_column(Text, server_default="")  # number-lock baseline
     status: Mapped[str] = mapped_column(String(16), default="draft")  # draft|approved
     created_at: Mapped[datetime] = _created_at()
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

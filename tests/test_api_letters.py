@@ -68,3 +68,54 @@ def test_other_workspace_cannot_touch_letters(db: Engine) -> None:
     assert other.post(f"/api/cases/{case_id}/letter").status_code == 404
     assert other.post(f"/api/letters/{letter['id']}/approve").status_code == 404
     assert other.get(f"/api/letters/{letter['id']}/export?format=txt").status_code == 404
+
+
+def _flag_id(c: TestClient, case_id: str, rule: str) -> str:
+    flags = c.get(f"/api/cases/{case_id}").json()["flags"]
+    return next(f["id"] for f in flags if f["rule_id"] == rule)
+
+
+def test_edit_baseline_is_the_drafted_text(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    c.patch(f"/api/flags/{_flag_id(c, case_id, 'R5')}", json={"status": "rejected", "reject_reason": "ok"})
+    ok = c.patch(f"/api/letters/{letter['id']}", json={"body": "Dear billing team,\n" + letter["body"]})
+    assert ok.status_code == 200
+
+
+def test_edit_cannot_add_amount_of_later_accepted_flag(db: Engine) -> None:
+    c, case_id = reviewed(accept=("R1",))
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    c.patch(f"/api/flags/{_flag_id(c, case_id, 'R5')}", json={"status": "accepted"})
+    bad = c.patch(f"/api/letters/{letter['id']}", json={"body": letter["body"] + "\nAlso $23.55."})
+    assert bad.status_code == 422
+
+
+def test_edit_may_delete_an_amount(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    body = "\n".join(ln for ln in letter["body"].split("\n") if "Total estimated overcharge" not in ln)
+    assert c.patch(f"/api/letters/{letter['id']}", json={"body": body}).status_code == 200
+
+
+def test_approve_requires_unchanged_findings(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    c.patch(f"/api/flags/{_flag_id(c, case_id, 'R5')}", json={"status": "rejected", "reject_reason": "ok"})
+    assert c.post(f"/api/letters/{letter['id']}/approve").status_code == 409
+    again = c.post(f"/api/cases/{case_id}/letter").json()
+    assert c.post(f"/api/letters/{again['id']}/approve").status_code == 200
+
+
+def test_no_new_draft_after_approval(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    c.post(f"/api/letters/{letter['id']}/approve")
+    assert c.post(f"/api/cases/{case_id}/letter").status_code == 409
+
+
+def test_edit_rejects_control_characters(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    for bad in ("a\x00b", "a\x0bb"):
+        assert c.patch(f"/api/letters/{letter['id']}", json={"body": bad}).status_code == 422

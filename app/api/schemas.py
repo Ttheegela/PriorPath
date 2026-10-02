@@ -1,9 +1,10 @@
+import re
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class LineOut(BaseModel):
@@ -77,3 +78,10 @@ class FlagUpdate(BaseModel):
 
 class LetterEdit(BaseModel):
     body: str = Field(min_length=1, max_length=20_000)
+
+    @field_validator("body")
+    @classmethod
+    def _no_control_chars(cls, v: str) -> str:
+        if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", v):
+            raise ValueError("control characters are not allowed")
+        return v
