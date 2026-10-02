@@ -1,16 +1,20 @@
 """Draft → check numbers → retry once. The model explains a flag; it never decides one."""
 
 import json
+import logging
 from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
 from app.llm.client import LLMClient
-from app.llm.grounding import unsupported_numbers
+from app.llm.grounding import has_url, unsupported_numbers
 from app.llm.rule_text import RULE_TEXT
 from app.models import Flag
 
 MAX_ATTEMPTS = 2
+LLM_FAILED = "llm_failed"
+UNGROUNDED = "ungrounded"
+logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
     "You explain one medical-billing finding to a claims auditor in plain English, in at most three "
     "sentences. "
@@ -61,7 +65,7 @@ def build_explain_graph(llm: LLMClient) -> Any:
 
     def check(state: ExplainState) -> dict[str, Any]:
         problems = unsupported_numbers(state["draft"], state["sources"])
-        ok = bool(state["draft"].strip()) and not problems
+        ok = bool(state["draft"].strip()) and not problems and not has_url(state["draft"])
         return {"problems": problems, "explanation": state["draft"].strip() if ok else None}
 
     def route(state: ExplainState) -> str:
@@ -76,7 +80,8 @@ def build_explain_graph(llm: LLMClient) -> Any:
     return graph.compile()
 
 
-def explain_flag(flag: Flag, llm: LLMClient) -> str | None:
+def explain_flag_detailed(flag: Flag, llm: LLMClient) -> tuple[str | None, str | None]:
+    """(explanation, None) on success, else (None, LLM_FAILED | UNGROUNDED)."""
     prompt, sources = build_prompt(flag)
     try:
         result = build_explain_graph(llm).invoke(
@@ -89,7 +94,14 @@ def explain_flag(flag: Flag, llm: LLMClient) -> str | None:
                 "explanation": None,
             }
         )
-    except Exception:  # noqa: BLE001 — an LLM or network failure must never break an audit
-        return None
+    except Exception as e:  # noqa: BLE001 — an LLM or network failure must never break an audit
+        logger.warning("explanation LLM call failed: %s", type(e).__name__)
+        return None, LLM_FAILED
     explanation = result.get("explanation")
-    return explanation if isinstance(explanation, str) else None
+    if isinstance(explanation, str):
+        return explanation, None
+    return None, UNGROUNDED
+
+
+def explain_flag(flag: Flag, llm: LLMClient) -> str | None:
+    return explain_flag_detailed(flag, llm)[0]

@@ -1,5 +1,7 @@
 import json
 import json as jsonlib
+import logging
+import time
 import uuid
 from collections.abc import Iterator
 from typing import Annotated
@@ -23,6 +25,7 @@ from app.services.explanations import explain_row
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 4_000_000
+EXPLAIN_DEADLINE_SECONDS = 240  # stay inside the serverless function time limit
 
 
 async def read_upload(request: Request) -> bytes:
@@ -113,39 +116,51 @@ def explain_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, llm:
     claim_id = str(case.claim["id"])
     workspace_id = ws.id
     flag_ids = [r.id for r in case_flags(session, case.id) if r.explanation_status in EXPLAINABLE]
+    session.close()  # release the request's connection; the stream opens its own
 
     def stream() -> Iterator[str]:
-        # The request's session closes when the response starts streaming, so use our own.
+        started = time.monotonic()
+        ready = unavailable = remaining = 0
         with Session(get_engine(), expire_on_commit=False) as s:
             yield _sse("start", {"pending": len(flag_ids)})
-            ready = unavailable = 0
-            for index, flag_id in enumerate(flag_ids, start=1):
-                row = s.get(FlagRow, flag_id)
-                if row is None:
-                    continue
-                status, reason = explain_row(s, workspace_id, row, claim_id, llm)
-                s.commit()
-                ready += status == "ready"
-                unavailable += status == "unavailable"
-                yield _sse(
-                    "explanation",
-                    {
-                        "index": index,
-                        "total": len(flag_ids),
-                        "flag_id": str(flag_id),
-                        "status": status,
-                        "explanation": row.explanation,
-                        "reason": reason,
-                    },
+            try:
+                for index, flag_id in enumerate(flag_ids, start=1):
+                    if time.monotonic() - started >= EXPLAIN_DEADLINE_SECONDS:
+                        remaining = len(flag_ids) - index + 1
+                        break
+                    try:
+                        row = s.get(FlagRow, flag_id)
+                        if row is None:
+                            continue
+                        status, reason = explain_row(s, workspace_id, row, claim_id, llm)
+                        s.commit()
+                    except Exception:
+                        logging.getLogger(__name__).exception("explanation failed unexpectedly")
+                        s.rollback()
+                        yield _sse("error", {"flag_id": str(flag_id), "reason": "internal error"})
+                        continue
+                    ready += status == "ready"
+                    unavailable += status == "unavailable"
+                    yield _sse(
+                        "explanation",
+                        {
+                            "index": index,
+                            "total": len(flag_ids),
+                            "flag_id": str(flag_id),
+                            "status": status,
+                            "explanation": row.explanation,
+                            "reason": reason,
+                        },
+                    )
+            finally:
+                record(
+                    s,
+                    workspace_id,
+                    "explanations_generated",
+                    case_id=case_id,
+                    detail={"ready": ready, "unavailable": unavailable, "remaining": remaining},
                 )
-            record(
-                s,
-                workspace_id,
-                "explanations_generated",
-                case_id=case_id,
-                detail={"ready": ready, "unavailable": unavailable},
-            )
-            s.commit()
-            yield _sse("done", {"ready": ready, "unavailable": unavailable})
+                s.commit()
+            yield _sse("done", {"ready": ready, "unavailable": unavailable, "remaining": remaining})
 
     return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})

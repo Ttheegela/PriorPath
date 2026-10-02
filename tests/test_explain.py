@@ -126,3 +126,25 @@ def test_prompt_excludes_provider_and_payer() -> None:
     )
     assert "Acme" not in prompt and "Aetna" not in prompt
     assert not any("Acme" in x or "Aetna" in x for x in sources)
+
+
+def test_detailed_distinguishes_failure_kinds() -> None:
+    from app.llm.explain import LLM_FAILED, UNGROUNDED, explain_flag_detailed
+
+    assert explain_flag_detailed(FLAG, FakeLLM(error=TimeoutError("slow"))) == (None, LLM_FAILED)
+    assert explain_flag_detailed(FLAG, FakeLLM(["It is $5,000.", "It is $6,000."])) == (None, UNGROUNDED)
+    text, reason = explain_flag_detailed(FLAG, FakeLLM(["This line repeats a charge."]))
+    assert text and reason is None
+
+
+def test_llm_failure_is_logged_without_content(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING", logger="app.llm.explain"):
+        assert explain_flag(FLAG, FakeLLM(error=TimeoutError("secret prompt text"))) is None
+    assert "explanation LLM call failed: TimeoutError" in caplog.text
+    assert "secret prompt text" not in caplog.text
+
+
+def test_drafts_with_urls_are_rejected() -> None:
+    llm = FakeLLM(["See https://example.com for details.", "Visit www.example.com now."])
+    assert explain_flag(FLAG, llm) is None
+    assert len(llm.calls) == 2

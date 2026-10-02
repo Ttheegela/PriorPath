@@ -5,12 +5,13 @@ from sqlalchemy.orm import Session
 from app.db.models import FlagRow
 from app.llm.cache import cached_explanation
 from app.llm.client import LLMClient
-from app.llm.explain import explain_flag
+from app.llm.explain import LLM_FAILED, explain_flag_detailed
 from app.services import llm_budget
 from app.services.cases import flag_from_row
 
 NOT_CONFIGURED = "explanations are not configured on this server"
 OVER_BUDGET = "hourly explanation limit reached; try again later"
+MODEL_UNAVAILABLE = "explanation model unavailable"
 UNGROUNDED = "could not produce an explanation grounded in the evidence"
 
 
@@ -26,8 +27,10 @@ def explain_row(
         elif not llm_budget.try_consume(session, workspace_id):
             reason = OVER_BUDGET
         else:
-            text = explain_flag(flag, llm)
-            reason = None if text else UNGROUNDED
+            session.commit()  # release the llm_usage row lock before the slow LLM call
+            text, failure = explain_flag_detailed(flag, llm)
+            if failure:
+                reason = MODEL_UNAVAILABLE if failure == LLM_FAILED else UNGROUNDED
     row.explanation = text
     row.explanation_status = "ready" if text else "unavailable"
     return row.explanation_status, reason

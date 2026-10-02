@@ -20,6 +20,7 @@ _WORDS = re.compile(r"\b(hundred|thousand|million|billion)\b", re.I)
 _NUM = "zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen"
 _NUM += "|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety"
 _WORD_UNIT = re.compile(rf"\b({_NUM})\b(?:\s+\w+)?(?:\s*%|\s+(?:dollars?|bucks?|cents?|percent)\b)", re.I)
+_URL = re.compile(r"https?://|www\.", re.I)
 SMALL_INTEGERS = {str(i) for i in range(11)}  # counts like "2 lines" or "3 times" are allowed
 
 
@@ -88,3 +89,7 @@ def unsupported_numbers(text: str, sources: Iterable[str]) -> list[str]:
         if not ok:
             bad.add(n or raw)
     return sorted(bad)
+
+
+def has_url(text: str) -> bool:
+    return _URL.search(text) is not None
