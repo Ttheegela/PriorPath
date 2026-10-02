@@ -1,13 +1,8 @@
-from functools import lru_cache
-from pathlib import Path
-
 from fastapi import FastAPI
 
 from app import __version__
-from app.reference.base import InMemoryReference
-from app.reference.normalized import load_normalized
-
-REF_DIR = Path(__file__).resolve().parent.parent / "data" / "reference" / "subset"
+from app.api import workspace
+from app.api.deps import get_reference
 
 app = FastAPI(
     title="PriorPath",
@@ -16,11 +11,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     redoc_url=None,
 )
-
-
-@lru_cache(maxsize=1)
-def get_reference() -> InMemoryReference:
-    return load_normalized(REF_DIR)
+app.include_router(workspace.router)
 
 
 @app.get("/api/health")
