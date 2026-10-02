@@ -1,0 +1,10 @@
+# Keep the deployed function small: runtime needs only app/ and data/reference/subset/.
+.venv
+.superpowers
+.env*
+data/reference/raw
+docs
+tests
+evals
+scripts
+.github
