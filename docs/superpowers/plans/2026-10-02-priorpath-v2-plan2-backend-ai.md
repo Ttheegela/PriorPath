@@ -6,7 +6,7 @@
 
 **Architecture:** FastAPI routers (`app/api/`) stay thin and call services (`app/services/`) that own database work through SQLAlchemy 2.0 (sync, psycopg 3, Neon in production, Postgres 17 in Docker for tests). Rules from Plan 1 are untouched except a payer-aware R4. The LLM layer (`app/llm/`) is a small LangGraph loop (draft → numeric-grounding check → one retry) behind an `LLMClient` protocol, with OpenRouter as the provider and a fake client in tests. Letters are built by deterministic templates from accepted flags; no LLM writes numbers.
 
-**Tech Stack:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, psycopg 3, Alembic, Postgres 17 (Docker) / Neon, LangGraph, openai SDK → OpenRouter (`anthropic/claude-haiku-4.5`), itsdangerous (signed cookies), python-docx, pytest, ruff, mypy strict, Vercel (Python, Fluid Compute, Cron).
+**Tech Stack:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, psycopg 3, Alembic, Postgres 17 (Docker) / Neon, LangGraph, openai SDK → OpenRouter (`deepseek/deepseek-v4-pro`), itsdangerous (signed cookies), python-docx, pytest, ruff, mypy strict, Vercel (Python, Fluid Compute, Cron).
 
 **Spec:** `docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md` — this plan implements §6 (explanations, letters), §7 (workflow, API, demo), §9, §10 (secrets, retention), §11 (integration tests), the week-2 row of §13, and §16 items 1–2. Plan 3 = React reviewer UI. Plan 4 = PDF path, Presidio redaction, Langfuse, docs/README rewrite, §16 items 3–5.
 
@@ -27,7 +27,7 @@
 - Never send anything to the LLM except the flag (rule id, severity, message, evidence row, overcharge) and fixed rule text — no patient pseudonym, provider or payer names.
 - Workspace isolation: every case/flag/letter route resolves ownership through the visitor's signed `pp_ws` cookie; another workspace's ids return 404.
 - Uploads: JSON only, at most `4_000_000` bytes → otherwise 413. Invalid JSON or zero valid claims → 422 with `{path, message}` errors; partial success → 201 with created cases plus errors.
-- LLM budget: `20` explanations per workspace per clock hour (`EXPLANATIONS_PER_HOUR`). Default explain model: `anthropic/claude-haiku-4.5` (env `EXPLAIN_MODEL` overrides).
+- LLM budget: `20` explanations per workspace per clock hour (`EXPLANATIONS_PER_HOUR`). Default explain model: `deepseek/deepseek-v4-pro` (cheap, near-Sonnet open-weights model; env `EXPLAIN_MODEL` overrides). The final choice is confirmed in Task 10 by grounding-pass rate on the demo flags.
 - Demo workspaces older than 24 h are deleted by the daily cron `GET /api/internal/cleanup` (header `Authorization: Bearer $CRON_SECRET`).
 - Secrets only from environment variables: `DATABASE_URL`, `OPENROUTER_API_KEY`, `SESSION_SECRET`, `CRON_SECRET`. Never log, print or commit them.
 - Serverless: `NullPool` engines; no in-process state except read-only caches (reference data, demo explanations).
@@ -1412,7 +1412,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Interfaces:**
 - Consumes: `Flag`, `Severity`; `LlmUsage`; `Session`.
 - Produces:
-  - `app.llm.client`: `LLMClient` (Protocol: `complete(system: str, user: str) -> str`), `OpenRouterClient(api_key, model, timeout=30.0)`, `DEFAULT_EXPLAIN_MODEL = "anthropic/claude-haiku-4.5"`, `default_client() -> LLMClient | None` (None when `OPENROUTER_API_KEY` is unset)
+  - `app.llm.client`: `LLMClient` (Protocol: `complete(system: str, user: str) -> str`), `OpenRouterClient(api_key, model, timeout=30.0)`, `DEFAULT_EXPLAIN_MODEL = "deepseek/deepseek-v4-pro"`, `default_client() -> LLMClient | None` (None when `OPENROUTER_API_KEY` is unset)
   - `app.llm.grounding`: `numbers_in(text) -> set[str]`, `unsupported_numbers(text, sources: Iterable[str]) -> list[str]`
   - `app.llm.rule_text.RULE_TEXT: dict[str, str]` (R0–R5)
   - `app.llm.explain`: `SYSTEM_PROMPT`, `MAX_ATTEMPTS = 2`, `build_prompt(flag) -> tuple[str, list[str]]`, `build_explain_graph(llm)`, `explain_flag(flag, llm) -> str | None`
@@ -1539,7 +1539,7 @@ from typing import Protocol
 
 from openai import OpenAI
 
-DEFAULT_EXPLAIN_MODEL = "anthropic/claude-haiku-4.5"
+DEFAULT_EXPLAIN_MODEL = "deepseek/deepseek-v4-pro"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
@@ -2584,12 +2584,17 @@ rm .env.production.local
 ```
 Expected: `Running upgrade -> <rev>, initial schema`.
 
-- [ ] **Step 5: Demo explanations**
+- [ ] **Step 5: Pick the explain model on our own data, then build demo explanations**
 
+Compare two cheap candidates by grounding-pass rate on the demo flags (key from the human, never echoed):
 ```bash
-OPENROUTER_API_KEY=... PYTHONPATH=. python scripts/build_demo.py --explain   # key from the human, not echoed
+for m in deepseek/deepseek-v4-pro deepseek/deepseek-v4-flash; do
+  EXPLAIN_MODEL=$m PYTHONPATH=. python scripts/build_demo.py --explain | tail -1
+  cp data/demo/explanations.json "/tmp/expl-$(echo $m | tr / _).json"
+done
 ```
-Expected: `wrote data/demo/explanations.json (N/M grounded)` with N close to M. Read a few entries: plain English, no made-up numbers. `git diff data/demo/cases.json` must be empty (same seed).
+Keep the model with the higher `N/M grounded` (ties → the cheaper one); read 5 of its explanations for tone and accuracy. If it isn't `deepseek/deepseek-v4-pro`, set `vercel env add EXPLAIN_MODEL production preview` to the winner and note it in the README. Restore that model's file to `data/demo/explanations.json`.
+Expected: N close to M for the winner. Read a few entries: plain English, no made-up numbers. `git diff data/demo/cases.json` must be empty (same seed).
 
 - [ ] **Step 6: README section** — under the existing v2 banner in `README.md` add:
 
