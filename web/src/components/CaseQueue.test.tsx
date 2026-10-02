@@ -176,3 +176,27 @@ test.each([[429, "hourly AI limit reached; try again later"], [502, "the model f
     expect(await screen.findByRole("alert")).toHaveTextContent(detail);
   },
 );
+
+test("shows a Choose file button, 'No file chosen', and disables Upload until a file is picked", async () => {
+  stubFetch({ "/api/cases": () => ok(cases) });
+  render(<CaseQueue onOpen={() => {}} />);
+  await screen.findByText("C0001");
+  expect(screen.getByText("Choose file")).toHaveAttribute("for", screen.getByLabelText(/Claim file/).id);
+  expect(screen.getByText("No file chosen")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Upload" })).toBeDisabled();
+  await userEvent.upload(screen.getByLabelText(/Claim file/), new File(["{}"], "picked.json", { type: "application/json" }));
+  expect(screen.getByText("picked.json")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Upload" })).toBeEnabled();
+});
+
+test("upload result reports a price outlier separately from billing errors", async () => {
+  stubFetch({
+    "/api/cases?payer_type": () => ok({ cases: [summary({ id: "o", claim_id: "C0023", error_count: 0, est_overcharge: "0.00", outlier_amount: "125.50" })], errors: [] }, 201),
+    "/api/cases": () => ok(cases),
+  });
+  render(<CaseQueue onOpen={() => {}} />);
+  await screen.findByText("C0001");
+  await userEvent.upload(screen.getByLabelText(/Claim file/), new File(["{}"], "c.json", { type: "application/json" }));
+  await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+  expect(await screen.findByText(/C0023: 0 billing errors, price outliers \$125.50 above benchmark/)).toBeInTheDocument();
+});

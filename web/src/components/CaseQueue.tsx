@@ -60,10 +60,16 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
   return (
     <section className="space-y-6">
       <div className="flex flex-wrap items-end gap-4 border border-black bg-white p-4">
-        <label className="flex flex-col text-sm">
-          Claim file (FHIR JSON or PDF bill, up to 4 MB)
-          <input type="file" accept=".json,application/json,.pdf,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        </label>
+        <div className="flex flex-col text-sm">
+          <label htmlFor="claim-file">Claim file (FHIR JSON or PDF bill, up to 4 MB)</label>
+          <div className="mt-1 flex items-center gap-3">
+            <input id="claim-file" type="file" className="peer sr-only" accept=".json,application/json,.pdf,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <label htmlFor="claim-file" className="cursor-pointer border border-black bg-white px-3 py-1.5 hover:bg-neutral-100 peer-focus-visible:ring-2 peer-focus-visible:ring-black peer-focus-visible:ring-offset-2">
+              Choose file
+            </label>
+            <span className="text-neutral-700">{file ? file.name : "No file chosen"}</span>
+          </div>
+        </div>
         {file && isPdf(file) && (
           <div className="flex flex-col text-sm">
             <label className="flex items-center gap-2">
@@ -83,7 +89,7 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
             <option value="unknown">Unknown</option>
           </select>
         </label>
-        <button type="button" onClick={upload} disabled={busy} className="rounded bg-black px-3 py-1.5 text-white disabled:opacity-50">
+        <button type="button" onClick={upload} disabled={busy || !file} className="rounded bg-black px-3 py-1.5 text-white disabled:opacity-50">
           Upload
         </button>
         <button type="button" onClick={reset} disabled={busy} className="ml-auto rounded border border-black px-3 py-1.5 disabled:opacity-50">
@@ -103,7 +109,9 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
           <ul className="mt-1 list-disc pl-5">
             {uploaded.cases.map((c) => (
               <li key={c.id}>
-                {`${c.claim_id}: ${c.error_count} billing error${c.error_count === 1 ? "" : "s"}, est. overcharge ${money(c.est_overcharge)}`}{" "}
+                {`${c.claim_id}: ${c.error_count} billing error${c.error_count === 1 ? "" : "s"}${
+                  Number(c.est_overcharge) > 0 || Number(c.outlier_amount) <= 0 ? `, est. overcharge ${money(c.est_overcharge)}` : ""
+                }${Number(c.outlier_amount) > 0 ? `, price outliers ${money(c.outlier_amount)} above benchmark` : ""}`}{" "}
                 <a
                   href={routeHref({ name: "case", id: c.id })}
                   aria-label={`Open ${c.claim_id}`}
