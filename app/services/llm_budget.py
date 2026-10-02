@@ -1,12 +1,14 @@
 import uuid
 from datetime import UTC, datetime
 
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.db.models import LlmUsage
 
 EXPLANATIONS_PER_HOUR = 20
+GLOBAL_EXPLANATIONS_PER_HOUR = 200
 
 
 def try_consume(session: Session, workspace_id: uuid.UUID, now: datetime | None = None) -> bool:
@@ -19,4 +21,9 @@ def try_consume(session: Session, workspace_id: uuid.UUID, now: datetime | None 
         )
         .returning(LlmUsage.calls)
     )
-    return session.execute(stmt).scalar_one() <= EXPLANATIONS_PER_HOUR
+    if session.execute(stmt).scalar_one() > EXPLANATIONS_PER_HOUR:
+        return False
+    total = session.scalar(
+        select(func.coalesce(func.sum(LlmUsage.calls), 0)).where(LlmUsage.hour_start == hour)
+    )
+    return bool(total is not None and total <= GLOBAL_EXPLANATIONS_PER_HOUR)

@@ -49,8 +49,10 @@ def current_workspace(request: Request, response: Response, session: SessionDep,
     raw = request.cookies.get(COOKIE_NAME)
     ws = _load(session, raw) if raw else None
     if ws is None:
+        from app.services.capacity import ensure_capacity
         from app.services.demo import demo_enabled, seed_demo
 
+        ensure_capacity(session)
         ws = Workspace()
         session.add(ws)
         session.flush()

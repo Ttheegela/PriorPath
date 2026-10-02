@@ -17,6 +17,7 @@ from app.ingest.fhir import parse_fhir
 from app.rules import PayerType
 from app.services.audit_log import record
 from app.services.audit_run import run_audit
+from app.services.capacity import ensure_capacity
 from app.services.cases import case_flags, create_cases, get_case_or_404, summarize, to_claim
 from app.services.explanations import explain_row
 
@@ -48,6 +49,7 @@ def upload_cases(
             status_code=422,
             content={"cases": [], "errors": [{"path": "$", "message": "body is not valid JSON"}]},
         )
+    ensure_capacity(session)
     result = parse_fhir(data)
     errors = [ParseErrorOut(path=e.path, message=e.message) for e in result.errors]
     if not result.claims:
