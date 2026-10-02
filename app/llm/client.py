@@ -3,7 +3,8 @@ from typing import Protocol
 
 from openai import OpenAI
 
-DEFAULT_EXPLAIN_MODEL = "deepseek/deepseek-v4-pro"
+# Chosen 2026-10-02 by grounding-pass rate on the demo flags: v4-flash 11/12, v4-pro 0/12.
+DEFAULT_EXPLAIN_MODEL = "deepseek/deepseek-v4-flash"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
