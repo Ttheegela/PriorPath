@@ -14,8 +14,8 @@ test("PDF demo case: review lines, see the bill page, save, see flags", async ({
 
   const review = page.getByRole("heading", { name: "Review extracted lines" });
   const collapsed = page.getByText("Extracted lines and bill pages");
+  await expect(review.or(collapsed)).toBeVisible(); // isVisible() alone does not wait for the case to load
   if (await collapsed.isVisible()) await collapsed.click();
-  else await expect(review).toBeVisible();
   await expect(page.getByRole("img", { name: "Bill page 1" })).toBeVisible();
 
   await page.getByRole("button", { name: "Save lines and run audit" }).click();

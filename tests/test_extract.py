@@ -63,6 +63,16 @@ def test_place_of_service_not_shown_does_not_lower_confidence() -> None:
         assert ln.place_of_service is None and ln.confidence == 0.99 and not needs_review([ln])
 
 
+def test_empty_modifiers_confidence_is_ignored_but_real_modifiers_count() -> None:
+    r = row(conf=0.99)
+    r["modifiers"] = f([], 0.0)
+    ln = parse_page(page(r), 1).lines[0]
+    assert ln.confidence == 0.99 and ln.field_confidence["modifiers"] == 1.0 and not needs_review([ln])
+    r["modifiers"] = f(["25"], 0.5)
+    ln = parse_page(page(r), 1).lines[0]
+    assert ln.confidence == 0.5 and needs_review([ln])
+
+
 def test_bad_rows_are_dropped_with_page_and_row_named() -> None:
     res = extract_page(
         b"png",
