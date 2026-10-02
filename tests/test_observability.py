@@ -1,3 +1,4 @@
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -43,6 +44,8 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> FakeLangfuse:
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk")
     monkeypatch.setattr(observability, "_client", None)
+    monkeypatch.setattr(observability, "_pending", 0)
+    monkeypatch.setattr(observability, "_warned", False)
     monkeypatch.setattr(observability, "_factory", lambda: f)
     return f
 
@@ -161,3 +164,86 @@ def test_request_flushes_after_llm_use(fake: FakeLangfuse) -> None:
     assert fake.flushed == 1
     TestClient(app).get("/api/health")
     assert fake.flushed == 1  # nothing traced since
+
+
+def _traced() -> None:
+    with observability.trace_llm("x", model="m", kind="explain", metadata={}) as span:
+        span.end({"ok": True}, None)
+
+
+def test_slow_flush_is_bounded(fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fake, "flush", lambda: time.sleep(10))
+    monkeypatch.setattr(observability, "_FLUSH_BUDGET_SECONDS", 0.5)
+    _traced()
+    t = time.monotonic()
+    assert TestClient(app).get("/api/health").status_code == 200
+    assert time.monotonic() - t < 3
+
+
+def test_failing_flush_in_request_is_swallowed(fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom() -> None:
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(fake, "flush", boom)
+    _traced()
+    assert TestClient(app).get("/api/health").status_code == 200
+
+
+def test_no_pending_means_no_flush(fake: FakeLangfuse) -> None:
+    TestClient(app).get("/api/health")
+    assert fake.flushed == 0
+
+
+def test_warns_once_per_process(
+    fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def boom(*a: Any, **k: Any) -> Any:
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(fake, "start_observation", boom)
+    for _ in range(3):
+        _traced()
+    assert len([r for r in caplog.records if "langfuse tracing failed" in r.message]) == 1
+
+
+def test_sse_stream_flushes_once_after_stream_ends(fake: FakeLangfuse, db: Any) -> None:
+    from app.api.deps import get_llm, get_reference
+    from tests.api_helpers import sample_claim, upload
+    from tests.fakes import FakeLLM
+    from tests.helpers import FIXTURE_REF
+
+    c = OpenRouterClient("k", "m")
+    monkeypatch_calls: list[int] = []
+
+    def create(**kw: Any) -> SimpleNamespace:
+        monkeypatch_calls.append(fake.flushed)
+        return _reply("This line repeats another charge for the same service on the same date.")
+
+    c._client.chat.completions.create = create  # type: ignore[method-assign]
+    app.dependency_overrides[get_reference] = lambda: FIXTURE_REF
+    app.dependency_overrides[get_llm] = lambda: FakeLLM()
+    try:
+        tc = TestClient(app)
+        case_id = upload(tc, [sample_claim()]).json()["cases"][0]["id"]
+        tc.post(f"/api/cases/{case_id}/audit")
+        app.dependency_overrides[get_llm] = lambda: c
+        before = fake.flushed
+        r = tc.post(f"/api/cases/{case_id}/explain")
+        assert "event: done" in r.text
+        assert monkeypatch_calls and all(n == before for n in monkeypatch_calls)  # no flush mid-stream
+        assert fake.flushed == before + 1 and len(fake.observations) >= 1
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_vision_parse_failure_keeps_usage_and_finish_reason(
+    fake: FakeLangfuse, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    c = OpenRouterVisionClient("k", "m")
+    monkeypatch.setattr(c._client.chat.completions, "create", lambda **kw: _reply("not json"))
+    with pytest.raises(VisionError):
+        c.extract(b"img", {}, "p")
+    (obs,) = fake.observations
+    assert obs.updates[-1]["usage_details"] == {"input": 11, "output": 7}
+    assert obs.updates[-1]["output"]["finish_reason"] == "stop"
+    assert obs.updates[-1]["output"]["ok"] is False

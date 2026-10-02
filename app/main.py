@@ -1,19 +1,19 @@
 import logging
-from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
-from typing import Any
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from app import __version__
 from app.api import audit_log, cases, demo, flags, letters, samples, workspace
 from app.api.deps import get_reference
 from app.db.session import get_engine
 from app.observability import flush as flush_traces
+from app.observability import has_pending
 
 log = logging.getLogger(__name__)
 
@@ -26,23 +26,21 @@ app = FastAPI(
 )
 
 
-@app.middleware("http")
-async def flush_langfuse(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-    # Serverless freezes after the response: flush once the body (incl. the explain SSE stream) is done.
-    response = await call_next(request)
-    inner = response.body_iterator  # type: ignore[attr-defined]
+class FlushTraces:
+    """Pure ASGI: after the response (incl. the explain SSE stream) is fully sent, deliver pending traces."""
 
-    async def body() -> AsyncIterator[Any]:
+    def __init__(self, inner: ASGIApp) -> None:
+        self.inner = inner
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         try:
-            async for chunk in inner:
-                yield chunk
+            await self.inner(scope, receive, send)
         finally:
-            await run_in_threadpool(flush_traces)
-
-    response.body_iterator = body()  # type: ignore[attr-defined]
-    return response
+            if scope["type"] == "http" and has_pending():
+                await run_in_threadpool(flush_traces)
 
 
+app.add_middleware(FlushTraces)
 app.include_router(workspace.router)
 app.include_router(cases.router)
 app.include_router(flags.router)

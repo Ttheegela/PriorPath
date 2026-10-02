@@ -3,6 +3,7 @@ metadata below, model id, latency and token usage. Any SDK failure is swallowed 
 
 import logging
 import os
+import threading
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -14,10 +15,12 @@ ALLOWED = {
     "rule_id", "prompt_version", "pages", "page_no", "finish_reason", "ok", "error_type", "workspace",
     "kind", "latency_ms",
 }  # fmt: skip
-_TIMEOUT_SECONDS = 3  # SDK HTTP timeout, so a slow Langfuse cannot hold a serverless invocation
+_TIMEOUT_SECONDS = 3  # SDK HTTP timeout
 
 _client: Any = None
-_dirty = False  # a trace was recorded since the last flush
+_pending = 0  # spans ended since the last flush (guarded by _lock)
+_lock = threading.Lock()
+_FLUSH_BUDGET_SECONDS = 2.0  # langfuse's flush() is unbounded (force_flush 30 s + queue joins)
 _warned = False
 
 
@@ -72,6 +75,9 @@ class Span:
             self._obs.end()
         except Exception as exc:
             _warn(exc)
+        global _pending
+        with _lock:
+            _pending += 1
 
 
 @contextmanager
@@ -82,7 +88,6 @@ def trace_llm(
     kind: Literal["explain", "extract", "judge"],
     metadata: dict[str, Scalar],
 ) -> Iterator[Span]:
-    global _dirty
     started = time.monotonic()
     obs: Any = None
     if observability_enabled():
@@ -93,7 +98,6 @@ def trace_llm(
                 model=model,
                 metadata=_clean({**metadata, "kind": kind}),
             )
-            _dirty = True
         except Exception as exc:
             _warn(exc)
     span = Span(obs, started)
@@ -105,12 +109,27 @@ def trace_llm(
     span.end({"ok": True})
 
 
+def has_pending() -> bool:
+    return _pending > 0
+
+
 def flush() -> None:
-    global _dirty
-    if not _dirty or _client is None:
+    """Deliver pending spans; waits at most the budget (the daemon worker may outlive it)."""
+    global _pending
+    client = _client
+    with _lock:
+        n, _pending = _pending, 0
+    if n == 0 or client is None:
         return
-    _dirty = False
-    try:
-        _client.flush()
-    except Exception as exc:
-        _warn(exc)
+
+    def run() -> None:
+        try:
+            client.flush()
+        except Exception as exc:
+            _warn(exc)
+
+    worker = threading.Thread(target=run, daemon=True)
+    worker.start()
+    worker.join(_FLUSH_BUDGET_SECONDS)
+    if worker.is_alive():
+        _warn(TimeoutError("flush exceeded budget"))

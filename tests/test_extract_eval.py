@@ -98,7 +98,9 @@ class _Truth:
         self.keys = {png: f"{lc.claim.id}/{i}" for lc, pngs in dataset for i, png in enumerate(pngs, 1)}
         self.read = read
 
-    def extract(self, png: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
+    def extract(
+        self, png: bytes, schema: dict[str, Any], prompt: str, page_no: int | None = None
+    ) -> dict[str, Any]:
         return self.read(self.keys[png], png)  # type: ignore[no-any-return]
 
 

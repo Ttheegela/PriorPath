@@ -19,7 +19,9 @@ class VisionError(RuntimeError):
 
 
 class VisionClient(Protocol):
-    def extract(self, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]: ...
+    def extract(
+        self, image_jpeg: bytes, schema: dict[str, Any], prompt: str, page_no: int | None = None
+    ) -> dict[str, Any]: ...
 
 
 class OpenRouterVisionClient:
@@ -64,21 +66,21 @@ class OpenRouterVisionClient:
             raise VisionError("vision response was empty")
         choice = response.choices[0]
         usage = usage_of(response)
+        finish = str(choice.finish_reason)
+
+        def fail(message: str) -> VisionError:
+            span.end({"ok": False, "finish_reason": finish, "error_type": "VisionError"}, usage)
+            return VisionError(message)
+
         if choice.finish_reason != "stop":
-            fail: dict[str, str | int | float | bool] = {
-                "ok": False,
-                "finish_reason": str(choice.finish_reason),
-                "error_type": "VisionError",
-            }
-            span.end(fail, usage)
-            raise VisionError(f"vision response incomplete: {choice.finish_reason}")
+            raise fail(f"vision response incomplete: {choice.finish_reason}")
         try:
             parsed = json.loads(choice.message.content or "")
         except json.JSONDecodeError as exc:
-            raise VisionError("vision response was not JSON") from exc
+            raise fail("vision response was not JSON") from exc
         if not isinstance(parsed, dict):
-            raise VisionError("vision response was not a JSON object")
-        span.end({"ok": True, "finish_reason": "stop"}, usage)
+            raise fail("vision response was not a JSON object")
+        span.end({"ok": True, "finish_reason": finish}, usage)
         return parsed
 
 
