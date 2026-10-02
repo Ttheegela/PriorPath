@@ -85,3 +85,13 @@ class LetterEdit(BaseModel):
         if re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", v):
             raise ValueError("control characters are not allowed")
         return v
+
+
+class AuditEventOut(BaseModel):
+    id: int
+    case_id: uuid.UUID | None
+    actor: str
+    action: str
+    detail: dict[str, Any]
+    ref_versions: list[str]
+    at: datetime
