@@ -1,41 +1,85 @@
 """End-to-end check against a deployed PriorPath: demo → explain → review → letter → export.
 
-python scripts/smoke.py https://priorpath.vercel.app
+python scripts/smoke.py https://priorpath.vercel.app [--require-explanations]
 """
 
+import argparse
 import json
 import sys
+from typing import Any
 
 import httpx
 
+EXPLAINED = ("error", "outlier", "lead")
 
-def last_done(stream: str) -> dict[str, object]:
-    """Data of the last SSE block whose event line is `done` (error events may follow or precede)."""
-    done: dict[str, object] = {}
+
+def fail(what: str, got: object) -> SystemExit:
+    return SystemExit(f"FAIL: {what} — got {str(got)[:300]}")
+
+
+def call(c: httpx.Client, method: str, url: str, **kw: Any) -> httpx.Response:
+    try:
+        r = c.request(method, url, **kw)
+        r.raise_for_status()
+    except httpx.HTTPError as e:
+        raise fail(f"{method} {url}", e) from e
+    return r
+
+
+def parse_events(stream: str) -> list[tuple[str, dict[str, Any]]]:
+    events = []
     for block in stream.strip().split("\n\n"):
         lines = block.split("\n")
-        if "event: done" in lines:
-            done = json.loads(next(x for x in lines if x.startswith("data: "))[6:])
-    assert done, f"no done event in stream: {stream[-300:]!r}"
-    return done
+        name = next((x[7:] for x in lines if x.startswith("event: ")), None)
+        data = next((x[6:] for x in lines if x.startswith("data: ")), None)
+        if name and data:
+            events.append((name, json.loads(data)))
+    return events
 
 
 def main() -> int:
-    base = sys.argv[1].rstrip("/")
-    with httpx.Client(base_url=base, timeout=120) as c:
-        assert c.get("/api/health").json() == {"status": "ok"}
-        cases = c.get("/api/cases").json()
-        assert len(cases) == 10, f"expected 10 demo cases, got {len(cases)}"
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("base_url")
+    ap.add_argument("--require-explanations", action="store_true")
+    args = ap.parse_args()
+    with httpx.Client(base_url=args.base_url.rstrip("/"), timeout=120) as c:
+        health = call(c, "GET", "/api/health").json()
+        if health != {"status": "ok"}:
+            raise fail("health", health)
+        cases = call(c, "GET", "/api/cases").json()
+        if len(cases) != 10:
+            raise fail("expected 10 demo cases", len(cases))
         case = next(x for x in cases if x["error_count"] > 0)
-        done = last_done(c.post(f"/api/cases/{case['id']}/explain").text)
-        detail = c.get(f"/api/cases/{case['id']}").json()
-        error_flag = next(f for f in detail["flags"] if f["severity"] == "error")
-        assert c.patch(f"/api/flags/{error_flag['id']}", json={"status": "accepted"}).status_code == 200
-        letter = c.post(f"/api/cases/{case['id']}/letter").json()
-        assert c.post(f"/api/letters/{letter['id']}/approve").json()["status"] == "approved"
-        exported = c.get(f"/api/letters/{letter['id']}/export?format=txt")
-        assert exported.status_code == 200 and error_flag["message"] in exported.text
-        print(f"ok: case {case['claim_id']}, explanations {done}, letter {len(exported.text)} chars")
+        events = parse_events(call(c, "POST", f"/api/cases/{case['id']}/explain").text)
+        errors = [d for n, d in events if n == "error"]
+        if errors:
+            raise fail("explain stream error events", errors)
+        done = [d for n, d in events if n == "done"]
+        if not done:
+            raise fail("no done event in explain stream", [n for n, _ in events])
+        detail = call(c, "GET", f"/api/cases/{case['id']}").json()
+        explainable = [f for f in detail["flags"] if f["severity"] in EXPLAINED]
+        ready = sum(f["explanation_status"] == "ready" for f in explainable)
+        if ready < len(explainable):
+            msg = f"{ready}/{len(explainable)} explainable flags have ready explanations"
+            if args.require_explanations:
+                raise fail(msg, [f["explanation_status"] for f in explainable])
+            print(f"WARNING: {msg}", file=sys.stderr)
+        error_flag = next((f for f in detail["flags"] if f["severity"] == "error"), None)
+        if error_flag is None:
+            raise fail("no error-severity flag in case detail", detail["flags"])
+        call(c, "PATCH", f"/api/flags/{error_flag['id']}", json={"status": "accepted"})
+        letter = call(c, "POST", f"/api/cases/{case['id']}/letter").json()
+        approved = call(c, "POST", f"/api/letters/{letter['id']}/approve").json()
+        if approved["status"] != "approved":
+            raise fail("letter approval", approved)
+        exported = call(c, "GET", f"/api/letters/{letter['id']}/export?format=txt")
+        if error_flag["message"] not in exported.text:
+            raise fail("export missing accepted flag message", exported.text)
+        print(
+            f"ok: case {case['claim_id']}, explanations {done[-1]}, "
+            f"{ready}/{len(explainable)} flags explained, letter {len(exported.text)} chars"
+        )
     return 0
 
 
