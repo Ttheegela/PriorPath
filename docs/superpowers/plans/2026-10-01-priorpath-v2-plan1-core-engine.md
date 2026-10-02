@@ -785,13 +785,23 @@ def _date_or_none(v: str) -> date | None:
 def load_normalized(directory: Path) -> InMemoryReference:
     return InMemoryReference(
         versions=[
-            RefVersion(r["ref_version"], r["kind"], date.fromisoformat(r["valid_from"]),
-                       date.fromisoformat(r["valid_to"]))
+            RefVersion(
+                r["ref_version"],
+                r["kind"],
+                date.fromisoformat(r["valid_from"]),
+                date.fromisoformat(r["valid_to"]),
+            )
             for r in _rows(directory / "versions.csv")
         ],
         ptp_edits=[
-            PtpEdit(r["col1"], r["col2"], date.fromisoformat(r["effective"]), _date_or_none(r["deleted"]),
-                    r["modifier_indicator"], r["ref_version"])
+            PtpEdit(
+                r["col1"],
+                r["col2"],
+                date.fromisoformat(r["effective"]),
+                _date_or_none(r["deleted"]),
+                r["modifier_indicator"],
+                r["ref_version"],
+            )
             for r in _rows(directory / "ptp.csv")
         ],
         mue_limits=[
@@ -817,17 +827,41 @@ def _write(path: Path, header: list[str], rows: list[list[str]]) -> None:
 
 def write_normalized(ref: InMemoryReference, directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
-    _write(directory / "versions.csv", ["ref_version", "kind", "valid_from", "valid_to"],
-           [[v.ref_version, v.kind, v.valid_from.isoformat(), v.valid_to.isoformat()] for v in ref.versions])
-    _write(directory / "ptp.csv", ["col1", "col2", "effective", "deleted", "modifier_indicator", "ref_version"],
-           [[e.col1, e.col2, e.effective.isoformat(), e.deleted.isoformat() if e.deleted else "",
-             e.modifier_indicator, e.ref_version] for e in ref.ptp_edits])
-    _write(directory / "mue.csv", ["code", "max_units", "mai", "ref_version"],
-           [[m.code, str(m.max_units), str(m.mai), m.ref_version] for m in ref.mue_limits])
-    _write(directory / "fees.csv", ["code", "nonfacility_rate", "facility_rate", "ref_version"],
-           [[f.code, str(f.nonfacility), str(f.facility), f.ref_version] for f in ref.fees])
-    _write(directory / "codes.csv", ["code", "status", "ref_version"],
-           [[c.code, c.status, c.ref_version] for c in ref.code_statuses])
+    _write(
+        directory / "versions.csv",
+        ["ref_version", "kind", "valid_from", "valid_to"],
+        [[v.ref_version, v.kind, v.valid_from.isoformat(), v.valid_to.isoformat()] for v in ref.versions],
+    )
+    _write(
+        directory / "ptp.csv",
+        ["col1", "col2", "effective", "deleted", "modifier_indicator", "ref_version"],
+        [
+            [
+                e.col1,
+                e.col2,
+                e.effective.isoformat(),
+                e.deleted.isoformat() if e.deleted else "",
+                e.modifier_indicator,
+                e.ref_version,
+            ]
+            for e in ref.ptp_edits
+        ],
+    )
+    _write(
+        directory / "mue.csv",
+        ["code", "max_units", "mai", "ref_version"],
+        [[m.code, str(m.max_units), str(m.mai), m.ref_version] for m in ref.mue_limits],
+    )
+    _write(
+        directory / "fees.csv",
+        ["code", "nonfacility_rate", "facility_rate", "ref_version"],
+        [[f.code, str(f.nonfacility), str(f.facility), f.ref_version] for f in ref.fees],
+    )
+    _write(
+        directory / "codes.csv",
+        ["code", "status", "ref_version"],
+        [[c.code, c.status, c.ref_version] for c in ref.code_statuses],
+    )
 ```
 
 - [ ] **Step 5: Run tests**
@@ -903,7 +937,9 @@ HCPCS,MOD,DESCRIPTION,STATUS CODE,NOT USED FOR MEDICARE PAYMENT,WORK RVU,PE RVU,
 
 
 def test_find_header_single_row() -> None:
-    start, cols = find_header(rows(MUE), {"code": lambda h: "HCPCS" in h, "mai": lambda h: "ADJUDICATION" in h})
+    start, cols = find_header(
+        rows(MUE), {"code": lambda h: "HCPCS" in h, "mai": lambda h: "ADJUDICATION" in h}
+    )
     assert start == 1
     assert cols == {"code": 0, "mai": 2}
 
@@ -930,7 +966,12 @@ def test_parse_ptp() -> None:
     assert len(edits) == 2  # malformed row skipped
     first, second = edits
     assert (first.col1, first.col2, first.effective, first.deleted, first.modifier_indicator) == (
-        "93000", "93005", date(2000, 1, 1), None, "0")
+        "93000",
+        "93005",
+        date(2000, 1, 1),
+        None,
+        "0",
+    )
     assert second.deleted == date(2026, 11, 15)
     assert second.modifier_indicator == "1"
 
@@ -1008,13 +1049,16 @@ def _yyyymmdd(v: str) -> date:
 
 
 def parse_ptp(rows: list[list[str]], ref_version: str) -> list[PtpEdit]:
-    start, c = find_header(rows, {
-        "col1": lambda h: h.startswith("COLUMN 1"),
-        "col2": lambda h: h.startswith("COLUMN 2"),
-        "effective": lambda h: "EFFECTIVE" in h,
-        "deletion": lambda h: "DELETION" in h,
-        "modifier": lambda h: h.startswith("MODIFIER"),
-    })
+    start, c = find_header(
+        rows,
+        {
+            "col1": lambda h: h.startswith("COLUMN 1"),
+            "col2": lambda h: h.startswith("COLUMN 2"),
+            "effective": lambda h: "EFFECTIVE" in h,
+            "deletion": lambda h: "DELETION" in h,
+            "modifier": lambda h: h.startswith("MODIFIER"),
+        },
+    )
     edits = []
     for row in rows[start:]:
         try:
@@ -1022,51 +1066,61 @@ def parse_ptp(rows: list[list[str]], ref_version: str) -> list[PtpEdit]:
             indicator = _cell(row, c["modifier"])[:1]
             if indicator not in {"0", "1", "9"}:
                 raise ValueError(f"bad modifier indicator {indicator!r}")
-            edits.append(PtpEdit(
-                col1=_cell(row, c["col1"]).upper(),
-                col2=_cell(row, c["col2"]).upper(),
-                effective=_yyyymmdd(_cell(row, c["effective"])),
-                deleted=None if deletion in {"", "*"} else _yyyymmdd(deletion),
-                modifier_indicator=indicator,
-                ref_version=ref_version,
-            ))
+            edits.append(
+                PtpEdit(
+                    col1=_cell(row, c["col1"]).upper(),
+                    col2=_cell(row, c["col2"]).upper(),
+                    effective=_yyyymmdd(_cell(row, c["effective"])),
+                    deleted=None if deletion in {"", "*"} else _yyyymmdd(deletion),
+                    modifier_indicator=indicator,
+                    ref_version=ref_version,
+                )
+            )
         except ValueError:
             continue
     return edits
 
 
 def parse_mue(rows: list[list[str]], ref_version: str) -> list[MueLimit]:
-    start, c = find_header(rows, {
-        "code": lambda h: "HCPCS" in h,
-        "value": lambda h: "MUE VALUE" in h,
-        "mai": lambda h: "ADJUDICATION INDICATOR" in h,
-    })
+    start, c = find_header(
+        rows,
+        {
+            "code": lambda h: "HCPCS" in h,
+            "value": lambda h: "MUE VALUE" in h,
+            "mai": lambda h: "ADJUDICATION INDICATOR" in h,
+        },
+    )
     limits = []
     for row in rows[start:]:
         try:
             code = _cell(row, c["code"]).upper()
             if not code:
                 raise ValueError("empty code")
-            limits.append(MueLimit(
-                code=code,
-                max_units=int(float(_cell(row, c["value"]))),
-                mai=int(_cell(row, c["mai"])[:1]),
-                ref_version=ref_version,
-            ))
+            limits.append(
+                MueLimit(
+                    code=code,
+                    max_units=int(float(_cell(row, c["value"]))),
+                    mai=int(_cell(row, c["mai"])[:1]),
+                    ref_version=ref_version,
+                )
+            )
         except ValueError:
             continue
     return limits
 
 
 def parse_pfs(rows: list[list[str]], ref_version: str) -> tuple[list[FeeRate], list[CodeStatus]]:
-    start, c = find_header(rows, {
-        "code": lambda h: h == "HCPCS",
-        "mod": lambda h: h == "MOD",
-        "status": lambda h: "STATUS" in h,
-        "nonfac": lambda h: h.startswith("NON-FACILITY") and "TOTAL" in h,
-        "fac": lambda h: h.startswith("FACILITY") and "TOTAL" in h,
-        "cf": lambda h: "CONV" in h or "CONVERSION" in h,
-    })
+    start, c = find_header(
+        rows,
+        {
+            "code": lambda h: h == "HCPCS",
+            "mod": lambda h: h == "MOD",
+            "status": lambda h: "STATUS" in h,
+            "nonfac": lambda h: h.startswith("NON-FACILITY") and "TOTAL" in h,
+            "fac": lambda h: h.startswith("FACILITY") and "TOTAL" in h,
+            "cf": lambda h: "CONV" in h or "CONVERSION" in h,
+        },
+    )
     fees: list[FeeRate] = []
     statuses: list[CodeStatus] = []
     for row in rows[start:]:
@@ -1154,9 +1208,18 @@ def main() -> int:
     a = p.parse_args()
 
     codes = {c.strip().upper() for c in a.codes.read_text().split() if c.strip()}
-    ncci, mue_v, pfs_v = _version(a.ncci, "ncci"), _version(a.mue_version, "mue"), _version(a.pfs_version, "pfs")
+    ncci, mue_v, pfs_v = (
+        _version(a.ncci, "ncci"),
+        _version(a.mue_version, "mue"),
+        _version(a.pfs_version, "pfs"),
+    )
 
-    ptp = [e for f in a.ptp for e in parse_ptp(read_table(f), ncci.ref_version) if e.col1 in codes and e.col2 in codes]
+    ptp = [
+        e
+        for f in a.ptp
+        for e in parse_ptp(read_table(f), ncci.ref_version)
+        if e.col1 in codes and e.col2 in codes
+    ]
     mue = [m for m in parse_mue(read_table(a.mue), mue_v.ref_version) if m.code in codes]
     fees, statuses = parse_pfs(read_table(a.pfs), pfs_v.ref_version)
     fees = [f for f in fees if f.code in codes]
@@ -1164,11 +1227,15 @@ def main() -> int:
 
     write_normalized(InMemoryReference([ncci, mue_v, pfs_v], ptp, mue, fees, statuses), a.out)
     by_ind = {i: sum(e.modifier_indicator == i for e in ptp) for i in "019"}
-    print(f"ptp={len(ptp)} {by_ind} mue={len(mue)} fees={len(fees)} codes={len(statuses)} "
-          f"deleted={sum(s.status == 'D' for s in statuses)}")
+    print(
+        f"ptp={len(ptp)} {by_ind} mue={len(mue)} fees={len(fees)} codes={len(statuses)} "
+        f"deleted={sum(s.status == 'D' for s in statuses)}"
+    )
     if by_ind["0"] < 10 or by_ind["1"] < 10 or not any(s.status == "D" for s in statuses):
-        print("Subset too thin: need >=10 PTP pairs with indicator 0 and 1, and >=1 deleted code. Add codes.",
-              file=sys.stderr)
+        print(
+            "Subset too thin: need >=10 PTP pairs with indicator 0 and 1, and >=1 deleted code. Add codes.",
+            file=sys.stderr,
+        )
         return 1
     return 0
 
@@ -1380,12 +1447,17 @@ def check_coverage(claim: Claim, ref: Reference, config: RuleConfig) -> list[Fla
     if not uncovered:
         return []
     dates = sorted({line.date_of_service.isoformat() for line in uncovered})
-    return [make_flag(
-        claim, "R0", Severity.NOTICE, uncovered,
-        Evidence(table="reference_versions", ref_version=None, row={"dates": ",".join(dates)}),
-        Decimal("0"),
-        f"Cannot audit {len(uncovered)} line(s): no reference data loaded for {', '.join(dates)}",
-    )]
+    return [
+        make_flag(
+            claim,
+            "R0",
+            Severity.NOTICE,
+            uncovered,
+            Evidence(table="reference_versions", ref_version=None, row={"dates": ",".join(dates)}),
+            Decimal("0"),
+            f"Cannot audit {len(uncovered)} line(s): no reference data loaded for {', '.join(dates)}",
+        )
+    ]
 ```
 
 `app/rules/duplicates.py`:
@@ -1412,14 +1484,26 @@ def check_duplicates(claim: Claim, ref: Reference, config: RuleConfig) -> list[F
             continue
         lines = sorted(lines, key=lambda x: x.id)
         extra = sum((x.charge for x in lines[1:]), start=lines[0].charge * 0)
-        flags.append(make_flag(
-            claim, "R1", Severity.ERROR, lines,
-            Evidence(table="claim_lines", ref_version=None, row={
-                "code": code, "modifiers": "+".join(mods), "date_of_service": dos.isoformat(), "units": str(units),
-            }),
-            extra,
-            f"{code} billed {len(lines)} times on {dos.isoformat()} with identical units and modifiers",
-        ))
+        flags.append(
+            make_flag(
+                claim,
+                "R1",
+                Severity.ERROR,
+                lines,
+                Evidence(
+                    table="claim_lines",
+                    ref_version=None,
+                    row={
+                        "code": code,
+                        "modifiers": "+".join(mods),
+                        "date_of_service": dos.isoformat(),
+                        "units": str(units),
+                    },
+                ),
+                extra,
+                f"{code} billed {len(lines)} times on {dos.isoformat()} with identical units and modifiers",
+            )
+        )
     return flags
 ```
 
@@ -1497,8 +1581,12 @@ def test_indicator_nine_is_not_applicable() -> None:
 
 def test_deleted_edit_not_applied_on_deletion_date() -> None:
     def pair(d: date) -> list[object]:
-        return list(check_ncci(claim(line("L1", code="29881", dos=d), line("L2", code="29880", dos=d)),
-                               FIXTURE_REF, CFG))
+        return list(
+            check_ncci(
+                claim(line("L1", code="29881", dos=d), line("L2", code="29880", dos=d)), FIXTURE_REF, CFG
+            )
+        )
+
     assert len(pair(date(2026, 11, 14))) == 1
     assert pair(date(2026, 11, 15)) == []
 
@@ -1510,7 +1598,10 @@ def test_different_dates_not_paired() -> None:
 
 def test_uncovered_dates_skipped() -> None:
     d = date(2027, 1, 5)
-    assert check_ncci(claim(line("L1", code="93000", dos=d), line("L2", code="93005", dos=d)), FIXTURE_REF, CFG) == []
+    assert (
+        check_ncci(claim(line("L1", code="93000", dos=d), line("L2", code="93005", dos=d)), FIXTURE_REF, CFG)
+        == []
+    )
 ```
 
 - [ ] **Step 2: Run to verify failure**
@@ -1530,11 +1621,54 @@ from app.reference.base import Reference
 from app.rules import RuleConfig
 
 # CMS "NCCI-associated modifiers" that can bypass an edit with modifier indicator 1.
-NCCI_MODIFIERS = frozenset({
-    "E1", "E2", "E3", "E4", "FA", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9",
-    "LC", "LD", "LM", "LT", "RC", "RI", "RT", "TA", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9",
-    "24", "25", "27", "57", "58", "59", "78", "79", "91", "XE", "XS", "XP", "XU",
-})
+NCCI_MODIFIERS = frozenset(
+    {
+        "E1",
+        "E2",
+        "E3",
+        "E4",
+        "FA",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "LC",
+        "LD",
+        "LM",
+        "LT",
+        "RC",
+        "RI",
+        "RT",
+        "TA",
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+        "T7",
+        "T8",
+        "T9",
+        "24",
+        "25",
+        "27",
+        "57",
+        "58",
+        "59",
+        "78",
+        "79",
+        "91",
+        "XE",
+        "XS",
+        "XP",
+        "XU",
+    }
+)
 
 
 def check_ncci(claim: Claim, ref: Reference, config: RuleConfig) -> list[Flag]:
@@ -1553,20 +1687,32 @@ def check_ncci(claim: Claim, ref: Reference, config: RuleConfig) -> list[Flag]:
                     continue
                 if edit.modifier_indicator == "9":
                     break
-                if edit.modifier_indicator == "1" and NCCI_MODIFIERS & (set(c1.modifiers) | set(c2.modifiers)):
+                if edit.modifier_indicator == "1" and NCCI_MODIFIERS & (
+                    set(c1.modifiers) | set(c2.modifiers)
+                ):
                     break
-                flags.append(make_flag(
-                    claim, "R2", Severity.ERROR, [c1, c2],
-                    Evidence(table="ncci_ptp", ref_version=edit.ref_version, row={
-                        "column_1": edit.col1, "column_2": edit.col2,
-                        "effective": edit.effective.isoformat(),
-                        "deleted": edit.deleted.isoformat() if edit.deleted else "",
-                        "modifier_indicator": edit.modifier_indicator,
-                    }),
-                    c2.charge,
-                    f"{c2.code} is bundled into {c1.code} on {dos.isoformat()} "
-                    f"(NCCI edit, modifier indicator {edit.modifier_indicator})",
-                ))
+                flags.append(
+                    make_flag(
+                        claim,
+                        "R2",
+                        Severity.ERROR,
+                        [c1, c2],
+                        Evidence(
+                            table="ncci_ptp",
+                            ref_version=edit.ref_version,
+                            row={
+                                "column_1": edit.col1,
+                                "column_2": edit.col2,
+                                "effective": edit.effective.isoformat(),
+                                "deleted": edit.deleted.isoformat() if edit.deleted else "",
+                                "modifier_indicator": edit.modifier_indicator,
+                            },
+                        ),
+                        c2.charge,
+                        f"{c2.code} is bundled into {c1.code} on {dos.isoformat()} "
+                        f"(NCCI edit, modifier indicator {edit.modifier_indicator})",
+                    )
+                )
                 break
     return flags
 ```
@@ -1634,7 +1780,9 @@ def test_line_level_limit_not_summed_across_lines() -> None:
 
 
 def test_day_level_limit_sums_lines() -> None:
-    c = claim(line("L1", code="97110", units=4, charge="120.00"), line("L2", code="97110", units=3, charge="90.00"))
+    c = claim(
+        line("L1", code="97110", units=4, charge="120.00"), line("L2", code="97110", units=3, charge="90.00")
+    )
     (flag,) = check_mue(c, FIXTURE_REF, CFG)
     assert flag.line_ids == ["L1", "L2"]
     assert flag.est_overcharge == Decimal("30.00")  # 1 excess unit x (210 / 7)
@@ -1672,10 +1820,20 @@ def _flag(claim: Claim, lines: list[LineItem], lim: MueLimit, billed: int) -> Fl
     dos = lines[0].date_of_service.isoformat()
     scope = "on one line" if lim.mai == 1 else "on one date of service"
     return make_flag(
-        claim, "R3", Severity.ERROR, lines,
-        Evidence(table="mue", ref_version=lim.ref_version, row={
-            "code": lim.code, "max_units": str(lim.max_units), "mai": str(lim.mai), "billed_units": str(billed),
-        }),
+        claim,
+        "R3",
+        Severity.ERROR,
+        lines,
+        Evidence(
+            table="mue",
+            ref_version=lim.ref_version,
+            row={
+                "code": lim.code,
+                "max_units": str(lim.max_units),
+                "mai": str(lim.mai),
+                "billed_units": str(billed),
+            },
+        ),
         excess * total_charge / billed,
         f"{lim.code}: {billed} units billed {scope} ({dos}); Medicare's unit limit is {lim.max_units}",
     )
@@ -1752,7 +1910,9 @@ def test_deleted_code_flagged_full_charge() -> None:
 
 
 def test_active_and_unknown_codes_not_flagged() -> None:
-    assert check_invalid_code(claim(line("L1", code="99213"), line("L2", code="0001U")), FIXTURE_REF, CFG) == []
+    assert (
+        check_invalid_code(claim(line("L1", code="99213"), line("L2", code="0001U")), FIXTURE_REF, CFG) == []
+    )
 
 
 def test_price_outlier_nonfacility() -> None:
@@ -1774,13 +1934,19 @@ def test_price_at_threshold_not_flagged_and_units_scale() -> None:
 
 
 def test_multiplier_is_configurable() -> None:
-    (flag,) = check_price(claim(line("L1", code="99213", charge="200.00")), FIXTURE_REF,
-                          RuleConfig(price_multiplier=Decimal("2")))
+    (flag,) = check_price(
+        claim(line("L1", code="99213", charge="200.00")),
+        FIXTURE_REF,
+        RuleConfig(price_multiplier=Decimal("2")),
+    )
     assert flag.est_overcharge == Decimal("15.70")  # 200 - 2 x 92.15
 
 
 def test_professional_technical_modifiers_and_missing_rates_skipped() -> None:
-    assert check_price(claim(line("L1", code="99213", charge="900.00", modifiers=["26"])), FIXTURE_REF, CFG) == []
+    assert (
+        check_price(claim(line("L1", code="99213", charge="900.00", modifiers=["26"])), FIXTURE_REF, CFG)
+        == []
+    )
     assert check_price(claim(line("L1", code="0001U", charge="900.00")), FIXTURE_REF, CFG) == []
 ```
 
@@ -1805,13 +1971,21 @@ def check_invalid_code(claim: Claim, ref: Reference, config: RuleConfig) -> list
             continue
         status = ref.code_status(line.code, line.date_of_service)
         if status is not None and status.status == "D":
-            flags.append(make_flag(
-                claim, "R4", Severity.ERROR, [line],
-                Evidence(table="pfs_status", ref_version=status.ref_version,
-                         row={"code": line.code, "status": status.status}),
-                line.charge,
-                f"{line.code} is a deleted code and was not billable on {line.date_of_service.isoformat()}",
-            ))
+            flags.append(
+                make_flag(
+                    claim,
+                    "R4",
+                    Severity.ERROR,
+                    [line],
+                    Evidence(
+                        table="pfs_status",
+                        ref_version=status.ref_version,
+                        row={"code": line.code, "status": status.status},
+                    ),
+                    line.charge,
+                    f"{line.code} is a deleted code and was not billable on {line.date_of_service.isoformat()}",
+                )
+            )
     return flags
 ```
 
@@ -1822,7 +1996,9 @@ from app.reference.base import Reference
 from app.rules import RuleConfig
 
 # CMS place-of-service codes paid at the facility rate.
-FACILITY_POS = frozenset({"19", "21", "22", "23", "24", "26", "31", "34", "41", "42", "51", "52", "53", "56", "61"})
+FACILITY_POS = frozenset(
+    {"19", "21", "22", "23", "24", "26", "31", "34", "41", "42", "51", "52", "53", "56", "61"}
+)
 PRO_TECH_MODIFIERS = frozenset({"26", "TC"})
 
 
@@ -1841,16 +2017,28 @@ def check_price(claim: Claim, ref: Reference, config: RuleConfig) -> list[Flag]:
             continue
         benchmark = k * rate * line.units
         if line.charge > benchmark:
-            flags.append(make_flag(
-                claim, "R5", Severity.OUTLIER, [line],
-                Evidence(table="pfs_rates", ref_version=fee.ref_version, row={
-                    "code": line.code, "rate_type": "facility" if facility else "nonfacility",
-                    "medicare_rate": str(rate), "multiplier": str(k), "units": str(line.units),
-                }),
-                line.charge - benchmark,
-                f"{line.code} charged {line.charge} for {line.units} unit(s); that is more than {k}x the "
-                f"Medicare national rate of {rate} per unit",
-            ))
+            flags.append(
+                make_flag(
+                    claim,
+                    "R5",
+                    Severity.OUTLIER,
+                    [line],
+                    Evidence(
+                        table="pfs_rates",
+                        ref_version=fee.ref_version,
+                        row={
+                            "code": line.code,
+                            "rate_type": "facility" if facility else "nonfacility",
+                            "medicare_rate": str(rate),
+                            "multiplier": str(k),
+                            "units": str(line.units),
+                        },
+                    ),
+                    line.charge - benchmark,
+                    f"{line.code} charged {line.charge} for {line.units} unit(s); that is more than {k}x the "
+                    f"Medicare national rate of {rate} per unit",
+                )
+            )
     return flags
 ```
 
@@ -1937,7 +2125,10 @@ def test_parse_single_eob() -> None:
 
 
 def test_bundle_skips_non_eob_entries() -> None:
-    bundle = {"resourceType": "Bundle", "entry": [{"resource": {"resourceType": "Patient"}}, {"resource": eob([item()])}]}
+    bundle = {
+        "resourceType": "Bundle",
+        "entry": [{"resource": {"resourceType": "Patient"}}, {"resource": eob([item()])}],
+    }
     res = parse_fhir(bundle)
     assert len(res.claims) == 1 and res.errors == []
 
@@ -1958,13 +2149,17 @@ def test_period_and_billable_period_fallback_for_date() -> None:
 
 
 def test_bad_items_reported_with_path_rest_of_claim_kept() -> None:
-    res = parse_fhir(eob([
-        item(1),
-        item(2, quantity={"value": 0}),
-        item(3, net={"value": -20.0}),
-        item(4, productOrService={"coding": []}),
-        item(5, quantity={"value": 1.5}),
-    ]))
+    res = parse_fhir(
+        eob(
+            [
+                item(1),
+                item(2, quantity={"value": 0}),
+                item(3, net={"value": -20.0}),
+                item(4, productOrService={"coding": []}),
+                item(5, quantity={"value": 1.5}),
+            ]
+        )
+    )
     assert [x.id for x in res.claims[0].lines] == ["L1"]
     assert [e.path for e in res.errors] == ["$.item[1]", "$.item[2]", "$.item[3]", "$.item[4]"]
 
@@ -1988,11 +2183,20 @@ def test_missing_id_reported_with_bundle_path() -> None:
 
 
 def test_round_trip_preserves_audit_fields() -> None:
-    original = claim(line("L1", modifiers=["25"]), line("L2", code="97110", units=3, charge="91.20", pos="22"))
+    original = claim(
+        line("L1", modifiers=["25"]), line("L2", code="97110", units=3, charge="91.20", pos="22")
+    )
     (back,) = parse_fhir(claim_to_eob(original)).claims
     for a, b in zip(original.lines, back.lines, strict=True):
         assert (a.id, a.code, a.modifiers, a.units, a.charge, a.date_of_service, a.place_of_service) == (
-            b.id, b.code, b.modifiers, b.units, b.charge, b.date_of_service, b.place_of_service)
+            b.id,
+            b.code,
+            b.modifiers,
+            b.units,
+            b.charge,
+            b.date_of_service,
+            b.place_of_service,
+        )
     bundle = claims_to_bundle([original, original])
     assert len(parse_fhir(bundle).claims) == 2
 ```
@@ -2128,11 +2332,14 @@ def parse_fhir(data: object) -> ParseResult:
         eobs = [
             (f"$.entry[{i}].resource", e["resource"])
             for i, e in enumerate(data.get("entry", []))
-            if isinstance(e, dict) and isinstance(e.get("resource"), dict)
+            if isinstance(e, dict)
+            and isinstance(e.get("resource"), dict)
             and e["resource"].get("resourceType") == "ExplanationOfBenefit"
         ]
     else:
-        result.errors.append(ParseError("$.resourceType", f"expected Bundle or ExplanationOfBenefit, got {rtype!r}"))
+        result.errors.append(
+            ParseError("$.resourceType", f"expected Bundle or ExplanationOfBenefit, got {rtype!r}")
+        )
         return result
     for path, eob in eobs:
         claim = _parse_eob(eob, path, result.errors)
@@ -2166,7 +2373,9 @@ def claim_to_eob(claim: Claim) -> dict[str, object]:
         "status": "active",
         "use": "claim",
         "patient": {"reference": f"Patient/{claim.patient_pseudonym}"},
-        "diagnosis": [{"sequence": dseq[d], "diagnosisCodeableConcept": {"coding": [{"code": d}]}} for d in diags],
+        "diagnosis": [
+            {"sequence": dseq[d], "diagnosisCodeableConcept": {"coding": [{"code": d}]}} for d in diags
+        ],
         "item": items,
     }
     if claim.provider:
@@ -2177,7 +2386,11 @@ def claim_to_eob(claim: Claim) -> dict[str, object]:
 
 
 def claims_to_bundle(claims: list[Claim]) -> dict[str, object]:
-    return {"resourceType": "Bundle", "type": "collection", "entry": [{"resource": claim_to_eob(c)} for c in claims]}
+    return {
+        "resourceType": "Bundle",
+        "type": "collection",
+        "entry": [{"resource": claim_to_eob(c)} for c in claims],
+    }
 ```
 
 - [ ] **Step 4: Run tests**
@@ -2300,8 +2513,13 @@ def _safe_codes(ref: InMemoryReference, dos: date) -> list[str]:
     for f in sorted(ref.fees, key=lambda f: f.code):
         mue = ref.mue(f.code, dos)
         status = ref.code_status(f.code, dos)
-        if (ref.fee(f.code, dos) is f and f.nonfacility > 0 and mue is not None and mue.max_units >= 2
-                and (status is None or status.status != "D")):
+        if (
+            ref.fee(f.code, dos) is f
+            and f.nonfacility > 0
+            and mue is not None
+            and mue.max_units >= 2
+            and (status is None or status.status != "D")
+        ):
             out.append(f.code)
     return out
 
@@ -2310,18 +2528,28 @@ def _mult(rng: random.Random, lo: float, hi: float) -> Decimal:
     return Decimal(str(round(rng.uniform(lo, hi), 2)))
 
 
-def _line(ref: InMemoryReference, rng: random.Random, dos: date, code: str, idx: int,
-          units: int = 1, mult: tuple[float, float] = (1.2, 2.5)) -> LineItem:
+def _line(
+    ref: InMemoryReference,
+    rng: random.Random,
+    dos: date,
+    code: str,
+    idx: int,
+    units: int = 1,
+    mult: tuple[float, float] = (1.2, 2.5),
+) -> LineItem:
     fee = ref.fee(code, dos)
     if fee is not None and fee.nonfacility > 0:
         charge = money(fee.nonfacility * units * _mult(rng, *mult))
     else:
         charge = Decimal("100.00") * units
-    return LineItem(id=f"L{idx}", code=code, units=units, charge=charge, date_of_service=dos, place_of_service="11")
+    return LineItem(
+        id=f"L{idx}", code=code, units=units, charge=charge, date_of_service=dos, place_of_service="11"
+    )
 
 
-def _plant_r1(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str],
-              lines: list[LineItem]) -> Expected | None:
+def _plant_r1(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], lines: list[LineItem]
+) -> Expected | None:
     src = rng.choice(lines)
     dup = src.model_copy(update={"id": f"L{len(lines) + 1}"})
     lines.append(dup)
@@ -2334,9 +2562,12 @@ def _plantable(ref: InMemoryReference, code: str, dos: date) -> bool:
     return (status is None or status.status != "D") and (mue is None or mue.max_units >= 1)
 
 
-def _plant_r2(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str],
-              lines: list[LineItem]) -> Expected | None:
-    edits = [e for e in ref.ptp_edits if e.modifier_indicator in {"0", "1"} and ref.ptp(e.col1, e.col2, dos) is e]
+def _plant_r2(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], lines: list[LineItem]
+) -> Expected | None:
+    edits = [
+        e for e in ref.ptp_edits if e.modifier_indicator in {"0", "1"} and ref.ptp(e.col1, e.col2, dos) is e
+    ]
     rng.shuffle(edits)
     for e in edits:
         if not (_plantable(ref, e.col1, dos) and _plantable(ref, e.col2, dos)):
@@ -2351,8 +2582,9 @@ def _plant_r2(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[
     return None
 
 
-def _plant_r3(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str],
-              lines: list[LineItem]) -> Expected | None:
+def _plant_r3(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], lines: list[LineItem]
+) -> Expected | None:
     cands = [c for c in safe if not _conflicts(ref, c, lines, dos)]
     if not cands:
         return None
@@ -2364,24 +2596,33 @@ def _plant_r3(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[
     return ("R3", frozenset({new.id}))
 
 
-def _plant_r4(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str],
-              lines: list[LineItem]) -> Expected | None:
-    deleted = sorted(c.code for c in ref.code_statuses
-                     if c.status == "D" and ref.code_status(c.code, dos) is c)
+def _plant_r4(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], lines: list[LineItem]
+) -> Expected | None:
+    deleted = sorted(
+        c.code for c in ref.code_statuses if c.status == "D" and ref.code_status(c.code, dos) is c
+    )
     rng.shuffle(deleted)
     for code in deleted:
         mue = ref.mue(code, dos)
         if (mue is not None and mue.max_units < 1) or _conflicts(ref, code, lines, dos):
             continue
-        new = LineItem(id=f"L{len(lines) + 1}", code=code, units=1, charge=Decimal("100.00"),
-                       date_of_service=dos, place_of_service="11")
+        new = LineItem(
+            id=f"L{len(lines) + 1}",
+            code=code,
+            units=1,
+            charge=Decimal("100.00"),
+            date_of_service=dos,
+            place_of_service="11",
+        )
         lines.append(new)
         return ("R4", frozenset({new.id}))
     return None
 
 
-def _plant_r5(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str],
-              lines: list[LineItem]) -> Expected | None:
+def _plant_r5(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], lines: list[LineItem]
+) -> Expected | None:
     cands = [c for c in safe if not _conflicts(ref, c, lines, dos)]
     if not cands:
         return None
@@ -2391,10 +2632,18 @@ def _plant_r5(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[
 
 
 Planter = Callable[[InMemoryReference, random.Random, date, list[str], list[LineItem]], Expected | None]
-PLANTERS: dict[str, Planter] = {"R1": _plant_r1, "R2": _plant_r2, "R3": _plant_r3, "R4": _plant_r4, "R5": _plant_r5}
+PLANTERS: dict[str, Planter] = {
+    "R1": _plant_r1,
+    "R2": _plant_r2,
+    "R3": _plant_r3,
+    "R4": _plant_r4,
+    "R5": _plant_r5,
+}
 
 
-def _clean_lines(ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], count: int) -> list[LineItem]:
+def _clean_lines(
+    ref: InMemoryReference, rng: random.Random, dos: date, safe: list[str], count: int
+) -> list[LineItem]:
     lines: list[LineItem] = []
     pool = safe[:]
     rng.shuffle(pool)
@@ -2425,12 +2674,19 @@ def generate(ref: InMemoryReference, n: int, seed: int, error_rate: float = 0.6)
                 if got is not None:
                     expected.add(got)
                     planted.append(kind)
-        out.append(LabeledClaim(
-            claim=Claim(id=f"C{i:04d}", patient_pseudonym=f"P-{i:04d}", provider="Synthetic Clinic",
-                        payer="Synthetic Health Plan", lines=lines),
-            expected=expected,
-            planted=planted,
-        ))
+        out.append(
+            LabeledClaim(
+                claim=Claim(
+                    id=f"C{i:04d}",
+                    patient_pseudonym=f"P-{i:04d}",
+                    provider="Synthetic Clinic",
+                    payer="Synthetic Health Plan",
+                    lines=lines,
+                ),
+                expected=expected,
+                planted=planted,
+            )
+        )
     return out
 ```
 
@@ -2485,7 +2741,9 @@ def test_engine_scores_perfectly_on_fixture_generated_claims() -> None:
 def test_false_positive_and_miss_are_counted() -> None:
     dup = claim(line("L1"), line("L2"))
     labeled = [
-        LabeledClaim(claim=dup, expected=set(), planted=[]),  # R1 will fire: false positive on a "clean" claim
+        LabeledClaim(
+            claim=dup, expected=set(), planted=[]
+        ),  # R1 will fire: false positive on a "clean" claim
         LabeledClaim(claim=claim(line("L1")), expected={("R5", frozenset({"L1"}))}, planted=["R5"]),  # miss
     ]
     report = evaluate(labeled, FIXTURE_REF, via_fhir=False)
@@ -2572,11 +2830,15 @@ class Report:
 
     def to_markdown(self) -> str:
         rows = ["| Rule | Support | TP | FP | FN | Precision | Recall |", "|---|---|---|---|---|---|---|"]
-        rows += [f"| {s.rule_id} | {s.support} | {s.tp} | {s.fp} | {s.fn} | {s.precision:.3f} | {s.recall:.3f} |"
-                 for s in self.scores.values()]
+        rows += [
+            f"| {s.rule_id} | {s.support} | {s.tp} | {s.fp} | {s.fn} | {s.precision:.3f} | {s.recall:.3f} |"
+            for s in self.scores.values()
+        ]
         rows.append("")
-        rows.append(f"Claims: {self.claims} (clean: {self.clean_claims}, clean with flags: {self.clean_fp}); "
-                    f"FHIR parse errors: {self.parse_errors}")
+        rows.append(
+            f"Claims: {self.claims} (clean: {self.clean_claims}, clean with flags: {self.clean_fp}); "
+            f"FHIR parse errors: {self.parse_errors}"
+        )
         return "\n".join(rows)
 
 
@@ -2617,10 +2879,16 @@ def main() -> int:
     report = evaluate(generate(ref, a.n, a.seed), ref)
     a.out.mkdir(parents=True, exist_ok=True)
     summary = {
-        "n": a.n, "seed": a.seed, "reference": [v.ref_version for v in ref.versions],
-        "claims": report.claims, "clean_claims": report.clean_claims, "clean_fp": report.clean_fp,
+        "n": a.n,
+        "seed": a.seed,
+        "reference": [v.ref_version for v in ref.versions],
+        "claims": report.claims,
+        "clean_claims": report.clean_claims,
+        "clean_fp": report.clean_fp,
         "parse_errors": report.parse_errors,
-        "rules": {k: {**asdict(s), "precision": s.precision, "recall": s.recall} for k, s in report.scores.items()},
+        "rules": {
+            k: {**asdict(s), "precision": s.precision, "recall": s.recall} for k, s in report.scores.items()
+        },
     }
     (a.out / "latest.json").write_text(json.dumps(summary, indent=2) + "\n")
     (a.out / "latest.md").write_text(report.to_markdown() + "\n")
@@ -2708,8 +2976,12 @@ def version() -> dict[str, object]:
     return {
         "version": __version__,
         "reference": [
-            {"ref_version": v.ref_version, "kind": v.kind,
-             "valid_from": v.valid_from.isoformat(), "valid_to": v.valid_to.isoformat()}
+            {
+                "ref_version": v.ref_version,
+                "kind": v.kind,
+                "valid_from": v.valid_from.isoformat(),
+                "valid_to": v.valid_to.isoformat(),
+            }
             for v in ref.versions
         ],
     }
