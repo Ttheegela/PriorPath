@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from app.api.deps import RefDep, SessionDep, WorkspaceDep
 from app.api.schemas import LetterEdit, LetterOut
 from app.db.models import Case, Letter
-from app.llm.grounding import unsupported_numbers
+from app.llm.grounding import has_url, unsupported_numbers
 from app.services.audit_log import record
 from app.services.cases import case_flags, get_case_or_404, to_claim
 from app.services.letters import LETTER_SEVERITIES, build_letter
@@ -62,6 +62,8 @@ def edit_letter(letter_id: uuid.UUID, edit: LetterEdit, ws: WorkspaceDep, sessio
         raise HTTPException(
             status_code=422, detail=f"edit adds numbers not in the findings: {', '.join(added)}"
         )
+    if has_url(edit.body) and not has_url(letter.generated_body):
+        raise HTTPException(status_code=422, detail="links are not allowed in the letter")
     letter.body = edit.body
     record(session, ws.id, "letter_edited", case_id=case.id, detail={"letter_id": str(letter.id)})
     session.commit()

@@ -147,3 +147,11 @@ def test_reaudit_records_discarded_reviews_and_drafts(db: Engine) -> None:
         assert detail is not None
         assert detail.detail["discarded_reviewed_flags"] == 2
         assert detail.detail["discarded_draft_letters"] == 1
+
+
+def test_edit_cannot_add_urls(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter = c.post(f"/api/cases/{case_id}/letter").json()
+    for url in ("https://evil.example/pay", "http://x.test", "www.evil.example"):
+        r = c.patch(f"/api/letters/{letter['id']}", json={"body": letter["body"] + f"\nPay at {url}"})
+        assert r.status_code == 422

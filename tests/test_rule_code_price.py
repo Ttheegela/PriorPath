@@ -78,3 +78,13 @@ def test_status_d_stays_an_error_for_any_payer() -> None:
         claim(line("L1", code="99201")), FIXTURE_REF, RuleConfig(payer_type="commercial")
     )
     assert flag.severity is Severity.ERROR
+
+
+def test_status_i_lead_message_is_exact() -> None:
+    (flag,) = check_invalid_code(
+        claim(line("L1", code="77061", charge="80.00")), FIXTURE_REF, RuleConfig(payer_type="commercial")
+    )
+    assert flag.message == (
+        "77061 is not valid for Medicare billing on 2026-10-15; "
+        "a commercial plan may still accept it, so confirm with the plan before disputing"
+    )

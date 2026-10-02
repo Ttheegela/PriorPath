@@ -23,7 +23,10 @@ class OpenRouterClient:
             max_tokens=300,
             temperature=0,
         )
-        return (response.choices[0].message.content or "").strip()
+        choice = response.choices[0]
+        if choice.finish_reason != "stop":  # truncated or filtered: treat as a failed draft
+            return ""
+        return (choice.message.content or "").strip()
 
 
 def default_client() -> LLMClient | None:

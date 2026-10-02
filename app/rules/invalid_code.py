@@ -26,8 +26,7 @@ def check_invalid_code(claim: Claim, ref: Reference, config: RuleConfig) -> list
             severity, amount = Severity.LEAD, Decimal("0")
             message = (
                 f"{line.code} is not valid for Medicare billing on {dos}; "
-                f"a {config.payer_type} plan may still accept it, "
-                " so confirm with the plan before disputing"
+                f"a {config.payer_type} plan may still accept it, so confirm with the plan before disputing"
             )
         flags.append(
             make_flag(
