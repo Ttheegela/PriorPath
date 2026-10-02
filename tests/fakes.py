@@ -1,3 +1,6 @@
+from typing import Any
+
+
 class FakeLLM:
     def __init__(self, replies: list[str] | None = None, error: Exception | None = None) -> None:
         self.replies = list(replies or [])
@@ -9,3 +12,16 @@ class FakeLLM:
         if self.error is not None:
             raise self.error
         return self.replies.pop(0) if self.replies else ""
+
+
+class FakeVision:
+    def __init__(self, responses: list[Any]) -> None:
+        self.responses = list(responses)
+        self.calls: list[tuple[bytes, str]] = []
+
+    def extract(self, image_png: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
+        self.calls.append((image_png, prompt))
+        r = self.responses.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r  # type: ignore[no-any-return]

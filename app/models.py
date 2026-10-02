@@ -38,6 +38,7 @@ class LineItem(BaseModel):
     diagnosis_codes: list[str] = Field(default_factory=list)
     source: LineSource = LineSource.STRUCTURED
     confidence: float | None = None
+    field_confidence: dict[str, float] = Field(default_factory=dict)
 
     @field_validator("code")
     @classmethod
