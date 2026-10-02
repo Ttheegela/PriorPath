@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import LetterPanel from "./LetterPanel";
@@ -73,16 +73,22 @@ test("export downloads the blob under the server filename", async () => {
   const create = vi.fn(() => "blob:fake");
   const revoke = vi.fn();
   vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke }));
+  vi.useFakeTimers({ toFake: ["setTimeout"], shouldAdvanceTime: true });
+  const onChange = vi.fn();
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-  render(<LetterPanel caseDetail={approvedCase()} onChange={() => {}} />);
-  await userEvent.click(screen.getByRole("button", { name: "Download .txt" }));
-  await waitFor(() => expect(click).toHaveBeenCalled());
+  render(<LetterPanel caseDetail={approvedCase()} onChange={onChange} />);
+  fireEvent.click(screen.getByRole("button", { name: "Download .txt" }));
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
   const clicked = click.mock.contexts[0] as HTMLAnchorElement;
   expect(fetchMock).toHaveBeenCalledWith("/api/letters/l1/export?format=txt", expect.anything());
   expect(create).toHaveBeenCalledWith(expect.anything());
   expect(clicked.download).toBe("dispute-letter-C0001.txt");
   expect(clicked.href).toBe("blob:fake");
+  expect(clicked.isConnected).toBe(false);
+  expect(revoke).not.toHaveBeenCalled();
+  vi.advanceTimersByTime(1000);
   expect(revoke).toHaveBeenCalledWith("blob:fake");
+  vi.useRealTimers();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
@@ -100,4 +106,15 @@ test("redraft is disabled with a hint while there are unsaved edits", async () =
   await userEvent.type(screen.getByLabelText("Letter text"), " more");
   expect(redraft).toBeDisabled();
   expect(screen.getByText("Save your edits before redrafting.")).toBeInTheDocument();
+});
+
+test("RFC 5987 filename* wins over filename", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () =>
+    new Response("x", { status: 200, headers: { "Content-Disposition": "attachment; filename=\"fallback.txt\"; filename*=UTF-8''dispute%20letter.txt" } })));
+  vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:f", revokeObjectURL: () => {} }));
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  render(<LetterPanel caseDetail={approvedCase()} onChange={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { name: "Download .txt" }));
+  await waitFor(() => expect(click).toHaveBeenCalled());
+  expect((click.mock.contexts[0] as HTMLAnchorElement).download).toBe("dispute letter.txt");
 });

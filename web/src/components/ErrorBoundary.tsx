@@ -7,6 +7,10 @@ export default class ErrorBoundary extends Component<{ onBack: () => void; child
     return { failed: true };
   }
 
+  componentDidCatch(error: Error) {
+    console.error("Screen render failed", error);
+  }
+
   render() {
     if (!this.state.failed) return this.props.children;
     return (

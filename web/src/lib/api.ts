@@ -130,6 +130,12 @@ let workspace: Promise<void> | undefined;
 let workspaceCreatedAt = NaN;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** Test-only: forget the memoized workspace so each test sets its own age. */
+export function resetWorkspaceForTests() {
+  workspace = undefined;
+  workspaceCreatedAt = NaN;
+}
+
 /** True when the workspace was created over 24 h ago, so a 404 most likely means it expired. */
 export const workspaceLikelyExpired = () => Date.now() - workspaceCreatedAt > DAY_MS;
 
@@ -155,10 +161,21 @@ export const draftLetter = (caseId: string) => request<Letter>(`/api/cases/${enc
 export const editLetter = (id: string, body: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}`, jsonInit("PATCH", { body }));
 export const approveLetter = (id: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}/approve`, { method: "POST" });
 
+const decodeURIComponentSafe = (v: string) => {
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return null;
+  }
+};
+
 export async function exportLetter(id: string, format: "txt" | "docx"): Promise<{ blob: Blob; filename: string }> {
   const res = await fetch(`/api/letters/${encodeURIComponent(id)}/export?format=${format}`, { credentials: "same-origin" });
   if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
-  const filename = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? `dispute-letter.${format}`;
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const star = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+  const plain = /filename="?([^";]+)"?/.exec(disposition)?.[1];
+  const filename = (star && decodeURIComponentSafe(star)) || plain || `dispute-letter.${format}`;
   return { blob: await res.blob(), filename };
 }
 export const auditLog = (caseId?: string) =>

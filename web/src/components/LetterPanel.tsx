@@ -6,6 +6,7 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
   const [body, setBody] = useState(letter?.body ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const approved = letter?.status === "approved";
   const canDraft = caseDetail.flags.some((f) => f.status === "accepted" && (f.severity === "error" || f.severity === "outlier"));
@@ -27,16 +28,22 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
   async function download(format: "txt" | "docx") {
     if (!letter) return;
     setError(null);
+    setDownloading(true);
     try {
       const { blob, filename } = await exportLetter(letter.id, format);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await onChange();
     } catch (e) {
       setError(messageOf(e));
+    } finally {
+      setDownloading(false);
     }
   }
 
@@ -71,8 +78,8 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
           {approved ? (
             <div className="flex flex-wrap gap-3 text-sm">
               <span className="font-medium">Approved {letter.approved_at ? new Date(letter.approved_at).toLocaleString() : ""}</span>
-              <button type="button" onClick={() => download("txt")} className="underline">Download .txt</button>
-              <button type="button" onClick={() => download("docx")} className="underline">Download .docx</button>
+              <button type="button" disabled={downloading} onClick={() => download("txt")} className="underline disabled:opacity-50">Download .txt</button>
+              <button type="button" disabled={downloading} onClick={() => download("docx")} className="underline disabled:opacity-50">Download .docx</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">

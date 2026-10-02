@@ -17,6 +17,14 @@ test("a render error shows a recovery screen, never a blank page", async () => {
   expect(onBack).toHaveBeenCalled();
 });
 
+test("moving to another route (new key) resets the boundary", () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const { rerender } = render(<ErrorBoundary key="a" onBack={() => {}}><Boom /></ErrorBoundary>);
+  expect(screen.getByText("Something went wrong on this screen.")).toBeInTheDocument();
+  rerender(<ErrorBoundary key="b" onBack={() => {}}><p>other screen</p></ErrorBoundary>);
+  expect(screen.getByText("other screen")).toBeInTheDocument();
+});
+
 test("children render normally when nothing throws", () => {
   render(<ErrorBoundary onBack={() => {}}><p>fine</p></ErrorBoundary>);
   expect(screen.getByText("fine")).toBeInTheDocument();
