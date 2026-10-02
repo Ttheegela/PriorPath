@@ -145,26 +145,56 @@ def test_billing_rows_are_not_masked_on_generated_bills(layout: str) -> None:
     assert masked == []
 
 
-def _page(*rows: str) -> bytes:
+Cells = list[tuple[float, str]]  # one printed row: (cell width in mm, 0 = rest of the line; text)
+
+
+def _render(rows: list[Cells]) -> bytes:
     pdf = FPDF(unit="mm", format="Letter")
     pdf.add_page()
     pdf.set_font("Helvetica", "", 11)
     pdf.cell(0, 6, "Itemized statement for services rendered", new_x="LMARGIN", new_y="NEXT")
     for row in rows:
-        pdf.cell(0, 6, row, new_x="LMARGIN", new_y="NEXT")
+        for width, text in row:
+            pdf.cell(width, 6, text)
+        pdf.ln(6)
     return bytes(pdf.output())
 
 
-def test_name_on_a_billing_row_is_masked_but_the_code_is_not() -> None:
-    pdf = _page("10/15/2026 J1100 - 10 11 $12.00", "Patient: Alex Example   J1100 1 11 $30.00")
-    page = pdfium.PdfDocument(pdf)[0]
+@pytest.mark.parametrize(
+    ("rows", "masked", "kept"),
+    [
+        (
+            [[(0, "10/15/2026 J1100 - 10 11 $12.00")], [(0, "Patient: Alex Example   J1100 1 11 $30.00")]],
+            [NAME],
+            ["10/15/2026 J1100 - 10 11 $12.00", "J1100 1 11 $30.00"],
+        ),
+        ([[(0, "Patient: Jordan Lee   G0008 1 11 $30.00")]], ["Jordan Lee"], ["G0008 1 11 $30.00"]),
+        ([[(0, "Patient: Maria Garcia 2")]], ["Maria Garcia"], ["2"]),
+        ([[(0, "Guarantor: Jordan Lee  Claim C0095")]], ["Jordan Lee"], ["C0095"]),
+        ([[(60, "Guarantor: Jordan Lee"), (0, "Claim C0095")]], ["Jordan Lee"], ["Claim C0095"]),
+        (  # pdfium joins the two cells with a single space; the column gap still ends the address
+            [
+                [
+                    (110, "Address: 1200 Maple Avenue, Springfield, IL 62704"),
+                    (0, "Date of service 10/15/2026 99213 $40.00"),
+                ]
+            ],
+            ["1200 Maple Avenue, Springfield, IL 62704"],
+            ["Date of service 10/15/2026 99213 $40.00"],
+        ),
+        ([[(0, "Phone: (217) 555-0143   Date of birth: 01/02/1980")]], ["(217) 555-0143"], ["01/02/1980"]),
+    ],
+)
+def test_matches_stay_in_their_column(rows: list[Cells], masked: list[str], kept: list[str]) -> None:
+    page = pdfium.PdfDocument(_render(rows))[0]
     r = find_phi_boxes(page)
     tp = page.get_textpage()
-    assert any(_covers(rb, _find(tp, NAME)) for rb in r.boxes)
     text = tp.get_text_range()
-    for needle in ("10/15/2026 J1100 - 10 11 $12.00", "J1100 1 11 $30.00"):
-        i = text.index(needle)
-        assert not any(_overlaps(b, rb) for b in _boxes_of(tp, i, i + len(needle)) for rb in r.boxes)
+    for needle in masked:
+        assert any(_covers(rb, _find(tp, needle)) for rb in r.boxes), needle
+    for needle in kept:
+        i = text.rindex(needle)
+        assert not any(_overlaps(b, rb) for b in _boxes_of(tp, i, i + len(needle)) for rb in r.boxes), needle
 
 
 def _found(text: str) -> list[tuple[str, str]]:
@@ -188,12 +218,6 @@ def test_digit_runs_are_not_phone_numbers() -> None:
 def test_member_ids() -> None:
     assert _found("MRN: 1234567\r\nMRN 7654321\r\n") == [("MEMBER_ID", "1234567"), ("MEMBER_ID", "7654321")]
     assert _found("Member ID: ABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n") == []  # too long: no half mask
-
-
-def test_address_stops_at_a_column_gap() -> None:
-    text = "Address: 1200 Maple Avenue, Springfield, IL 62704   Date of service 10/15/2026"
-    assert ("LOCATION", "1200 Maple Avenue, Springfield, IL 62704") in _found(text)
-    assert all("10/15/2026" not in value and "Date" not in value for _, value in _found(text))
 
 
 def test_email_detection_makes_no_network_call(monkeypatch: pytest.MonkeyPatch) -> None:

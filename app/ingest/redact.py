@@ -4,46 +4,59 @@ Presidio and spaCy are imported on first use only, so routes that never redact d
 Callers hold the pdfium lock around find_phi_boxes (it reads the page's text layer).
 """
 
+import bisect
 import re
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 import pypdfium2 as pdfium
 from PIL import Image, ImageDraw
 
 # DATE_TIME is deliberately absent: dates of service are billing data.
 REDACT_ENTITIES = ("PERSON", "PHONE_NUMBER", "EMAIL_ADDRESS", "US_SSN", "LOCATION", "MEMBER_ID")
+_PRESIDIO_ENTITIES = ["PERSON", "PHONE_NUMBER", "US_SSN", "LOCATION"]  # the rest are plain regexes below
 MIN_TEXT_CHARS = 20  # fewer non-space chars than this: treat the page as a scan
 PAD_PX = 2
 SCORE_THRESHOLD = 0.5
+# A gap between two characters wider than this share of the line height starts a new column. One space is
+# ~0.25 of the (loose) char box height, two are ~0.5; table cells leave far more. Tuned by tests.
+COLUMN_GAP = 0.4
 
-# Labelled values on the label's own line ([ \t], not \s, so a match never reaches into the next printed row);
-# lookbehinds keep the label itself unmasked. Values are words joined by single spaces, so a column gap
-# (2+ spaces) ends them. Presidio compiles patterns with `regex`, which allows variable-width lookbehind.
-_LABELLED = (
+# Labelled values ("v" group), matched outside Presidio so a wider model span can't swallow them; each value
+# is then cut to its column. [ \t], not \s, so a value never starts on the next printed row.
+_LABELLED = [
     (
         "MEMBER_ID",
-        r"(?i)(?<=\b((member|subscriber|policy|patient)[ \t]*(id|#|no\.?|number)"
-        r"|mrn([ \t]*(id|#|no\.?|number))?)[ \t]*[:#]?[ \t]*)"
-        r"[A-Z0-9-]{5,20}(?![A-Z0-9-])",  # longer values: no match rather than half-masked
+        r"(?i)\b(?:(?:member|subscriber|policy|patient)[ \t]*(?:id|#|no\.?|number)"
+        r"|mrn(?:[ \t]*(?:id|#|no\.?|number))?)[ \t]*[:#]?[ \t]*"
+        r"(?P<v>[A-Z0-9-]{5,20})(?![A-Z0-9-])",  # longer values: no match rather than half-masked
     ),
     # The small spaCy model misses many names and street lines, so also take the value after the label.
     (
         "PERSON",
-        r"(?i)(?<=\b(patient|guarantor|subscriber|insured)([ \t]+name)?[ \t]*:[ \t]*)"
-        r"[A-Za-z][A-Za-z.'-]*( [A-Za-z][A-Za-z.'-]*)*(?!\w)",
+        r"(?i)\b(?:patient|guarantor|subscriber|insured)(?:[ \t]+name)?[ \t]*:[ \t]*"
+        r"(?P<v>[A-Za-z][A-Za-z.'-]*(?: [A-Za-z][A-Za-z.'-]*)*)(?!\w)",
     ),
-    ("LOCATION", r"(?i)(?<=\baddress[ \t]*:[ \t]*)\S+( \S+)*"),
+    ("LOCATION", r"(?i)\baddress[ \t]*:[ \t]*(?P<v>\S+(?: \S+)*)"),
     # Plain regex instead of Presidio's EmailRecognizer, which fetches the Public Suffix List over HTTP.
-    ("EMAIL_ADDRESS", r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b"),
-)
+    ("EMAIL_ADDRESS", r"(?P<v>\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b)"),
+]
+_LABELLED_RX = [(entity, re.compile(rx)) for entity, rx in _LABELLED]
 _DATE_OR_AMOUNT = re.compile(r"\$|\b\d{1,2}/\d{1,2}/\d{2,4}\b")
+_DIGIT_WORD = re.compile(r"\S*\d")
 
 _UNMAPPED_SPACY_LABELS = ["CARDINAL", "EVENT", "FAC", "LANGUAGE", "LAW", "MONEY", "ORDINAL", "PERCENT"]
 _UNMAPPED_SPACY_LABELS += ["PRODUCT", "QUANTITY", "WORK_OF_ART"]
 
 Box = tuple[float, float, float, float]  # left, bottom, right, top in PDF points, origin bottom-left
+
+
+class Match(NamedTuple):
+    entity_type: str
+    start: int
+    end: int
 
 
 @dataclass
@@ -63,7 +76,7 @@ def analyzer() -> Any:
     global _analyzer
     with _analyzer_lock:
         if _analyzer is None:
-            from presidio_analyzer import AnalyzerEngine, Pattern, PatternRecognizer
+            from presidio_analyzer import AnalyzerEngine
             from presidio_analyzer.nlp_engine import NlpEngineProvider
 
             nlp = NlpEngineProvider(
@@ -74,50 +87,76 @@ def analyzer() -> Any:
                     "ner_model_configuration": {"labels_to_ignore": _UNMAPPED_SPACY_LABELS},
                 }
             ).create_engine()
-            engine = AnalyzerEngine(nlp_engine=nlp, supported_languages=["en"])
-            engine.registry.remove_recognizer("EmailRecognizer")
-            for entity, regex in _LABELLED:
-                engine.registry.add_recognizer(
-                    PatternRecognizer(
-                        supported_entity=entity,
-                        name=f"labelled_{entity.lower()}",
-                        patterns=[Pattern(f"labelled_{entity.lower()}", regex, 0.85)],
-                    )
-                )
-            _analyzer = engine
+            _analyzer = AnalyzerEngine(nlp_engine=nlp, supported_languages=["en"])
         return _analyzer
 
 
-def _row(text: str, i: int) -> tuple[int, int]:
-    """[start, end) of the printed line holding index i."""
+def _segment(text: str, breaks: Sequence[int], i: int) -> tuple[int, int]:
+    """[start, end) of the column segment holding index i: its printed line, cut at column breaks."""
     start = max(text.rfind("\n", 0, i), text.rfind("\r", 0, i)) + 1
     ends = [j for j in (text.find("\r", i), text.find("\n", i)) if j >= 0]
-    return start, min(ends, default=len(text))
+    end = min(ends, default=len(text))
+    k = bisect.bisect_right(breaks, i)
+    if k > 0:
+        start = max(start, breaks[k - 1])
+    if k < len(breaks):
+        end = min(end, breaks[k])
+    return start, end
 
 
-def matches(text: str) -> list[Any]:
-    """Presidio results cut to one printed line each, minus the kinds of hit that land on billing rows."""
-    out = []
+def _cut(text: str, breaks: Sequence[int], start: int, end: int) -> tuple[int, int]:
+    """The span trimmed of whitespace and ended at its start's segment."""
+    while start < end and text[start].isspace():
+        start += 1
+    end = min(end, _segment(text, breaks, start)[1])
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return start, end
+
+
+def matches(text: str, breaks: Sequence[int] = ()) -> list[Match]:
+    """Identifier spans, each within one column segment; `breaks` are sorted indices that start a column."""
+    found = []
     for res in analyzer().analyze(
-        text, language="en", entities=list(REDACT_ENTITIES), score_threshold=SCORE_THRESHOLD
+        text, language="en", entities=_PRESIDIO_ENTITIES, score_threshold=SCORE_THRESHOLD
     ):
-        row_start, row_end = _row(text, res.start)
-        res.end = min(res.end, row_end)
-        value = text[res.start : res.end].rstrip()
-        res.end = res.start + len(value)
-        if not value:
-            continue
-        # spaCy's small model tags codes, dates and claim numbers as names or places
-        if res.recognition_metadata.get("recognizer_name") == "SpacyRecognizer" and any(
-            c.isdigit() for c in value
+        start, end = _cut(text, breaks, res.start, res.end)
+        if res.recognition_metadata.get("recognizer_name") == "SpacyRecognizer":
+            # the small model runs names into codes and claim numbers: keep the words before the first digit
+            if digit := _DIGIT_WORD.search(text, start, end):
+                start, end = _cut(text, breaks, start, digit.start())
+        elif res.entity_type == "PHONE_NUMBER":
+            seg_start, seg_end = _segment(text, breaks, start)
+            if not any(c in text[start:end] for c in "()-.") or _DATE_OR_AMOUNT.search(
+                text, seg_start, seg_end
+            ):
+                continue  # bare digit runs (codes, NPIs, accounts) and columns holding amounts or dates
+        found.append(Match(res.entity_type, start, end))
+    for entity, rx in _LABELLED_RX:
+        for hit in rx.finditer(text):
+            found.append(Match(entity, *_cut(text, breaks, *hit.span("v"))))
+    kept: list[Match] = []
+    for m in sorted(found, key=lambda m: (m.start, -m.end)):
+        if m.end > m.start and not any(
+            k.entity_type == m.entity_type and k.start <= m.start and m.end <= k.end for k in kept
         ):
-            continue
-        if res.entity_type == "PHONE_NUMBER" and (
-            not any(c in value for c in "()-.") or _DATE_OR_AMOUNT.search(text[row_start:row_end])
-        ):
-            continue  # bare digit runs (codes, NPIs, accounts) and rows that carry billing amounts or dates
-        out.append(res)
-    return out
+            kept.append(m)
+    return kept
+
+
+def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> list[int]:
+    """Indices of characters that start a new column (a wide gap after the previous character on the line)."""
+    breaks = []
+    prev_right: float | None = None
+    for i, c in enumerate(text):
+        if c in "\r\n":
+            prev_right = None
+        elif not c.isspace():
+            left, bottom, right, top = tp.get_charbox(i, loose=True)
+            if prev_right is not None and left - prev_right > COLUMN_GAP * (top - bottom):
+                breaks.append(i)
+            prev_right = right
+    return breaks
 
 
 def find_phi_boxes(page: pdfium.PdfPage) -> PageRedaction:
@@ -134,9 +173,9 @@ def find_phi_boxes(page: pdfium.PdfPage) -> PageRedaction:
         x0, y0, x1, y1 = page.get_cropbox()
         boxes: list[Box] = []
         entities: dict[str, int] = {}
-        for res in matches(text):
-            entities[res.entity_type] = entities.get(res.entity_type, 0) + 1
-            chars = [tp.get_charbox(i) for i in range(res.start, res.end) if not text[i].isspace()]
+        for m in matches(text, _column_breaks(tp, text)):
+            entities[m.entity_type] = entities.get(m.entity_type, 0) + 1
+            chars = [tp.get_charbox(i) for i in range(m.start, m.end) if not text[i].isspace()]
             boxes.append(
                 (
                     min(c[0] for c in chars) - x0,

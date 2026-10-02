@@ -103,18 +103,25 @@ layer, runs Microsoft Presidio (with the small spaCy English model, loaded only 
 page text, and paints a black box over every match on the rendered image. It is a best-effort safeguard for
 synthetic and test bills, not de-identification, and the synthetic-bill confirmation is still required for every PDF.
 
-**Targeted:** person names (`PERSON`), phone numbers, email addresses, US Social Security numbers, locations
-(`LOCATION`), and labelled identifiers (`MEMBER_ID`: the value after "Member ID", "Subscriber #", "Policy number",
-"Patient ID", "MRN" and similar; values longer than 20 characters are not matched). Because the small model misses
-many names and street lines, the value after "Patient:", "Patient name:", "Guarantor:", "Insured:" and
-"Address:" labels is also targeted, up to the end of the line or a column gap. Matches scoring below 0.5 are
-dropped, so a phone number usually needs a nearby word such as "phone" or "tel".
+**Targeted:** person names (`PERSON`), phone numbers, US Social Security numbers and locations (`LOCATION`) found
+by Presidio, plus plain regular expressions for email addresses and labelled identifiers (`MEMBER_ID`: the value
+after "Member ID", "Subscriber #", "Policy number", "Patient ID", "MRN" and similar; values longer than 20
+characters are not matched). Because the small model misses many names and street lines, the value after
+"Patient:", "Patient name:", "Guarantor:", "Insured:" and "Address:" labels is also targeted. The labelled
+patterns run separately from Presidio, so a wider model match can't absorb them. Presidio matches scoring below
+0.5 are dropped, so a phone number usually needs a nearby word such as "phone" or "tel".
+
+**Columns:** pdfium's text joins table cells with a single space, so text spacing can't show where a column ends.
+Each printed line is split into column segments wherever the gap between two neighbouring characters' boxes is
+wider than 0.4 of the line height (one space is about 0.25, two spaces about 0.5). Every match is cut at the end
+of the segment it starts in, so a name or address never runs into the next cell.
 
 **Not targeted:** procedure codes, modifiers, units, charges, dates of service and place of service. Dates are
-not a redacted type; name and place matches from the language model that contain a digit are dropped; phone
-matches need a separator and are dropped on rows that carry a dollar amount or a date. This is checked by tests on
-generated bills of every layout, but it is not a guarantee: a provider name, payer name or claim number may be
-masked if it looks like a person's name or a labelled ID.
+not a redacted type; a name or place found by the language model is cut before its first word containing a digit;
+phone matches need a separator and are dropped when their column segment holds a dollar amount or a date. This
+is checked by tests on generated bills of every layout, but it is not a guarantee: a provider name, payer name or
+claim number may be masked if it looks like a person's name or a labelled ID, and a billing value printed in the
+same cell as an identifier, with less than about two spaces between them, can still be covered.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
 or a page whose text and character positions don't line up is sent unmasked and counted as not redactable. A
