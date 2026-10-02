@@ -1,0 +1,19 @@
+import { expect, test } from "@playwright/test";
+
+test("PDF demo case: review lines, see the bill page, save, see flags", async ({ page }) => {
+  await page.goto("/");
+  const link = page.getByRole("link", { name: /^B\d{4}/ }).first();
+  await expect(page.getByRole("row").first()).toBeVisible();
+  test.skip((await link.count()) === 0, "no PDF demo case until the recorded extraction is committed");
+  await link.click();
+
+  const review = page.getByRole("heading", { name: "Review extracted lines" });
+  const collapsed = page.getByText("Extracted lines and bill pages");
+  if (await collapsed.isVisible()) await collapsed.click();
+  else await expect(review).toBeVisible();
+  await expect(page.getByRole("img", { name: "Bill page 1" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Save lines and run audit" }).click();
+  await expect(page.getByText("No flags. Run the audit to check this claim.")).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Billing errors" })).toBeVisible();
+});

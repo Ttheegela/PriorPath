@@ -7,10 +7,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select, update
 from sqlalchemy.orm import Session
 
-from app.db.models import Workspace
+from app.db.models import Case, CaseDocument, Workspace
 from app.ingest.fhir import parse_fhir
 from app.main import app
-from app.services.demo import DEMO_CASES, cleanup_old_workspaces
+from app.services.cases import case_flags
+from app.services.demo import DEMO_CASES, cleanup_old_workspaces, seed_demo
+from evals.pdf_render import render_bill
+from tests.api_helpers import sample_claim
+from tests.helpers import FIXTURE_REF
 
 
 def test_demo_file_parses_cleanly() -> None:
@@ -69,3 +73,55 @@ def test_cleanup_non_ascii_or_empty_secret_is_401(db: Engine, monkeypatch: pytes
     assert c.get("/api/internal/cleanup", headers={"Authorization": "Bearer ñ".encode()}).status_code == 401
     monkeypatch.setenv("CRON_SECRET", "")
     assert c.get("/api/internal/cleanup", headers={"Authorization": "Bearer "}).status_code == 401
+
+
+def _pdf_demo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, conf: float) -> None:
+    bills = tmp_path / "bills"
+    bills.mkdir()
+    (bills / "B0001.pdf").write_bytes(render_bill(sample_claim(), "table"))
+    lines = [
+        ln.model_copy(update={"confidence": conf}).model_dump(mode="json") for ln in sample_claim().lines
+    ]
+    rec = {"B0001": {"lines": lines, "errors": [], "provider": "Test Clinic", "payer": "Test Plan"}}
+    (tmp_path / "pdf_extractions.json").write_text(json.dumps(rec))
+    monkeypatch.setattr("app.services.demo.DEMO_BILLS", bills)
+    monkeypatch.setattr("app.services.demo.DEMO_EXTRACTIONS", tmp_path / "pdf_extractions.json")
+
+
+def _seed(db: Engine) -> list[Case]:
+    with Session(db) as s:
+        ws = Workspace()
+        s.add(ws)
+        s.flush()
+        seed_demo(s, ws, FIXTURE_REF)
+        s.commit()
+        return list(s.scalars(select(Case).where(Case.source == "pdf")))
+
+
+def test_pdf_demo_case_is_audited_with_its_document(
+    db: Engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _pdf_demo(tmp_path, monkeypatch, 0.99)
+    (case,) = _seed(db)
+    with Session(db) as s:
+        doc = s.scalar(select(CaseDocument).where(CaseDocument.case_id == case.id))
+        assert doc is not None and doc.page_count == 1 and doc.content.startswith(b"%PDF")
+        assert case.status == "needs_review" and case_flags(s, case.id)
+
+
+def test_pdf_demo_low_confidence_line_needs_line_review(
+    db: Engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _pdf_demo(tmp_path, monkeypatch, 0.5)
+    (case,) = _seed(db)
+    assert case.status == "needs_line_review"
+
+
+def test_missing_recording_or_bill_seeds_fhir_demo_only(
+    db: Engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr("app.services.demo.DEMO_EXTRACTIONS", tmp_path / "none.json")
+    assert _seed(db) == []
+    _pdf_demo(tmp_path, monkeypatch, 0.99)
+    monkeypatch.setattr("app.services.demo.DEMO_BILLS", tmp_path / "no-bills")
+    assert _seed(db) == []

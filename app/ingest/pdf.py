@@ -32,6 +32,14 @@ def _open(data: bytes) -> pdfium.PdfDocument:
     return doc
 
 
+def page_count(data: bytes) -> int:
+    doc = _open(data)
+    try:
+        return len(doc)
+    finally:
+        doc.close()
+
+
 def render_page(data: bytes, page_no: int) -> bytes:
     """Render one 1-based page; checks the same limits as pdf_page_images, size for this page only."""
     doc = _open(data)

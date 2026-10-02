@@ -3,7 +3,8 @@ import { expect, test } from "@playwright/test";
 test("demo case: accept a flag, approve the letter, export it", async ({ page }) => {
   await page.goto("/");
   const rows = page.getByRole("row").filter({ has: page.getByRole("link") });
-  await expect(rows).toHaveCount(10);
+  await expect(rows.first()).toBeVisible();
+  expect(await rows.count()).toBeGreaterThanOrEqual(10);
 
   await page.getByLabel("Sort").selectOption("overcharge");
   await rows.first().getByRole("link").click();
