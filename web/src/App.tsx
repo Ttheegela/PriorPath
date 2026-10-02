@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ensureWorkspace, messageOf } from "./lib/api";
 import CaseQueue from "./components/CaseQueue";
+import CaseDetail from "./components/CaseDetail";
 import { routeHref, useRoute, type Route } from "./lib/route";
 
 export default function App() {
@@ -46,7 +47,7 @@ export default function App() {
         ) : !ready ? (
           <p>Loading…</p>
         ) : route.name === "case" ? (
-          <p>Case {route.id}</p>
+          <CaseDetail id={route.id} onBack={() => navigate({ name: "queue" })} />
         ) : route.name === "log" ? (
           <p>Audit log</p>
         ) : (
