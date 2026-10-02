@@ -4,7 +4,7 @@ name = "priorpath"
 version = "2.0.0.dev0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi>=0.115,<1",
+    "fastapi>=0.142,<1",
     "pydantic>=2.9,<3",
     "sqlalchemy>=2.0.30,<2.1",
     "psycopg[binary]>=3.2,<4",
@@ -37,3 +37,7 @@ pythonpath = ["."]
 filterwarnings = [
     "ignore:Using `httpx` with `starlette.testclient` is deprecated",
 ]
+
+# UI is served from Vercel's CDN (built into public/), not bundled into the function.
+[tool.vercel.fastapi.static]
+exclude = true

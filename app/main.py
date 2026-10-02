@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 
 from app import __version__
@@ -39,3 +41,12 @@ def version() -> dict[str, object]:
             for v in ref.versions
         ],
     }
+
+
+def mount_frontend(target: FastAPI, directory: Path) -> None:
+    """Serve the built UI as low-priority routes; skipped when there is no build (tests, API-only dev)."""
+    if directory.is_dir():
+        target.frontend("/", directory=directory, fallback="index.html")
+
+
+mount_frontend(app, Path(__file__).resolve().parent.parent / "public")
