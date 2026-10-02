@@ -7,6 +7,7 @@ test("waits for the workspace, then shows the queue", async () => {
   const { default: App } = await import("./App");
   render(<App />);
   expect(screen.getByRole("heading", { name: "PriorPath" })).toBeInTheDocument();
+  expect(screen.getByText(/PDF page images are sent to an AI model; nothing else leaves the app/)).toBeInTheDocument();
   expect(await screen.findByText("No cases match.")).toBeInTheDocument();
 });
 

@@ -8,7 +8,7 @@ from app.api.deps import get_reference, get_vision
 from app.llm.vision import VisionError
 from app.main import app
 from app.models import Claim
-from app.services import llm_budget
+from app.services import llm_budget, pdf_cases
 from evals.pdf_render import render_bill
 from tests.api_helpers import sample_claim
 from tests.fakes import FakeVision
@@ -67,8 +67,8 @@ def test_pdf_upload_extracts_audits_and_serves_pages(db: Engine) -> None:
     assert any(f["rule_id"] == "R1" for f in detail["flags"])
     assert detail["lines"][0]["source"] == "extracted" and detail["lines"][0]["confidence"] == 0.99
     page = c.get(f"/api/cases/{case_id}/pages/1")
-    assert page.status_code == 200 and page.headers["content-type"] == "image/png"
-    assert page.content.startswith(b"\x89PNG")
+    assert page.status_code == 200 and page.headers["content-type"] == "image/jpeg"
+    assert page.content.startswith(b"\xff\xd8\xff")
     assert c.get(f"/api/cases/{case_id}/pages/2").status_code == 404
     assert c.get(f"/api/cases/{case_id}/pages/0").status_code == 404
 
@@ -77,6 +77,15 @@ def test_low_confidence_goes_to_line_review_without_flags(db: Engine) -> None:
     c, case_id = pdf_case(conf=0.5)
     detail = c.get(f"/api/cases/{case_id}").json()
     assert detail["status"] == "needs_line_review" and detail["flags"] == []
+
+
+def test_audit_refused_until_lines_are_reviewed(db: Engine) -> None:
+    c, case_id = pdf_case(conf=0.5)
+    r = c.post(f"/api/cases/{case_id}/audit")
+    assert r.status_code == 409 and r.json()["detail"] == "review the extracted lines first"
+    assert c.get(f"/api/cases/{case_id}").json()["status"] == "needs_line_review"
+    assert c.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A")]}).status_code == 200
+    assert c.post(f"/api/cases/{case_id}/audit").status_code == 200
 
 
 def test_confirmation_required_and_vision_not_called(db: Engine) -> None:
@@ -101,12 +110,44 @@ def two_page_pdf() -> bytes:
     return render_bill(big, "table")
 
 
+def ten_page_pdf() -> bytes:
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    for _ in range(10):
+        pdf.add_page()
+    return bytes(pdf.output())
+
+
+def test_too_few_budget_units_fail_before_any_model_call(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(llm_budget, "EXTRACT_PAGES_PER_HOUR", 5)
+    v = FakeVision([fv(sample_claim())] * 10)
+    c = client(v)
+    r = post_pdf(c, ten_page_pdf())
+    assert r.status_code == 429 and r.json()["detail"] == "hourly AI limit reached; try again later"
+    assert v.calls == [] and c.get("/api/cases").json() == []
+
+
 def test_budget_exhausted_mid_document_stores_nothing(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A concurrent upload can use the units after the up-front check; per-page consumption still holds.
     monkeypatch.setattr(llm_budget, "EXTRACT_PAGES_PER_HOUR", 1)
+    monkeypatch.setattr(llm_budget, "remaining", lambda *a, **k: 99)
     v = FakeVision([fv(sample_claim()), fv(sample_claim())])
     c = client(v)
     r = post_pdf(c, two_page_pdf())
     assert r.status_code == 429 and r.json()["detail"] == "hourly AI limit reached; try again later"
+    assert len(v.calls) == 1 and c.get("/api/cases").json() == []
+
+
+def test_extraction_deadline_returns_504_and_stores_nothing(
+    db: Engine, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = iter([0.0, 0.0, pdf_cases.EXTRACT_DEADLINE_SECONDS + 1.0])  # start, page 1, page 2
+    monkeypatch.setattr(pdf_cases, "monotonic", lambda: next(clock))
+    v = FakeVision([fv(sample_claim()), fv(sample_claim())])
+    c = client(v)
+    r = post_pdf(c, two_page_pdf())
+    assert r.status_code == 504 and r.json()["detail"] == "this bill took too long to read; try a shorter PDF"
     assert len(v.calls) == 1 and c.get("/api/cases").json() == []
 
 
@@ -153,9 +194,13 @@ def test_patch_lines_validates(db: Engine) -> None:
     before = c.get(f"/api/cases/{case_id}").json()["lines"]
     r = c.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A"), edit("B", units=0)]})
     assert r.status_code == 422 and "lines[1].units" in str(r.json()["detail"])
+    r = c.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A", place_of_service="1A")]})
+    assert r.status_code == 422 and "lines[0].place_of_service" in str(r.json()["detail"])
     assert c.patch(f"/api/cases/{case_id}/lines", json={"lines": []}).status_code == 422
     assert c.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A"), edit("A")]}).status_code == 422
     assert c.get(f"/api/cases/{case_id}").json()["lines"] == before
+    r = c.patch(f"/api/cases/{case_id}/lines", json={"lines": [edit("A", place_of_service=None)]})
+    assert r.status_code == 200 and r.json()["lines"][0]["place_of_service"] is None
 
 
 def test_patch_lines_blocked_after_approved_letter(db: Engine) -> None:

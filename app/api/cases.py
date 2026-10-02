@@ -35,7 +35,7 @@ from app.services.audit_run import run_audit
 from app.services.capacity import ensure_capacity
 from app.services.cases import case_flags, create_cases, get_case_or_404, summarize, to_claim
 from app.services.explanations import explain_row
-from app.services.pdf_cases import OverBudget, create_pdf_case
+from app.services.pdf_cases import OverBudget, TooSlow, create_pdf_case
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 4_000_000
@@ -114,6 +114,10 @@ def upload_pdf(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except OverBudget:
         raise HTTPException(status_code=429, detail="hourly AI limit reached; try again later") from None
+    except TooSlow:
+        raise HTTPException(
+            status_code=504, detail="this bill took too long to read; try a shorter PDF"
+        ) from None
     except VisionError:
         session.rollback()
         raise HTTPException(
@@ -164,7 +168,7 @@ def get_page(case_id: uuid.UUID, page: int, ws: WorkspaceDep, session: SessionDe
         raise HTTPException(status_code=404, detail="page not found")
     return Response(
         render_page(doc.content, page),
-        media_type="image/png",
+        media_type="image/jpeg",
         headers={"Cache-Control": "private, max-age=3600"},  # stored PDFs never change
     )
 
@@ -208,6 +212,8 @@ def audit_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, ref: R
     case = get_case_or_404(session, ws, case_id)
     if session.scalar(select(Letter.id).where(Letter.case_id == case.id, Letter.status == "approved")):
         raise HTTPException(status_code=409, detail="this case already has an approved letter")
+    if case.status == "needs_line_review":
+        raise HTTPException(status_code=409, detail="review the extracted lines first")
     run_audit(session, case, ref)
     session.commit()
     return case_detail(session, case)

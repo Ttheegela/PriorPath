@@ -61,6 +61,13 @@ class LineItem(BaseModel):
             raise ValueError("modifier longer than 4 characters")
         return mods
 
+    @field_validator("place_of_service")
+    @classmethod
+    def _pos_two_digits(cls, v: str | None) -> str | None:
+        if v is not None and not (len(v) == 2 and v.isascii() and v.isdigit()):
+            raise ValueError("place of service must be a two-digit code like 11")
+        return v
+
     @field_validator("diagnosis_codes")
     @classmethod
     def _diagnosis_length(cls, v: list[str]) -> list[str]:

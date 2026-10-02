@@ -43,12 +43,12 @@ def reply(content: str | None, finish: str = "stop") -> Any:
 def test_request_shape_and_parsed_result(monkeypatch: pytest.MonkeyPatch) -> None:
     client, comp, init = make(reply('{"lines": []}'), monkeypatch)
     assert client.extract(b"png", {"type": "object"}, "read") == {"lines": []}
-    assert init["max_retries"] == 0
+    assert init["max_retries"] == 0 and init["timeout"] == 25.0
     kw = comp.kwargs
     assert kw["temperature"] == 0 and kw["max_tokens"] == 4000 and kw["model"] == "m"
     parts = kw["messages"][0]["content"]
     assert parts[0] == {"type": "text", "text": "read"}
-    assert parts[1]["image_url"]["url"] == "data:image/png;base64," + base64.b64encode(b"png").decode()
+    assert parts[1]["image_url"]["url"] == "data:image/jpeg;base64," + base64.b64encode(b"png").decode()
     rf = kw["response_format"]
     assert rf["type"] == "json_schema" and rf["json_schema"]["strict"] is True
     assert rf["json_schema"]["name"] == "bill_page" and rf["json_schema"]["schema"] == {"type": "object"}

@@ -133,8 +133,8 @@ def parse_page(raw: dict[str, Any], page_no: int) -> ExtractionResult:
     return res
 
 
-def extract_page(png: bytes, page_no: int, client: VisionClient) -> ExtractionResult:
-    return parse_page(client.extract(png, PAGE_SCHEMA, EXTRACT_PROMPT), page_no)
+def extract_page(image: bytes, page_no: int, client: VisionClient) -> ExtractionResult:
+    return parse_page(client.extract(image, PAGE_SCHEMA, EXTRACT_PROMPT), page_no)
 
 
 def merge(results: list[ExtractionResult]) -> ExtractionResult:

@@ -17,16 +17,16 @@ class VisionError(RuntimeError):
 
 
 class VisionClient(Protocol):
-    def extract(self, image_png: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]: ...
+    def extract(self, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]: ...
 
 
 class OpenRouterVisionClient:
-    def __init__(self, api_key: str, model: str, timeout: float = 60.0) -> None:
+    def __init__(self, api_key: str, model: str, timeout: float = 25.0) -> None:
         self._client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL, timeout=timeout, max_retries=0)
         self._model = model
 
-    def extract(self, image_png: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
-        url = "data:image/png;base64," + base64.b64encode(image_png).decode()
+    def extract(self, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
+        url = "data:image/jpeg;base64," + base64.b64encode(image_jpeg).decode()
         try:
             response = self._client.chat.completions.create(
                 model=self._model,

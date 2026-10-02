@@ -40,7 +40,7 @@ Every abbreviation in this file is spelled out the first time it appears and aga
 4. In **Dispute letter**, click **Draft dispute letter**. Edit the text if you like, click **Approve letter**, then **Download .txt** or **Download .docx**.
 5. Try your own upload from the queue:
    - **FHIR (Fast Healthcare Interoperability Resources) claim:** click **Download a sample claim (FHIR JSON)** to get a JSON (JavaScript Object Notation) file, then upload it. The audit runs automatically and the new case appears in the list.
-   - **PDF (Portable Document Format) bill:** click **Download a sample bill (PDF)**, tick **"This is a synthetic or test bill (page images are sent to an AI model)"**, then upload it. An AI vision model reads the line items; if any value was hard to read, the case opens on a line review screen where you check the lines against the page images before the audit runs.
+   - **PDF (Portable Document Format) bill:** click **Download a sample bill (PDF)**, tick **"This is a synthetic or test bill (page images are sent to an AI model)"**, then upload it. An AI vision model reads the line items and the new case appears with an **Open** link. If any value was hard to read, the case opens on a line review screen where you check the lines against the page images and save before the audit runs.
 6. **Audit log** (top of the page) shows every action taken in your workspace.
 
 All demo data is synthetic. Workspaces are deleted after 24 hours (a daily cleanup job, so in practice up to about 48 hours). **Reset demo data** restores the sample cases at any time. Do not upload real patient data.
@@ -78,7 +78,7 @@ Each rule has an ID (identifier) from R0 to R5 and is a pure Python function ove
 |---|---|---|---|---|---|
 | R0 | Coverage | Lines whose date of service (DOS) falls outside the loaded reference releases | Reference version table | notice | None. The lines are reported as "cannot audit". |
 | R1 | Duplicate | Two or more lines with the same code, modifiers, DOS and units. Lines carrying a repeat modifier are exempt: 76 (repeat procedure, same physician), 77 (repeat procedure, another physician) or 91 (repeat lab test). | The claim itself | error | Charge of every line after the first |
-| R2 | NCCI unbundling | A code pair listed in the NCCI (National Correct Coding Initiative) PTP (procedure-to-procedure) edits for that DOS. Modifier indicator 0: never billed together. Indicator 1: allowed only with an NCCI-associated modifier, for example 25 (separate evaluation and management service), 59 (distinct procedural service), XE (separate encounter), XS (separate structure), XP (separate practitioner) or XU (unusual non-overlapping service). Indicator 9: edit not applied. | NCCI PTP edits, practitioner | error | Charge of the column-2 (bundled) line |
+| R2 | NCCI unbundling | A code pair listed in the NCCI (National Correct Coding Initiative) PTP (procedure-to-procedure) edits for that DOS. Modifier indicator 0: never billed together. Indicator 1: allowed only with an NCCI-associated modifier, for example 25 (separate evaluation and management service), 59 (distinct procedural service), 91 (repeat clinical diagnostic laboratory test), XE (separate encounter), XS (separate structure), XP (separate practitioner) or XU (unusual non-overlapping service). Indicator 9: edit not applied. | NCCI PTP edits, practitioner | error | Charge of the column-2 (bundled) line |
 | R3 | MUE unit limit | Units above the MUE (Medically Unlikely Edit) limit, checked per line or per DOS according to the MUE adjudication indicator | NCCI MUE table, practitioner | error | Excess units x (billed charge / billed units) |
 | R4 | Invalid code | A code with PFS (Physician Fee Schedule) status D (deleted) or I (not valid for Medicare) on the DOS | PFS RVU (Relative Value Unit) file, status column | error; status I becomes a **lead** when the payer is not Medicare | Whole line charge (errors); $0 for leads |
 | R5 | Price outlier | A charge above 3x the Medicare national rate x units. Lines at a facility POS (place of service, for example 21, 22, 23) use the facility rate; all others use the non-facility rate. Lines with modifier 26 (professional component) or TC (technical component) are skipped (the PFS rate is the global rate). | PFS RVU file, national rates | outlier | Charge minus 3x rate x units |
@@ -121,7 +121,7 @@ The browser talks to the API over HTTP (Hypertext Transfer Protocol) with JSON b
 **The flow, step by step:**
 
 1. **Upload.** `POST /api/cases` takes either a FHIR `ExplanationOfBenefit` bundle (JSON, JavaScript Object Notation) or a PDF bill, up to 4,000,000 bytes. A FHIR bundle can hold several claims; each becomes a case, and bad items are reported with their JSON path while the rest still load.
-2. **Extraction (PDF only).** Each page (at most 10) is rendered to a PNG (Portable Network Graphics) image at 150 DPI (dots per inch) and sent to a vision LLM (large language model) with a strict JSON schema. The model returns code, modifiers, units, charge, DOS and POS for every line, each with a confidence score. Our code (not the model) validates every row; invalid rows are dropped with a per-line error and never guessed. If any line has confidence below 0.9, or no lines were read, the case goes to **line review**: the reviewer sees the extracted lines beside the page images, fixes them, saves, and runs the audit.
+2. **Extraction (PDF only).** Each page (at most 10) is rendered to a JPEG (Joint Photographic Experts Group) image at 150 DPI (dots per inch) and sent to a vision LLM (large language model) with a strict JSON schema. The model returns code, modifiers, units, charge, DOS and POS for every line, each with a confidence score. Our code (not the model) validates every row; invalid rows are dropped with a per-line error and never guessed. If any line has confidence below 0.9, or no lines were read, the case goes to **line review**: the reviewer sees the extracted lines beside the page images, fixes them, saves, and runs the audit.
 3. **Rules.** R0 to R5 run on the claim (deterministic, no AI).
 4. **Explanations.** For each flag, a LangGraph loop asks a small text model to explain the finding in at most three sentences using only the rule text and the flag's evidence. A number check rejects any draft that uses an amount or percentage not found in the evidence; the model gets one retry. Explanations stream to the browser over SSE (server-sent events).
 5. **Review.** A person accepts or rejects each flag (a rejection needs a reason).
@@ -140,7 +140,7 @@ Every step writes an entry to the workspace's audit log.
 |---|---|---|
 | Number grounding check | Every dollar amount and percentage in an explanation must match one in the flag's evidence, by type (money, percent, plain number). Plain counts from 0 to 10 are allowed ("billed 2 times"). Rewrites such as "$4k", "USD 7" (USD: United States dollars), "seven dollars", digits from other scripts and URLs (Uniform Resource Locators, web addresses) are rejected. A failed draft gets one retry; after that the explanation is marked unavailable, and the flag itself still shows. | `app/llm/grounding.py`, `app/llm/explain.py` |
 | Letter edit check | The same number check runs on letter edits against the generated letter; links are refused; approval fails if the accepted findings changed after drafting. | `app/api/letters.py` |
-| Budgets and rate limits | Two separate hourly pools per workspace: 20 explanations and 20 PDF pages. Across all workspaces, 100 AI calls per hour in total, shared by both kinds. A PDF that would go over budget is refused with 429 ("hourly AI limit reached; try again later") and nothing is stored. Explanations are capped at 300 output tokens; a stream stops after 240 seconds. The OpenRouter key also has a credit cap. | `app/services/llm_budget.py` |
+| Budgets and rate limits | Two separate hourly pools per workspace: 20 explanations and 20 PDF pages. Across all workspaces, 100 AI calls per hour in total, shared by both kinds. A PDF that would go over budget is refused with 429 ("hourly AI limit reached; try again later") and nothing is stored. Explanations are capped at 300 output tokens; a stream stops after 240 seconds. PDF reading also stops at 240 seconds (504, nothing stored). The OpenRouter key also has a credit cap. | `app/services/llm_budget.py` |
 | What is sent to a model | **Explanations:** one flag at a time: rule ID (identifier), severity, finding message, evidence row (codes, dates, units, modifiers, rates, release) and estimated overcharge. **Never sent:** patient pseudonym, provider name, payer name, or any other claim line. **PDF extraction:** the page images, unredacted (see next row). Demo-case explanations are precomputed, so browsing the demo makes no model calls. | `app/llm/explain.py`, `app/services/pdf_cases.py` |
 | PDF synthetic-only confirmation | Page images go to a hosted model and are not redacted yet (redaction is planned for Plan 5). The API refuses a PDF unless the request carries `confirm_synthetic=true` (422 "PDF uploads must be synthetic or test bills; confirm to continue"), and the UI requires the checkbox. | `app/api/cases.py`, `web/src/components/CaseQueue.tsx` |
 | Extraction is not a decision | The vision model only reads lines; rules still decide flags. Its output must pass the JSON schema and `LineItem` validation; text on the page is treated as data, not instructions. Low-confidence lines go to human line review. | `app/llm/extract.py` |
@@ -183,7 +183,7 @@ A perfect score shows the rules do what they say on synthetic claims built from 
 - **End-to-end recall per rule:** claims are rebuilt from the extracted lines, the rules run, and the flags are scored against the original labels. Gate: at least 0.90 for every rule with 3 or more plants, and 0 negative plants flagged.
 - Breakdowns by layout and by clean vs noisy pages.
 
-Model output is recorded once (`--record <model>`, needs `OPENROUTER_API_KEY`) into `evals/recorded/`, and CI replays the recording (`--replay`) so it never calls a model; replay re-runs our own parsing and validation on the raw model JSON. The results table, the extraction model chosen and the comparison of candidate models are recorded in [`evals/results/extraction.md`](evals/results/extraction.md).
+Each candidate model's output is recorded once (`--record <model>`, needs `OPENROUTER_API_KEY`) into `evals/recorded/candidates/`. The chosen model's recording is promoted (`--promote <model>`) to `evals/recorded/extraction.json`, the one file CI replays (`--replay`), so CI never calls a model; replay re-runs our own parsing and validation on the raw model JSON. The chosen model's results table is in [`evals/results/extraction.md`](evals/results/extraction.md); the hand-written comparison of candidate models (scores, cost, latency) is in [`evals/results/extraction-comparison.md`](evals/results/extraction-comparison.md).
 
 ### Explanation model choice
 
@@ -285,9 +285,11 @@ alembic check
 python -m evals.run --n 300 --seed 7
 
 # PDF extraction eval, replaying a committed recording (no API key needed)
-python -m evals.extract_eval --replay evals/recorded/extraction-<model>.json
-# Record a new model's output (calls OpenRouter; needs OPENROUTER_API_KEY)
+python -m evals.extract_eval --replay evals/recorded/extraction.json
+# Record a candidate model's output into evals/recorded/candidates/ (calls OpenRouter; needs OPENROUTER_API_KEY)
 python -m evals.extract_eval --record google/gemini-2.5-flash-lite
+# Make a candidate the recording CI replays
+python -m evals.extract_eval --promote google/gemini-2.5-flash-lite
 
 # Frontend
 cd web
@@ -320,12 +322,12 @@ Every route under `/api` except health, version, samples and cleanup belongs to 
 | GET | `/api/health` | Liveness check, returns `{"status": "ok"}` | 200 |
 | GET | `/api/version` | App version and the loaded reference releases with their date ranges | 200 |
 | GET | `/api/workspace` | The caller's workspace id and creation time (creates one if needed) | 200, 503 |
-| POST | `/api/cases` | Upload a FHIR bundle or a PDF as the raw request body. Query: `payer_type` = `medicare`, `commercial` or `unknown` (default); `confirm_synthetic=true` (required for PDFs). FHIR cases are audited at once; PDF cases are audited unless they need line review. | 201; 413 over 4,000,000 bytes; 422 not JSON / not a FHIR bundle / no valid claims (with paths) / PDF not confirmed, encrypted, unreadable or over 10 pages; 429 AI budget used up; 502 vision model failed; 503 storage full or PDF extraction not configured |
+| POST | `/api/cases` | Upload a FHIR bundle or a PDF as the raw request body. Query: `payer_type` = `medicare`, `commercial` or `unknown` (default); `confirm_synthetic=true` (required for PDFs). FHIR cases are audited at once; PDF cases are audited unless they need line review. | 201; 413 over 4,000,000 bytes; 422 not JSON / not a FHIR bundle / no valid claims (with paths) / PDF not confirmed, encrypted, unreadable or over 10 pages; 429 AI budget too small for the whole PDF; 502 vision model failed; 503 storage full or PDF extraction not configured; 504 extraction took too long (over 240 seconds) |
 | GET | `/api/cases` | List the workspace's cases with counts and totals | 200 |
 | GET | `/api/cases/{case_id}` | Case detail: lines, flags, latest letter | 200, 404 |
-| GET | `/api/cases/{case_id}/pages/{page}` | One page of a PDF case as a PNG image (1-based) | 200, 404 |
+| GET | `/api/cases/{case_id}/pages/{page}` | One page of a PDF case as a JPEG image (1-based) | 200, 404 |
 | PATCH | `/api/cases/{case_id}/lines` | Replace the case's lines after line review; clears flags and draft letters | 200, 404, 409 approved letter exists, 422 invalid line or duplicate line ids |
-| POST | `/api/cases/{case_id}/audit` | Run (or re-run) the rules | 200, 404, 409 approved letter exists |
+| POST | `/api/cases/{case_id}/audit` | Run (or re-run) the rules | 200, 404, 409 approved letter exists or lines still need review |
 | POST | `/api/cases/{case_id}/explain` | Stream explanations for pending or unavailable flags as SSE events `start`, `explanation`, `error`, `done` | 200 (stream), 404 |
 | PATCH | `/api/flags/{flag_id}` | Accept, reject or reopen a flag (`{"status": "accepted"}`, `{"status": "rejected", "reject_reason": "..."}` or `{"status": "open"}`) | 200, 404, 422 notice or missing reason |
 | POST | `/api/cases/{case_id}/letter` | Draft a dispute letter from accepted errors and outliers | 201, 404, 409 approved letter exists or nothing accepted |
@@ -415,6 +417,7 @@ curl -s -c jar -b jar -H 'Content-Type: application/json' --data-binary @claim.j
 | HTTP, HTTPS | Hypertext Transfer Protocol (Secure) | The web protocol the API uses; HTTPS is the encrypted version. |
 | ICD-10 | International Classification of Diseases, 10th revision | Diagnosis codes; stored with lines but not checked by any rule yet. |
 | ID | Identifier | For example a rule ID (R1) or a model ID. |
+| JPEG | Joint Photographic Experts Group | Image format of rendered PDF pages (quality 85). |
 | JSON | JavaScript Object Notation | Text data format for FHIR uploads, API bodies and model output. |
 | LLM | Large language model | A text (or vision) AI model, called through OpenRouter. |
 | MB | Megabyte | Upload limit is 4,000,000 bytes (shown as 4 MB in the UI). |
@@ -424,7 +427,6 @@ curl -s -c jar -b jar -H 'Content-Type: application/json' --data-binary @claim.j
 | PDF | Portable Document Format | Bill format PriorPath can read with a vision model. |
 | PFS | Physician Fee Schedule | Medicare's payment rates and code status per service (rules R4, R5). |
 | PHI | Protected health information | Health data that identifies a person. Never upload it here. |
-| PNG | Portable Network Graphics | Image format of rendered PDF pages. |
 | POS | Place of service | Two-digit CMS code for where a service happened (11 office, 22 hospital outpatient); decides facility vs non-facility rate in R5. |
 | PTP | Procedure-to-procedure | NCCI edit type: column-1 / column-2 code pairs. |
 | Q3, Q4 | Third quarter, fourth quarter | Calendar quarters of 2026 that the reference data covers. |

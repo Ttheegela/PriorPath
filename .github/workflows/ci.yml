@@ -37,11 +37,12 @@ jobs:
       - run: python -m evals.run --n 300 --seed 7
       - run: git diff --exit-code evals/results
       - run: |
-          if ls evals/recorded/extraction-*.json >/dev/null 2>&1; then
-            python -m evals.extract_eval --replay "$(ls evals/recorded/extraction-*.json | head -1)"
+          # Only the promoted recording is replayed; evals/recorded/candidates/ holds the model comparison runs.
+          if [ -f evals/recorded/extraction.json ]; then
+            python -m evals.extract_eval --replay evals/recorded/extraction.json
             git diff --exit-code evals/results
           else
-            echo "no recorded extraction outputs yet; skipping extraction eval"
+            echo "no promoted extraction recording yet; skipping extraction eval"
           fi
   frontend:
     runs-on: ubuntu-latest

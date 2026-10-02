@@ -7,6 +7,7 @@ import pytest
 from evals.extract_eval import (
     Metrics,
     build_dataset,
+    candidate_path,
     gate_failures,
     is_noisy,
     live_reader,
@@ -182,3 +183,13 @@ def test_cli_replay_exits_nonzero_naming_the_failed_metric(
 
 def test_metrics_f1_zero_safe() -> None:
     assert Metrics().f1 == 0.0
+
+
+def test_promote_copies_the_candidate_ci_replays(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    rec = tmp_path / "recorded"
+    assert main(["--recorded", str(rec), "--promote", "vendor/x"]) == 2
+    assert not (rec / "extraction.json").exists()
+    save_recording(candidate_path(rec, "vendor/x"), "vendor/x", {"C1/1": {"lines": []}})
+    assert candidate_path(rec, "vendor/x") == rec / "candidates" / "extraction-vendor-x.json"
+    assert main(["--recorded", str(rec), "--promote", "vendor/x"]) == 0
+    assert json.loads((rec / "extraction.json").read_text())["model"] == "vendor/x"

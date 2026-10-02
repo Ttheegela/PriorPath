@@ -38,6 +38,8 @@ Do not upload real patient data. The demo is not HIPAA compliant:
 - [ ] Written policies: access control, incident response and breach notification, retention and disposal,
       contingency/backup, workforce training, vendor management.
 - [ ] Logging that never contains PHI, with log retention and access controls.
+- [ ] PDF parsing isolated from the app: pdfium (C code) currently runs in-process on untrusted uploaded bytes;
+      a hardened version would render in a sandboxed, resource-limited worker process.
 
 ## What is stored
 
@@ -82,7 +84,7 @@ provider's retention window; check the Neon project's history retention setting.
 | Data | Recipient | When |
 |---|---|---|
 | One flag at a time: rule id, severity, finding message, evidence row (codes, dates, units, modifiers, rates, release version) and estimated overcharge | OpenRouter, which forwards to the configured model provider (`EXPLAIN_MODEL`) | When a reviewer asks for explanations. Patient pseudonym, provider and payer names are **not** sent. Demo-case explanations are precomputed. |
-| PDF page images (PNG, one per page), unredacted *(Plan 4)* | OpenRouter → the configured vision model (`EXTRACT_MODEL`) | On PDF upload, only after the uploader confirms the bill is synthetic or a test bill (`confirm_synthetic=true`); otherwise the upload is refused. Redaction (Presidio) is planned for Plan 5. |
+| PDF page images (JPEG, one per page), unredacted *(Plan 4)* | OpenRouter → the configured vision model (`EXTRACT_MODEL`) | On PDF upload, only after the uploader confirms the bill is synthetic or a test bill (`confirm_synthetic=true`); otherwise the upload is refused. Redaction (Presidio) is planned for Plan 5. |
 | Request logs and error stack traces | Vercel | Always. AI failure logs record the error type, not the prompt. |
 | Uptime checks of `/api/health` | UptimeRobot | Periodically; no user data. |
 
@@ -93,7 +95,8 @@ verify current vendor terms. Assume anything sent may be retained by them.
 ## Pseudonyms
 
 Patient references in uploaded FHIR are replaced with a pseudonym `P-` + the first 16 hex characters of
-HMAC-SHA256 keyed with `PSEUDONYM_SECRET` (falling back to `SESSION_SECRET`). Without the key, a pseudonym
+HMAC-SHA256 keyed with `PSEUDONYM_SECRET`, falling back to `SESSION_SECRET`, then to a fixed dev key used only
+when neither is set (tests, evals). Production sets `SESSION_SECRET`, so it never uses the dev key. Without the key, a pseudonym
 cannot be recomputed from a guessed patient id. This is pseudonymization, not de-identification: provider,
 payer, dates and codes are still stored.
 
@@ -113,7 +116,7 @@ payer, dates and codes are still stored.
 - AI calls: 20 explanations and 20 PDF pages per workspace per hour (separate pools) *(Plan 4)*, and 100 per hour
   across all workspaces, shared by both kinds; a PDF that would go over budget gets 429 and nothing is stored.
   The OpenRouter key also has a credit cap. Explanation output is capped at 300 tokens, with one retry if the number check fails.
-- Explanation streams stop after 240 seconds (serverless time limit).
+- Explanation streams stop after 240 seconds, and PDF extraction stops at 240 seconds (504, nothing stored), to stay inside the serverless time limit.
 - Storage breaker: new workspaces and uploads get 503 when the database passes 400 MB.
 - Prompt-injection controls: document content is data; explanations and letters may only contain numbers found
   in the flag evidence, and letter edits may not add amounts or URLs. A person must approve every letter;

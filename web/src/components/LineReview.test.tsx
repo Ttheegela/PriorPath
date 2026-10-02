@@ -21,7 +21,7 @@ test("shows one image per page and labelled inputs per line", () => {
   render(<LineReview caseDetail={caseWith([line()])} onSaved={() => {}} />);
   expect(screen.getByAltText("Bill page 1")).toHaveAttribute("src", "/api/cases/c1/pages/1");
   expect(screen.getByAltText("Bill page 2")).toHaveAttribute("src", "/api/cases/c1/pages/2");
-  for (const f of ["Code", "Units", "Charge", "Date", "Modifiers"]) expect(screen.getByLabelText(`${f} for P1-L1`)).toBeInTheDocument();
+  for (const f of ["Code", "Units", "Charge", "Date", "Modifiers", "POS"]) expect(screen.getByLabelText(`${f} for P1-L1`)).toBeInTheDocument();
 });
 
 test("low-confidence fields are marked with words and a dashed border, not color", () => {
@@ -80,6 +80,20 @@ test("add and remove lines; saving with none is blocked", async () => {
 test("fields below the backend review threshold (0.9) are marked", () => {
   render(<LineReview caseDetail={caseWith([line({ field_confidence: { units: 0.85 } })])} onSaved={() => {}} />);
   expect(screen.getByLabelText("Units for P1-L1")).toHaveAttribute("data-low-confidence", "true");
+});
+
+test("an unreadable POS is marked, editable, and saved as null when left empty", async () => {
+  const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => json(caseWith([line()])));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<LineReview caseDetail={caseWith([line({ place_of_service: null, field_confidence: { place_of_service: 0 } })])} onSaved={() => {}} />);
+  const pos = screen.getByLabelText("POS for P1-L1");
+  expect(pos).toHaveValue("");
+  expect(pos).toHaveAttribute("data-low-confidence", "true");
+  await save();
+  expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).lines[0].place_of_service).toBeNull();
+  await userEvent.type(pos, "22");
+  await save();
+  expect(JSON.parse(String(fetchMock.mock.calls[2][1]?.body)).lines[0].place_of_service).toBe("22");
 });
 
 test("a locked case cannot be edited or saved", () => {

@@ -1,4 +1,5 @@
 import hashlib
+from time import monotonic
 
 from sqlalchemy.orm import Session
 
@@ -14,9 +15,14 @@ from app.services.audit_run import run_audit
 from app.services.cases import create_cases
 
 MAX_ERROR_CHARS = 160
+EXTRACT_DEADLINE_SECONDS = 240  # stay inside the serverless function time limit (300 s)
 
 
 class OverBudget(Exception):
+    pass
+
+
+class TooSlow(Exception):
     pass
 
 
@@ -60,14 +66,20 @@ def create_pdf_case(
     ref: InMemoryReference,
     vision: VisionClient,
 ) -> tuple[Case, list[tuple[str, str]]]:
+    started = monotonic()
     pages = pdf_page_images(data)  # PdfError -> caller maps to 422
+    if llm_budget.remaining(session, ws.id, "extract") < len(pages):
+        raise OverBudget()  # fail fast, before any model call
     results = []
-    for no, png in enumerate(pages, start=1):
+    for no, image in enumerate(pages, start=1):
+        if monotonic() - started >= EXTRACT_DEADLINE_SECONDS:
+            session.rollback()
+            raise TooSlow()
         if not llm_budget.try_consume(session, ws.id, "extract"):
             session.rollback()
             raise OverBudget()
         session.commit()  # release the usage-row lock before the slow call
-        results.append(extract_page(png, no, vision))  # VisionError -> caller maps to 502
+        results.append(extract_page(image, no, vision))  # VisionError -> caller maps to 502
     merged = merge(results)
     case = store_pdf_case(
         session,

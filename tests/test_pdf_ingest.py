@@ -1,13 +1,30 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
-from app.ingest.pdf import MAX_PAGES, PdfError, pdf_page_images
+from app.ingest.pdf import MAX_PAGES, PdfError, page_count, pdf_page_images, render_page
 from evals.pdf_render import render_bill
 from tests.api_helpers import sample_claim
 
 
-def test_renders_one_png_per_page() -> None:
-    pages = pdf_page_images(render_bill(sample_claim(), "table"))
-    assert len(pages) >= 1 and all(p.startswith(b"\x89PNG") for p in pages)
+def test_renders_one_deterministic_jpeg_per_page() -> None:
+    pdf = render_bill(sample_claim(), "table")
+    pages = pdf_page_images(pdf)
+    assert len(pages) >= 1 and all(p.startswith(b"\xff\xd8\xff") for p in pages)
+    assert pdf_page_images(pdf) == pages and render_page(pdf, 1) == pages[0]
+
+
+def test_concurrent_renders_do_not_crash() -> None:
+    """pdfium is not thread-safe; without the module lock this aborts the process."""
+    pdf = render_bill(sample_claim(), "table")
+    expected = render_page(pdf, 1)
+
+    def work(i: int) -> bytes | int:
+        return render_page(pdf, 1) if i % 2 else page_count(pdf)
+
+    with ThreadPoolExecutor(8) as pool:
+        results = list(pool.map(work, range(32)))
+    assert results[1::2] == [expected] * 16 and set(results[0::2]) == {1}
 
 
 @pytest.mark.parametrize(

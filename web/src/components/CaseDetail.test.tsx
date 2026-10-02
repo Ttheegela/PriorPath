@@ -154,6 +154,7 @@ test("a PDF case needing line review shows the review section above the flags", 
   expect(await screen.findByRole("heading", { name: "Review extracted lines" })).toBeInTheDocument();
   expect(screen.getByText("Some values were hard to read. Check the marked fields against the bill, then save.")).toBeInTheDocument();
   expect(screen.getByAltText("Bill page 1")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Run audit" })).not.toBeInTheDocument();
 });
 
 test("an audited PDF case keeps the line review collapsed", async () => {

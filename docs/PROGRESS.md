@@ -118,7 +118,7 @@ Compared on the 12 demo flags by grounding-pass rate:
 | Case detail | Line table with flag badges; flags grouped as Billing errors, Price outliers and Leads (always labelled separately); evidence, explanation, estimated overcharge; Accept, or Reject with a reason; header totals. Code numbers only, no CPT descriptors. |
 | Letter review | Draft from accepted flags only, editable text, approve, download as .txt or .docx. |
 | Audit log | Per-case timeline and a global view. |
-| Plumbing | `ensureWorkspace()` is memoized so the first workspace-scoped call finishes before any other (no double workspaces). Money is shown with `Intl.NumberFormat` and never computed in the UI. Copy says the data is synthetic and nothing is sent anywhere. |
+| Plumbing | `ensureWorkspace()` is memoized so the first workspace-scoped call finishes before any other (no double workspaces). Money is shown with `Intl.NumberFormat` and never computed in the UI. Copy says the data is synthetic and nothing is sent anywhere (amended in Plan 4: PDF page images are sent to an AI model; nothing else leaves the app). |
 | E2E | One Playwright smoke test on the demo data: open the top-overcharge case, accept a flag, draft and approve the letter, download it. Runs in CI as a third job; `PLAYWRIGHT_BASE_URL=https://priorpath.vercel.app npm run e2e` runs it against production. |
 
 ### Key decisions in Plan 3
@@ -182,6 +182,13 @@ Compared on the 12 demo flags by grounding-pass rate:
 | 6 | Noise coincided with one layout | Noise split across layouts; per-layout F1 reported |
 | 7 | `pdf.spec` skip could hide seeding regressions; `--extract` saved only at the end (paid results lost on error); one bad demo bill could roll back all demo cases | Spec fails when recordings exist but no PDF case shows; extraction saved per bill and resumable; per-bill savepoint |
 | 7 | Flaky App test (~1 in 3) from a stub that returned the wrong shape for `/api/audit-log` | Stub fixed; 5 consecutive green runs |
+| Final | pdfium is not thread-safe (16 concurrent renders crashed the process) | One module-level lock around every pdfium open/render/close |
+| Final | A 10-page PDF could outrun the 300 s function limit (60 s model timeout per page) | 240 s extraction deadline checked before each page (504, nothing stored); model timeout 25 s |
+| Final | PNG pages could pass Vercel's 4.5 MB response limit and inflate model input | Pages encoded as JPEG (quality 85) for both the page endpoint and the model |
+| Final | Line review could not show or edit POS, so an unreadable-POS case had nothing marked | POS column in line review; `LineItem` accepts only a two-digit POS or none (422 names the field) |
+| Final | Header said "nothing is sent anywhere", false for PDFs | "PDF page images are sent to an AI model; nothing else leaves the app" |
+| Final | Smoke test required exactly 10 cases; CI replayed whichever candidate recording sorted first | Smoke accepts 10 or more; candidates live in `evals/recorded/candidates/`, `--promote` copies the chosen one to `evals/recorded/extraction.json`, the only file CI replays |
+| Final | Audit could run on a case still in line review; budget checked only page by page | 409 "review the extracted lines first" (Run audit hidden in line review); all pages' budget checked before the first model call |
 
 ### Verification
 - Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 279 passed, 1 skipped (the committed-demo PDF test skips until demo extractions are recorded).
@@ -192,7 +199,7 @@ Compared on the 12 demo flags by grounding-pass rate:
 - PDF page images go to the hosted vision model unredacted until Plan 5 (Presidio). Uploads require the synthetic-bill confirmation.
 - Uploaded PDFs are stored for the life of the workspace and can contain anything printed on the bill, including names.
 - The workspace cookie has no embedded timestamp, so a copied cookie works until the daily cleanup deletes the workspace (up to about 48 hours).
-- `scripts/smoke.py` expects exactly 10 demo cases; once demo PDF extractions are recorded, new workspaces get 12.
+- PDF rendering holds one process-wide lock (pdfium is not thread-safe), so concurrent PDF requests on one instance render one at a time.
 
 ---
 
@@ -204,7 +211,7 @@ docker compose up -d db
 source .venv/bin/activate
 pytest -q                                   # 279 tests against Docker Postgres
 python -m evals.run --n 300 --seed 7        # rule-engine eval gate
-python -m evals.extract_eval --replay evals/recorded/extraction-<model>.json   # PDF extraction eval (after recording)
+python -m evals.extract_eval --replay evals/recorded/extraction.json   # PDF extraction eval (after --record and --promote)
 
 # UI: unit tests and browser smoke test (needs the DB env vars; builds the UI and starts uvicorn)
 cd web && npm test && npm run e2e && cd ..
@@ -218,5 +225,5 @@ Rebuilding the demo or migrating production needs secrets, so those steps run in
 ---
 
 ## What's next
-- **Plan 4 release step:** record the extraction eval and choose the extraction model, record demo PDF extractions, migrate Neon to `0f2549585d12`, deploy, run the smoke test.
+- **Plan 4 release step:** record the extraction eval for each candidate model, write `evals/results/extraction-comparison.md`, `--promote` the chosen model's recording, record demo PDF extractions, then migrate Neon to `0f2549585d12` and deploy immediately after (the old code's `ON CONFLICT` no longer matches after the `llm_usage` primary-key change), and run the smoke test.
 - **Plan 5:** Presidio redaction before model calls (PDF text and page images), Langfuse tracing, an LLM-judge faithfulness eval for explanations, the remaining Definition-of-Done docs, and the portfolio entry.

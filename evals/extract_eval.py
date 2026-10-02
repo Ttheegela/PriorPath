@@ -1,6 +1,8 @@
 """Score PDF extraction: line-level F1 and end-to-end rule recall, with record/replay of model output.
 
 Replay re-runs our own parsing over raw recorded model JSON, so CI never calls a model.
+--record MODEL writes a candidate to evals/recorded/candidates/; --promote MODEL copies the chosen
+candidate to evals/recorded/extraction.json, the one recording CI replays.
 """
 
 from __future__ import annotations
@@ -8,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -162,6 +165,10 @@ def load_pages(path: Path, model: str) -> dict[str, Any]:
     return dict(rec["pages"]) if rec.get("model") == model else {}
 
 
+def candidate_path(recorded: Path, model: str) -> Path:
+    return recorded / "candidates" / f"extraction-{model.replace('/', '-')}.json"
+
+
 def _lines_json(m: Metrics) -> dict[str, Any]:
     d = {**asdict(m), "f1": m.f1}
     d["by"] = {k: {**asdict(g), "f1": g.f1} for k, g in m.by.items()}
@@ -206,7 +213,17 @@ def main(argv: list[str] | None = None) -> int:
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--record", metavar="MODEL")
     mode.add_argument("--replay", type=Path, metavar="PATH")
+    mode.add_argument("--promote", metavar="MODEL", help="make this candidate the recording CI replays")
     a = p.parse_args(argv)
+
+    if a.promote:
+        src = candidate_path(a.recorded, a.promote)
+        if not src.exists():
+            print(f"no candidate recording at {src}; run --record {a.promote} first")
+            return 2
+        shutil.copyfile(src, a.recorded / "extraction.json")
+        print(f"promoted {src} to {a.recorded / 'extraction.json'}")
+        return 0
 
     ref = load_normalized(a.ref)
     dataset = build_dataset(generate(ref, a.n, a.seed))
@@ -217,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
             print("--record needs OPENROUTER_API_KEY")
             return 2
         model = a.record
-        path = a.recorded / f"extraction-{model.replace('/', '-')}.json"
+        path = candidate_path(a.recorded, model)
         pages = load_pages(path, model)
         read = live_reader(OpenRouterVisionClient(key, model), pages)
     else:

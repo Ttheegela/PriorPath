@@ -19,8 +19,8 @@ class FakeVision:
         self.responses = list(responses)
         self.calls: list[tuple[bytes, str]] = []
 
-    def extract(self, image_png: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
-        self.calls.append((image_png, prompt))
+    def extract(self, image_jpeg: bytes, schema: dict[str, Any], prompt: str) -> dict[str, Any]:
+        self.calls.append((image_jpeg, prompt))
         r = self.responses.pop(0)
         if isinstance(r, Exception):
             raise r

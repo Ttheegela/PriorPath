@@ -66,3 +66,24 @@ def test_extract_pages_are_a_separate_pool_with_a_shared_global_cap(
         # ...but the global cap (3) counts both kinds: 2 extract + 1 explain is already 3.
         assert llm_budget.try_consume(s, b.id, "explain", now) is False
         assert llm_budget.try_consume(s, b.id, "extract", now + timedelta(hours=1)) is True
+
+
+def test_remaining_counts_own_pool_and_global_cap(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(llm_budget, "EXTRACT_PAGES_PER_HOUR", 5)
+    monkeypatch.setattr(llm_budget, "GLOBAL_EXPLANATIONS_PER_HOUR", 7)
+    now = datetime(2026, 10, 2, 14, 30, tzinfo=UTC)
+    with Session(db) as s:
+        a, b = Workspace(), Workspace()
+        s.add_all([a, b])
+        s.flush()
+        assert llm_budget.remaining(s, a.id, "extract", now) == 5
+        for _ in range(2):
+            llm_budget.try_consume(s, a.id, "extract", now)
+        assert llm_budget.remaining(s, a.id, "extract", now) == 3
+        for _ in range(4):
+            llm_budget.try_consume(s, b.id, "extract", now)
+        # a's own pool has 3 left, but only 7 - (2 + 4) = 1 remains globally.
+        assert llm_budget.remaining(s, a.id, "extract", now) == 1
+        for _ in range(9):  # refused retries never push it below zero
+            llm_budget.try_consume(s, b.id, "extract", now)
+        assert llm_budget.remaining(s, b.id, "extract", now) == 0

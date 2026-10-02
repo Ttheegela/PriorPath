@@ -47,7 +47,7 @@ export default function App() {
               PriorPath
             </a>
           </h1>
-          <span className="text-sm text-neutral-600">Medical bill auditor · synthetic demo data · nothing is sent anywhere</span>
+          <span className="text-sm text-neutral-600">Medical bill auditor · synthetic demo data · PDF page images are sent to an AI model; nothing else leaves the app</span>
           <nav className="ml-auto flex gap-4 text-sm">
             {link({ name: "queue" }, "Cases")}
             {link({ name: "log" }, "Audit log")}

@@ -47,8 +47,8 @@ def main() -> int:
         if health != {"status": "ok"}:
             raise fail("health", health)
         cases = call(c, "GET", "/api/cases").json()
-        if len(cases) != 10:
-            raise fail("expected 10 demo cases", len(cases))
+        if len(cases) < 10:  # 10 FHIR demo cases, plus PDF ones once their extractions are recorded
+            raise fail("expected at least 10 demo cases", len(cases))
         case = next(x for x in cases if x["error_count"] > 0)
         events = parse_events(call(c, "POST", f"/api/cases/{case['id']}/explain").text)
         errors = [d for n, d in events if n == "error"]

@@ -26,6 +26,7 @@ const FIELDS = [
   { key: "units", label: "Units" },
   { key: "charge", label: "Charge" },
   { key: "date_of_service", label: "Date" },
+  { key: "place_of_service", label: "POS" },
 ] as const;
 
 export default function LineReview({ caseDetail, onSaved, locked = false }: { caseDetail: CaseDetail; onSaved: () => Promise<void> | void; locked?: boolean }) {
@@ -60,7 +61,7 @@ export default function LineReview({ caseDetail, onSaved, locked = false }: { ca
           units: Number(r.units),
           charge: r.charge.trim(),
           date_of_service: r.date_of_service,
-          place_of_service: r.place_of_service,
+          place_of_service: r.place_of_service?.trim() || null,
         })),
       );
       await auditCase(caseDetail.id);
@@ -102,7 +103,7 @@ export default function LineReview({ caseDetail, onSaved, locked = false }: { ca
                           aria-label={`${f.label} for ${r.id}`}
                           aria-invalid="false"
                           data-low-confidence={low ? "true" : undefined}
-                          value={r[f.key]}
+                          value={r[f.key] ?? ""}
                           onChange={(e) => edit(i, f.key, e.target.value)}
                           className={`w-full min-w-16 rounded border px-1 py-0.5 ${low ? "border-dashed border-black" : "border-neutral-400"}`}
                         />
