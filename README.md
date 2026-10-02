@@ -10,6 +10,7 @@ PriorPath audits medical bills for billing errors using public Medicare rules, e
 - **API (application programming interface) docs:** https://priorpath.vercel.app/api/docs
 - **Design spec:** [`docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md`](docs/superpowers/specs/2026-10-01-priorpath-v2-bill-audit-design.md)
 - **Build log:** [`docs/PROGRESS.md`](docs/PROGRESS.md)
+- **For a buyer:** [`docs/CUSTOMER_BRIEF.md`](docs/CUSTOMER_BRIEF.md) · **Architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · **Operations:** [`docs/RUNBOOK.md`](docs/RUNBOOK.md) · **Learning notes:** [`docs/LEARNING.md`](docs/LEARNING.md)
 
 Every abbreviation in this file is spelled out the first time it appears and again in the [Glossary](#glossary) at the end.
 

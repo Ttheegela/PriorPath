@@ -1,4 +1,4 @@
-# PriorPath v2 — Progress Log (Plans 1 to 4)
+# PriorPath v2 — Progress Log (Plans 1 to 5)
 
 _Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1; production was deployed from this branch with the Vercel CLI) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
 
@@ -9,20 +9,22 @@ PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill a
 - Plan 2: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan2-backend-ai.md`
 - Plan 3: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan3-reviewer-ui.md`
 - Plan 4: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan4-usability-pdf-readme.md`
+- Plan 5: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan5-redaction-observability-launch.md`
+- Customer brief, architecture, runbook, learning notes: `docs/CUSTOMER_BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/LEARNING.md`
 
 ---
 
 ## At a glance
 
-| | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) | Plan 4 (usability, PDF bills, README) |
-|---|---|---|---|---|
-| Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 | 2026-10-02 |
-| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) | 16 on the branch (45b011b → the README commit) plus 3 from the parallel Plan 5a branch (merged as 3d641b0) |
-| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI | Upload runs the audit, sample files, PDF bills with vision extraction and line review, PDF extraction eval, Q3 2026 data, eval negative plants, SECURITY.md, README |
-| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E | backend 286 + 1 skipped, web 61, 2 E2E specs (the PDF one skips until demo extractions are recorded) |
-| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` | Not yet deployed (release step: record extraction eval, demo extractions, Neon migration `0f2549585d12`, deploy) |
+| | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) | Plan 4 (usability, PDF bills, README) | Plan 5 (redaction, observability, launch) |
+|---|---|---|---|---|---|
+| Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 | 2026-10-02 | 2026-10-02 |
+| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) | 16 on the branch (45b011b → the README commit) plus 3 from the parallel Plan 5a branch (merged as 3d641b0) | 16 on the branch (cde99d5 → the docs commit) plus a4feebb in the portfolio repo |
+| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI | Upload runs the audit, sample files, PDF bills with vision extraction and line review, PDF extraction eval, Q3 2026 data, eval negative plants, SECURITY.md, README | Health check with DB and reference, Langfuse tracing, PDF redaction, faithfulness eval, UI polish, demo GIF, Definition-of-Done docs, portfolio entry |
+| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E | backend 286 + 1 skipped, web 61, 2 E2E specs (the PDF one skips until demo extractions are recorded) | backend 381, web 72, 2 E2E specs |
+| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` | Deployed after the release step (extraction eval and demo extractions recorded in cb5e82c; Neon migrated to `0f2549585d12`) | Release step (Task 9): re-record extraction with redaction, record faithfulness, preview deploy, production, merge to `main` |
 
-All four plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
+All five plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
 
 ---
 
@@ -203,15 +205,71 @@ Compared on the 12 demo flags by grounding-pass rate:
 
 ---
 
+## Plan 5 — Redaction, observability, faithfulness, launch
+
+### What was built
+| Task | Details |
+|---|---|
+| 1. Health check | `/api/health` runs `SELECT 1` under a 2-second statement timeout and lists the loaded reference releases; 503 `{"status": "degraded", "db": "unavailable"}` when the database doesn't answer. UptimeRobot now alerts on the database too. |
+| 2. Langfuse tracing | `app/observability.py`: one generation per model call (`explain`, `extract`, `judge`) with model id, prompt version, latency, token usage, finish reason, success or error type, and rule id or page number. Prompts, outputs, images, PDF bytes and names are never sent. No-op without both keys; SDK errors swallowed and logged once; pure-ASGI middleware flushes after the response (including the SSE stream) with a 2-second bound. |
+| 3. PDF redaction | `app/ingest/redact.py`: on text-layer pages, Presidio (spaCy small model, loaded lazily on the PDF path) plus labelled-field patterns find names, phones, emails, SSNs, locations and member/policy IDs; each match is cut at its table-column edge and painted black on the image before it is sent. Scanned, rotated or misaligned pages are sent unmasked and counted. The upload response and audit event carry `pages_redacted`, `pages_not_redactable`, `pages_partially_redacted` and entity counts. The extraction eval now builds its inputs through redaction. 64 redaction tests. |
+| 4. Faithfulness eval | `evals/faithfulness.py`: a judge model (`google/gemini-2.5-flash`, not the explanation model) checks each of the 15 demo explanations against its flag and rule text; junk output counts as not faithful; gate 0.90 on replay; record/replay like the extraction eval; CI replays it once a recording is committed. |
+| 5. UI polish | Error boundary, visible export errors, export by `fetch` + blob (works for large DOCX and Safari), and a hedged "your workspace may have expired" hint on 404s. |
+| 6. Demo GIF and README | `web/scripts/record-demo.mjs` (`npm run demo:record`) records the walkthrough video with Playwright; the ffmpeg commands in its header turn it into `docs/demo.gif`; README updated for redaction, tracing and the faithfulness eval. |
+| 7. Docs | `docs/CUSTOMER_BRIEF.md`, `docs/ARCHITECTURE.md`, `docs/RUNBOOK.md`, `docs/LEARNING.md`; this section. |
+| 8. Portfolio entry | `content/projects/priorpath.md` in the portfolio-website repo (commit a4feebb, not pushed); release numbers are added in Task 9. |
+
+### Release numbers (Task 9)
+These are recorded at release, from the user's terminal with an OpenRouter key, and committed with their results files:
+- **Extraction with redaction on:** the 30-bill extraction eval is re-recorded with `google/gemini-2.5-flash-lite` on redacted page images and compared with the pre-redaction recording (line F1 0.980). It is promoted only if it still passes the gates (line F1 0.95, end-to-end recall 0.90). The new numbers go in `evals/results/extraction.md` and the README.
+- **Faithfulness:** the judge run over the 15 demo explanations; the rate, per-rule counts and every unfaithful item go in `evals/results/faithfulness.md` and the README.
+- **Bundle size and cold start** with Presidio and spaCy, checked on a preview deploy (Vercel's Python limit is 500 MB), and one Langfuse trace each for an explanation and a PDF upload, checked for no images or PHI.
+
+### Key decisions and rulings in Plan 5
+1. **Flush traces inside the request, bounded to 2 seconds.** A background task isn't reliable on serverless (the instance may freeze after the response), and the SDK's own flush can block 30 seconds plus queue joins. Cost if wrong: a few traces lost when Langfuse is slow.
+2. **Redaction fails open per region, not per page.** A match that runs off the page is clipped and the page still masked (`pages_partially_redacted`); only a text/character mismatch leaves a page unredactable. Sending a page raw when identifiers were already located would be worse than an imperfect mask.
+3. **Rotated pages stay unredactable** (the mask maths assumes unrotated pages), and an unlabelled phone number (Presidio score 0.4) is not caught at the 0.5 threshold. Both documented in SECURITY.md.
+4. **Column segmentation for redaction** (after rounds 2 to 5): a gap wider than 2.2 of the line's real space widths starts a column; a pdfium-generated separator starts one at a lower bar only on lines that contain real spaces; labelled values may continue across one typed-space gap inside a cell until a billing-shaped token. Over-masking an NDC as a phone number is accepted (privacy first).
+5. **Parked redaction edge cases** (documented, not fixed): Courier no-space per-word cells, Times no-space pages with wide word gaps, "Tel" not being a phone context word, OCR text layers untested.
+6. **Judge sees the rule text** the explainer saw (otherwise restating the rule is judged unfaithful); the judge gets 2,000 tokens with low reasoning effort, and the schema asks for unsupported claims and a reason before the verdict. The dataset is the 15 demo explanations, so results say "indicative only".
+7. **Describe what is actually sent.** The README and SECURITY.md first claimed a workspace hash and flag counts in traces; neither is sent, so both now list exactly the fields that are.
+
+### What reviews caught (and fixed) in Plan 5
+| Task | Problem found | Fix |
+|---|---|---|
+| 2 | Langfuse flush unbounded (30 s force-flush plus untimed queue joins) would hold LLM responses open during an outage | Flush in a daemon thread with a 2 s budget; skip when nothing is pending; usage recorded on vision parse failures; page number on extraction traces |
+| 3 (round 1) | spaCy PERSON tags masked billing rows (dates, codes, units, claim no.) on 20 of 900 generated pages; low-score hits masked NPI/account rows; email recognizer could make a network fetch with no timeout under the pdfium lock; one bad region dropped redaction for the whole page; eval dataset unredacted | 0.5 score threshold, billing rows kept clear, email by plain regex, off-page matches clipped, eval inputs redacted |
+| 3 (round 2) | Presidio dedupe dropped a labelled patient name under a wider spaCy span that the digit filter then discarded; location spans crossed table columns | Labelled patterns run outside Presidio; spans cut at the first digit-bearing word and at column edges |
+| 3 (rounds 3 to 5) | Column breaks split identifiers at every space in Courier; then tight table cells merged (an address swallowed a billing cell, a phone next to a date stayed visible); then per-word-positioned text split into single words | Column threshold relative to the line's own space width; generated-separator bar only on lines with real spaces; phone drop rule applied to the match only; ISO dates as billing tokens; regression tests per font and a rendered per-word test. Final fuzz, 12 runs in Helvetica, Courier and Times: no billing row masked, every header identifier masked |
+| 4 | The judge model's reasoning tokens counted against its 600-token cap (likely truncated verdicts); prompt weak on overclaiming and invented advice; verdict asked for before the reasoning | 2,000 tokens with low reasoning effort; rubric for invented numbers, misdescribed rules, implied fraud or certainty, and advice beyond asking for clarification; schema order claims → reason → verdict |
+| 5 | Download anchor detached and object URL revoked synchronously (fails in Safari and for large DOCX); an expiry test leaked module state | Anchor attached to the page and the URL revoked a second after the click; per-test workspace state |
+| 6 | README and SECURITY.md claimed a workspace hash and flag counts are traced | Both describe exactly what is sent |
+| Release (Plan 4) | The vision model returned confidence 0 for lines with no modifiers, so clean bills went to line review | Empty modifier list counts as confidence 1; the prompt asks for it (e7944e3) |
+
+### Verification
+- Backend chain (ruff, format, mypy, pytest, alembic check, rule eval, stale-results check, extraction replay): 381 passed.
+- Frontend unit tests: 72 passed.
+- Release checks (Task 9): preview bundle size and cold start, Langfuse traces, CI green, production health, E2E, smoke and one live text-layer PDF upload showing `pages_redacted: 1`.
+
+### Known limits (logged, not blocking)
+- Redaction is best-effort on text-layer pages only and is not de-identification; the synthetic-bill confirmation stays required for every PDF. Limits are listed in `docs/SECURITY.md`.
+- The database connection has no connect timeout, so a database that never answers can hold a request to the platform limit; with `DATABASE_URL` unset the health check returns 500, not 503.
+- Langfuse flush has no single-flight guard, so timed-out flush threads can pile up during a long Langfuse outage.
+- Recordings don't store the prompt version, so a replay can't refuse output recorded with an older prompt.
+- Presidio runs under the pdfium lock (one PDF at a time per instance).
+
+---
+
 ## How to run it
 
 ```bash
 # local
 docker compose up -d db
 source .venv/bin/activate
-pytest -q                                   # 287 tests against Docker Postgres
+pytest -q                                   # 381 tests against Docker Postgres
 python -m evals.run --n 300 --seed 7        # rule-engine eval gate
 python -m evals.extract_eval --replay evals/recorded/extraction.json   # PDF extraction eval (after --record and --promote)
+python -m evals.faithfulness --replay evals/recorded/faithfulness.json  # explanation faithfulness (after --record)
 
 # UI: unit tests and browser smoke test (needs the DB env vars; builds the UI and starts uvicorn)
 cd web && npm test && npm run e2e && cd ..
@@ -220,10 +278,9 @@ cd web && npm test && npm run e2e && cd ..
 python scripts/smoke.py https://priorpath.vercel.app --require-explanations
 ```
 
-Rebuilding the demo or migrating production needs secrets, so those steps run in your own terminal (see the plan's Task 10).
+Rebuilding the demo or migrating production needs secrets, so those steps run in your own terminal (see `docs/RUNBOOK.md`).
 
 ---
 
 ## What's next
-- **Plan 4 release step:** record the extraction eval for each candidate model, write `evals/results/extraction-comparison.md`, `--promote` the chosen model's recording, record demo PDF extractions, then migrate Neon to `0f2549585d12` and deploy immediately after (the old code's `ON CONFLICT` no longer matches after the `llm_usage` primary-key change), and run the smoke test.
-- **Plan 5:** Presidio redaction before model calls (PDF text and page images), Langfuse tracing, an LLM-judge faithfulness eval for explanations, the remaining Definition-of-Done docs, and the portfolio entry.
+- **Plan 5 release (Task 9):** re-record the extraction eval with redaction and record faithfulness (user terminal, OpenRouter key), commit results and fill the README and portfolio numbers, preview deploy (bundle size, cold start, Langfuse traces), then with the user's OK: push, production deploy and verification, fast-forward `main` to `v2-bill-audit`, move the CI badge and Vercel production branch to `main`, and push the portfolio entry. Steps for each are in `docs/RUNBOOK.md`.
