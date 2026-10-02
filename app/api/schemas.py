@@ -3,9 +3,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
-
-from app.models import money
+from pydantic import BaseModel, Field
 
 
 class LineOut(BaseModel):
@@ -16,11 +14,6 @@ class LineOut(BaseModel):
     charge: Decimal
     date_of_service: date
     place_of_service: str | None
-
-    @field_validator("charge")
-    @classmethod
-    def _cents(cls, v: Decimal) -> Decimal:
-        return money(v)
 
 
 class FlagOut(BaseModel):

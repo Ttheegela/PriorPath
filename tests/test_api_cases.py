@@ -69,3 +69,11 @@ def test_other_workspace_cannot_see_case(db: Engine) -> None:
     case_id = upload(owner, [sample_claim()]).json()["cases"][0]["id"]
     assert other.get(f"/api/cases/{case_id}").status_code == 404
     assert other.get("/api/cases").json() == []
+
+
+def test_deeply_nested_json_is_422(db: Engine) -> None:
+    r = TestClient(app).post(
+        "/api/cases", content=b"[" * 100000, headers={"content-type": "application/json"}
+    )
+    assert r.status_code == 422
+    assert r.json()["errors"] == [{"path": "$", "message": "body is not valid JSON"}]

@@ -36,7 +36,7 @@ def upload_cases(
 ) -> UploadResult | JSONResponse:
     try:
         data = json.loads(body)
-    except (UnicodeDecodeError, ValueError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         return JSONResponse(
             status_code=422,
             content={"cases": [], "errors": [{"path": "$", "message": "body is not valid JSON"}]},

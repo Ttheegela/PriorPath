@@ -64,3 +64,8 @@ def test_make_flag_builds_deterministic_id_and_rounds() -> None:
     assert flag.line_ids == ["L1", "L2"]
     assert flag.est_overcharge == Decimal("150.00")
     assert flag.status == "open"
+
+
+def test_line_charge_is_quantized_to_cents() -> None:
+    assert str(_line(charge=Decimal("300.0")).charge) == "300.00"
+    assert str(_line(charge=Decimal("30.005")).charge) == "30.01"

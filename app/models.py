@@ -47,6 +47,11 @@ class LineItem(BaseModel):
             raise ValueError("code is empty")
         return v
 
+    @field_validator("charge")
+    @classmethod
+    def _cents(cls, v: Decimal) -> Decimal:
+        return money(v)
+
     @field_validator("modifiers")
     @classmethod
     def _normalize_modifiers(cls, v: list[str]) -> list[str]:
