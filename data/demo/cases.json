@@ -1,0 +1,1272 @@
+{
+ "resourceType": "Bundle",
+ "type": "collection",
+ "entry": [
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0000",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0000"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93005"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-16",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 10.73,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "74176"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-16",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 452.11,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "71046"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-16",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 79.7,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "99213"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-16",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 214.18,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Riverside Family Medicine"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0001",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0001"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97112"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-05",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 75.28,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "99212"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-05",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 114.74,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Lakeview Orthopedics"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0002",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0002"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "17003"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-05",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 9.27,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "71046"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-05",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 75.4,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "96375"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-05",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 86.51,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Northgate Imaging Center"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0003",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0003"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97140"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-02",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 65.7,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97112"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-02",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 54.99,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97116"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-02",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 42.14,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "17003"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-02",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 14.67,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 5,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97140"
+        }
+       ]
+      },
+      "servicedDate": "2026-12-02",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 65.7,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Harbor Physical Therapy"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0004",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0004"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "99212"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 123.06,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93320"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 124.48,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "96375"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 7
+      },
+      "net": {
+       "value": 206.61,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "83992"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 100.0,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Summit Cardiology"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0005",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0005"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97140"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-19",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 49.9,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "71045"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-19",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 38.07,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97140"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-19",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 49.9,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "83992"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-19",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 100.0,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Riverside Family Medicine"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0006",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0006"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97598"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 119.4,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "64484"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 265.71,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "73721"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 320.92,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "77061"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 100.0,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 5,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "71046"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-27",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 116.08,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Lakeview Orthopedics"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0007",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0007"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "20611"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 254.27,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "73721"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 290.26,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97110"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 60.74,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93325"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 51.92,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 5,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93320"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 110.08,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 6,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97110"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 60.74,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 7,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "97140"
+        }
+       ]
+      },
+      "servicedDate": "2026-10-12",
+      "quantity": {
+       "value": 7
+      },
+      "net": {
+       "value": 306.58,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Northgate Imaging Center"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0008",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0008"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "96372"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-10",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 30.57,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93005"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-10",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 13.81,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93325"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-10",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 41.49,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 4,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "93010"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-10",
+      "quantity": {
+       "value": 7
+      },
+      "net": {
+       "value": 92.35,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Harbor Physical Therapy"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  },
+  {
+   "resource": {
+    "resourceType": "ExplanationOfBenefit",
+    "id": "C0009",
+    "status": "active",
+    "use": "claim",
+    "patient": {
+     "reference": "Patient/P-0009"
+    },
+    "diagnosis": [],
+    "item": [
+     {
+      "sequence": 1,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "96375"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-15",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 19.47,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 2,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "70450"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-15",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 207.77,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     },
+     {
+      "sequence": 3,
+      "productOrService": {
+       "coding": [
+        {
+         "system": "http://www.ama-assn.org/go/cpt",
+         "code": "83992"
+        }
+       ]
+      },
+      "servicedDate": "2026-11-15",
+      "quantity": {
+       "value": 1
+      },
+      "net": {
+       "value": 100.0,
+       "currency": "USD"
+      },
+      "locationCodeableConcept": {
+       "coding": [
+        {
+         "code": "11"
+        }
+       ]
+      }
+     }
+    ],
+    "provider": {
+     "display": "Summit Cardiology"
+    },
+    "insurer": {
+     "display": "Medicare (synthetic)"
+    }
+   }
+  }
+ ]
+}

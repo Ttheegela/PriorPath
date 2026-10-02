@@ -48,8 +48,13 @@ def current_workspace(request: Request, response: Response, session: SessionDep,
     raw = request.cookies.get(COOKIE_NAME)
     ws = _load(session, raw) if raw else None
     if ws is None:
+        from app.services.demo import demo_enabled, seed_demo
+
         ws = Workspace()
         session.add(ws)
+        session.flush()
+        if demo_enabled():
+            seed_demo(session, ws, ref)
         session.commit()
         response.set_cookie(
             COOKIE_NAME,

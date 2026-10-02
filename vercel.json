@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "app/main.py": { "includeFiles": "data/reference/subset/**" }
-  }
+    "app/main.py": { "includeFiles": "data/**" }
+  },
+  "crons": [{ "path": "/api/internal/cleanup", "schedule": "0 5 * * *" }]
 }
