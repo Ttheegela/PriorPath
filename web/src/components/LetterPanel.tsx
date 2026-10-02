@@ -35,7 +35,7 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
           <button type="button" disabled={busy || !canDraft || dirty} onClick={() => run(() => draftLetter(caseDetail.id))} className="rounded border border-black px-3 py-1.5 disabled:opacity-50">
             {letter ? "Redraft from accepted flags" : "Draft dispute letter"}
           </button>
-          {dirty && <span className="text-sm text-neutral-600">Save or undo your edits first.</span>}
+          {dirty && <span className="text-sm text-neutral-600">Save your edits before redrafting.</span>}
           {!canDraft && <span className="text-sm text-neutral-600">Accept at least one billing error or price outlier to draft a letter.</span>}
         </div>
       )}

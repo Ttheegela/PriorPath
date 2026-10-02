@@ -70,5 +70,5 @@ test("redraft is disabled with a hint while there are unsaved edits", async () =
   expect(redraft).toBeEnabled();
   await userEvent.type(screen.getByLabelText("Letter text"), " more");
   expect(redraft).toBeDisabled();
-  expect(screen.getByText("Save or undo your edits first.")).toBeInTheDocument();
+  expect(screen.getByText("Save your edits before redrafting.")).toBeInTheDocument();
 });
