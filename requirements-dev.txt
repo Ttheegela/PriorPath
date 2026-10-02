@@ -5,3 +5,4 @@ ruff>=0.6
 mypy>=1.11
 uvicorn>=0.30
 openpyxl>=3.1
+alembic>=1.13,<2

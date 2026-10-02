@@ -6,11 +6,18 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "fastapi>=0.115,<1",
     "pydantic>=2.9,<3",
+    "sqlalchemy>=2.0.30,<2.1",
+    "psycopg[binary]>=3.2,<4",
+    "langgraph>=1.2,<2",
+    "openai>=1.40",
+    "itsdangerous>=2.2,<3",
+    "python-docx>=1.1,<2",
 ]
 
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+extend-exclude = ["migrations/versions"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
@@ -21,7 +28,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["openpyxl", "openpyxl.*"]
+module = ["openpyxl", "openpyxl.*", "docx", "docx.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
