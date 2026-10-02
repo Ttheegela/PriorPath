@@ -125,3 +125,7 @@ at a trust boundary, a platform limit or a place where two components disagreed 
 - **Be clearer earlier that this is a demo for synthetic data.** Redaction, the synthetic-bill confirmation and
   the "not HIPAA compliant" checklist came in late plans. Writing `SECURITY.md` first would have made the PHI
   boundaries a design input instead of a retrofit.
+
+### Release incident (2026-10-02): web app missing after the Plan 5 deploy
+
+Adding the trace-flush ASGI middleware changed how Vercel packages the FastAPI app: with a top-level middleware, Vercel keeps static frontends inside the function instead of promoting them to the CDN, and our `[tool.vercel.fastapi.static] exclude = true` then removed them from the function too. Production served the API but `/` returned `{"detail":"Not Found"}` for about 15 minutes. Hobby-plan rollback only goes back one deployment, so the fix went forward: `cdn = true` (promote static files regardless of middleware), verified on a preview, then fast-forwarded to `main`. Lesson: packaging changes need a preview check of `/`, not only `/api/health` — the release checklist now includes it.

@@ -291,3 +291,7 @@ PYTHONPATH=. python scripts/build_demo.py --bills --extract --explain   # PDF bi
 | Tests and CI | Never call OpenRouter or Langfuse | fakes in `tests/`; replayed recordings |
 
 Prices are OpenRouter's at the time each model was chosen; check current prices before relying on them.
+
+## Incident: web app returns {"detail":"Not Found"} at `/`
+
+Cause seen on 2026-10-02: Vercel stopped promoting the built UI to the CDN (a top-level ASGI middleware disables promotion) while `exclude = true` removed it from the function. Check `pyproject.toml` has `[tool.vercel.fastapi.static]` `cdn = true`. After any change to middleware, `app/main.py` mounting or `pyproject.toml` Vercel settings, open the preview's `/` (via `npx vercel curl <preview>/ -- -I`) before promoting. Hobby-plan rollback only reaches the previous production deployment, so prefer fixing forward.
