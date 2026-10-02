@@ -105,3 +105,32 @@ test("unknown case shows not found with a way back", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Back to cases" }));
   expect(onBack).toHaveBeenCalled();
 });
+
+test("done with remaining shows the run-again hint", async () => {
+  const sse = 'event: start\ndata: {"pending": 2}\n\nevent: done\ndata: {"ready": 1, "unavailable": 0, "remaining": 1}\n\n';
+  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    url.endsWith("/explain") ? new Response(sse, { status: 200 }) : json(detail())));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  await userEvent.click(await screen.findByRole("button", { name: "Generate explanations" }));
+  expect(await screen.findByText(/1 left — run again to finish/)).toBeInTheDocument();
+});
+
+test("a different case after a 404 loads normally", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    url === "/api/cases/nope" ? json({ detail: "case not found" }, 404) : json(detail())));
+  const { rerender } = render(<CaseDetail key="nope" id="nope" onBack={() => {}} />);
+  expect(await screen.findByText("Case not found.")).toBeInTheDocument();
+  rerender(<CaseDetail key="c1" id="c1" onBack={() => {}} />);
+  expect(await screen.findByRole("heading", { name: /C0001/ })).toBeInTheDocument();
+});
+
+test("cancel clears the reject reason", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => json(detail())));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  const card = within(await screen.findByRole("article", { name: /R1/ }));
+  await userEvent.click(card.getByRole("button", { name: "Reject" }));
+  await userEvent.type(card.getByLabelText("Reason"), "oops");
+  await userEvent.click(card.getByRole("button", { name: "Cancel" }));
+  await userEvent.click(card.getByRole("button", { name: "Reject" }));
+  expect(card.getByLabelText("Reason")).toHaveValue("");
+});

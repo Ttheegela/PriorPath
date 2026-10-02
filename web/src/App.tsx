@@ -47,7 +47,7 @@ export default function App() {
         ) : !ready ? (
           <p>Loading…</p>
         ) : route.name === "case" ? (
-          <CaseDetail id={route.id} onBack={() => navigate({ name: "queue" })} />
+          <CaseDetail key={route.id} id={route.id} onBack={() => navigate({ name: "queue" })} />
         ) : route.name === "log" ? (
           <p>Audit log</p>
         ) : (

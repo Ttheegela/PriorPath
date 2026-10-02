@@ -83,7 +83,7 @@ export default function FlagCard({ flag, locked, onChange }: { flag: Flag; locke
           <button type="button" disabled={busy || !reason.trim()} onClick={() => save("rejected", reason.trim())} className="rounded bg-black px-2 py-1 text-white disabled:opacity-50">
             Confirm reject
           </button>
-          <button type="button" onClick={() => setRejecting(false)} className="rounded border px-2 py-1">
+          <button type="button" onClick={() => { setRejecting(false); setReason(""); }} className="rounded border px-2 py-1">
             Cancel
           </button>
         </div>

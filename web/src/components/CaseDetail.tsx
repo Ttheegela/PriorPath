@@ -21,8 +21,19 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
     }
   }, [id]);
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    getCase(id).then(
+      (d) => !cancelled && setDetail(d),
+      (e) => {
+        if (cancelled) return;
+        if (e instanceof ApiError && e.status === 404) setNotFound(true);
+        else setError(messageOf(e));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   if (notFound)
     return (
