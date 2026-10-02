@@ -19,7 +19,7 @@ PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill a
 | Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 | 2026-10-02 |
 | Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) | 16 on the branch (45b011b → the README commit) plus 3 from the parallel Plan 5a branch (merged as 3d641b0) |
 | Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI | Upload runs the audit, sample files, PDF bills with vision extraction and line review, PDF extraction eval, Q3 2026 data, eval negative plants, SECURITY.md, README |
-| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E | backend 279 + 1 skipped, web 60, 2 E2E specs (the PDF one skips until demo extractions are recorded) |
+| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E | backend 286 + 1 skipped, web 61, 2 E2E specs (the PDF one skips until demo extractions are recorded) |
 | Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` | Not yet deployed (release step: record extraction eval, demo extractions, Neon migration `0f2549585d12`, deploy) |
 
 All four plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
@@ -191,8 +191,8 @@ Compared on the 12 demo flags by grounding-pass rate:
 | Final | Audit could run on a case still in line review; budget checked only page by page | 409 "review the extracted lines first" (Run audit hidden in line review); all pages' budget checked before the first model call |
 
 ### Verification
-- Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 279 passed, 1 skipped (the committed-demo PDF test skips until demo extractions are recorded).
-- Frontend chain (lint warning-free, vitest, build): 60 tests pass.
+- Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 286 passed, 1 skipped (the committed-demo PDF test skips until demo extractions are recorded).
+- Frontend chain (lint warning-free, vitest, build): 61 tests pass.
 - E2E: smoke spec passes locally; the PDF spec passes with a temporary extraction recording and skips without one.
 
 ### Known limits (logged, not blocking)
@@ -209,7 +209,7 @@ Compared on the 12 demo flags by grounding-pass rate:
 # local
 docker compose up -d db
 source .venv/bin/activate
-pytest -q                                   # 279 tests against Docker Postgres
+pytest -q                                   # 287 tests against Docker Postgres
 python -m evals.run --n 300 --seed 7        # rule-engine eval gate
 python -m evals.extract_eval --replay evals/recorded/extraction.json   # PDF extraction eval (after --record and --promote)
 
