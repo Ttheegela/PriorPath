@@ -1,6 +1,6 @@
 # PriorPath
 
-[![CI](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml/badge.svg?branch=v2-bill-audit)](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml)
+[![CI](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml)
 
 ![Walkthrough: sort the case queue by overcharge, open a case, accept a billing error, draft, approve and download the dispute letter, return to the queue and open the pre-extracted PDF bill case](docs/demo.gif)
 
