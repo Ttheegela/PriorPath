@@ -36,6 +36,13 @@ jobs:
       - run: alembic check
       - run: python -m evals.run --n 300 --seed 7
       - run: git diff --exit-code evals/results
+      - run: |
+          if ls evals/recorded/extraction-*.json >/dev/null 2>&1; then
+            python -m evals.extract_eval --replay "$(ls evals/recorded/extraction-*.json | head -1)"
+            git diff --exit-code evals/results
+          else
+            echo "no recorded extraction outputs yet; skipping extraction eval"
+          fi
   frontend:
     runs-on: ubuntu-latest
     defaults:

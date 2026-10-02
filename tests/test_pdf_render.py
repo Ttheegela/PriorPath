@@ -21,6 +21,7 @@ def test_each_layout_shows_every_line(layout: str) -> None:
     for line in claim.lines:
         assert line.code in text
         assert f"{line.charge:.2f}" in text
+        assert line.place_of_service and line.place_of_service in text
     assert claim.provider and claim.provider in text
 
 
@@ -52,6 +53,16 @@ def _big_claim(n: int) -> Claim:
 
 
 _HEADERS = {"table": "Modifiers", "compact": "Amount"}
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_place_of_service_is_printed_on_every_line(layout: str) -> None:
+    claim = sample_claim()
+    claim.lines[0].place_of_service = "22"
+    text = _text(render_bill(claim, layout))
+    assert "22" in text
+    assert ("POS 22" in text) == (layout == "statement")
+    assert "POS" in text
 
 
 @pytest.mark.parametrize("layout", LAYOUTS)

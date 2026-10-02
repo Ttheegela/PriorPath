@@ -36,6 +36,7 @@ def fv(claim: Claim, conf: float = 0.99) -> dict[str, Any]:
                 "units": f(ln.units),
                 "charge": f(str(ln.charge)),
                 "date_of_service": f(ln.date_of_service.isoformat()),
+                "place_of_service": f(ln.place_of_service or ""),
             }
             for ln in claim.lines
         ],

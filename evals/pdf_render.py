@@ -48,6 +48,10 @@ def _date(line: LineItem) -> str:
     return line.date_of_service.strftime("%m/%d/%Y")
 
 
+def _pos(line: LineItem) -> str:
+    return line.place_of_service or "-"
+
+
 def _mods(line: LineItem) -> str:
     return ",".join(line.modifiers) or "-"
 
@@ -84,8 +88,13 @@ def render_bill(claim: Claim, layout: str, patient_name: str = "Alex Example") -
     _header(pdf, claim, patient_name)
     total = f"Total: ${sum(ln.charge for ln in claim.lines):.2f}"
     if layout == "table":
-        rows = [[_date(ln), ln.code, _mods(ln), str(ln.units), f"${ln.charge:.2f}"] for ln in claim.lines]
-        _table(pdf, ["Date", "Code", "Modifiers", "Units", "Charge"], rows, [35, 35, 35, 25, 35], 11)
+        rows = [
+            [_date(ln), ln.code, _mods(ln), str(ln.units), _pos(ln), f"${ln.charge:.2f}"]
+            for ln in claim.lines
+        ]
+        _table(
+            pdf, ["Date", "Code", "Modifiers", "Units", "POS", "Charge"], rows, [35, 35, 35, 20, 15, 35], 11
+        )
     elif layout == "statement":
         pdf.set_font("Helvetica", "", 11)
         for ln in claim.lines:
@@ -93,11 +102,16 @@ def render_bill(claim: Claim, layout: str, patient_name: str = "Alex Example") -
             if pdf.will_page_break(14):  # keep a line's two rows on one page
                 pdf.add_page()  # (pdf.unbreakable() drops the block in fpdf2 2.8.9)
             pdf.cell(0, 6, f"{_date(ln)}  Service {code}", new_x="LMARGIN", new_y="NEXT")
-            pdf.cell(0, 6, f"Qty {ln.units}   ${ln.charge:.2f}", new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(
+                0, 6, f"Qty {ln.units}   POS {_pos(ln)}   ${ln.charge:.2f}", new_x="LMARGIN", new_y="NEXT"
+            )
             pdf.ln(2)
     else:
-        rows = [[ln.code, _date(ln), str(ln.units), _mods(ln), f"${ln.charge:.2f}"] for ln in claim.lines]
-        _table(pdf, ["Code", "Date", "Units", "Mod", "Amount"], rows, [25, 30, 15, 20, 25], 8)
+        rows = [
+            [ln.code, _date(ln), str(ln.units), _mods(ln), _pos(ln), f"${ln.charge:.2f}"]
+            for ln in claim.lines
+        ]
+        _table(pdf, ["Code", "Date", "Units", "Mod", "POS", "Amount"], rows, [25, 30, 15, 20, 12, 25], 8)
     pdf.col_header = None
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)

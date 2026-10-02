@@ -10,14 +10,17 @@ def f(value, confidence=0.99):  # type: ignore[no-untyped-def]
     return {"value": value, "confidence": confidence}
 
 
-def row(code="99213", units=1, charge="120.00", dos="2026-11-03", mods=None, conf=0.99):  # type: ignore[no-untyped-def]
-    return {
+def row(code="99213", units=1, charge="120.00", dos="2026-11-03", mods=None, conf=0.99, pos="11"):  # type: ignore[no-untyped-def]
+    r = {
         "code": f(code, conf),
         "modifiers": f(mods or []),
         "units": f(units),
         "charge": f(charge),
         "date_of_service": f(dos),
     }
+    if pos is not None:
+        r["place_of_service"] = f(pos)
+    return r
 
 
 def page(*rows, claim_id="ACC-1"):  # type: ignore[no-untyped-def]
@@ -37,6 +40,13 @@ def test_valid_rows_become_extracted_line_items() -> None:
     )
     assert l2.source == "extracted" and l2.confidence == 0.99
     assert res.claim_id == "ACC-1" and not res.errors
+
+
+def test_place_of_service_is_parsed_validated_and_optional() -> None:
+    res = parse_page(page(row(pos="22"), row(pos=""), row(pos=None), row(pos="2"), row(pos="AB")), 1)
+    assert [ln.place_of_service for ln in res.lines] == ["22", None, None]
+    assert res.lines[0].field_confidence["place_of_service"] == 0.99
+    assert len(res.errors) == 2 and all("place of service" in e for e in res.errors)
 
 
 def test_bad_rows_are_dropped_with_page_and_row_named() -> None:
