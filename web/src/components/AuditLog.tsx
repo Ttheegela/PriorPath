@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { auditLog, messageOf, type AuditEvent } from "../lib/api";
 import { humanizeAction } from "../lib/format";
-import { routeHref } from "../lib/route";
+import { isPlainClick, routeHref } from "../lib/route";
 
 const summarize = (detail: Record<string, unknown>) =>
   Object.entries(detail)
@@ -47,6 +47,7 @@ export default function AuditLog({ caseId, refreshKey, onOpenCase }: { caseId?: 
                 <a
                   href={routeHref({ name: "case", id: e.case_id })}
                   onClick={(ev) => {
+                    if (!isPlainClick(ev)) return;
                     ev.preventDefault();
                     onOpenCase(e.case_id as string);
                   }}

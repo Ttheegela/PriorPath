@@ -1,6 +1,6 @@
 # PriorPath v2 — Progress Log (Plans 1 to 3)
 
-_Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
+_Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1; production was deployed from this branch with the Vercel CLI) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
 
 PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill auditor** for claims auditors and patient advocates. Deterministic rules over public CMS data decide what is wrong with a claim; an LLM only explains each finding in plain English, and a person approves every dispute letter.
 
@@ -16,7 +16,7 @@ PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill a
 | | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) |
 |---|---|---|---|
 | Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 |
-| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 8 tasks (see git log) |
+| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) |
 | Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI |
 | Tests at end | 73 | 183 | backend 189, web 39 + 1 E2E |
 | Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` |
@@ -113,9 +113,9 @@ Compared on the 12 demo flags by grounding-pass rate:
 ### What was built
 | Screen | Details |
 |---|---|
-| Case queue | Filter by status, sort by overcharge, "New case" upload of FHIR JSON (up to 4 MB). Row links open the case. |
+| Case queue | Filter by status, sort by overcharge, "Upload" of FHIR JSON (up to 4 MB). Row links open the case. |
 | Case detail | Line table with flag badges; flags grouped as Billing errors, Price outliers and Leads (always labelled separately); evidence, explanation, estimated overcharge; Accept, or Reject with a reason; header totals. Code numbers only, no CPT descriptors. |
-| Letter review | Draft from accepted flags only, editable text, approve, download .txt. |
+| Letter review | Draft from accepted flags only, editable text, approve, download as .txt or .docx. |
 | Audit log | Per-case timeline and a global view. |
 | Plumbing | `ensureWorkspace()` is memoized so the first workspace-scoped call finishes before any other (no double workspaces). Money is shown with `Intl.NumberFormat` and never computed in the UI. Copy says the data is synthetic and nothing is sent anywhere. |
 | E2E | One Playwright smoke test on the demo data: open the top-overcharge case, accept a flag, draft and approve the letter, download it. Runs in CI as a third job; `PLAYWRIGHT_BASE_URL=https://priorpath.vercel.app npm run e2e` runs it against production. |
@@ -134,10 +134,14 @@ Compared on the 12 demo flags by grounding-pass rate:
 | 5 | Stale case shown when the id changed; "not found" state was sticky; a lint warning | Case reset on id change, not-found cleared, warning removed |
 | 5 | Cancel on the reject form kept the typed reason | Cancel clears the reason |
 | 7 | Audit-log error was sticky after a later success; timeline did not refresh after letter or explanation actions | Error cleared on success; timeline reloads after those actions |
+| Final | Redraft discarded unsaved letter edits | Redraft disabled while edited, with a "Save or undo your edits first." hint |
+| Final | A failed queue load also showed "No cases match." | Table renders only after a successful load |
+| Final | Client upload limit (4 MiB) differed from the server's 4,000,000 bytes | Client limit set to 4,000,000 bytes |
+| Final | Ids went into fetch paths unencoded; modified clicks on in-app links were swallowed | `encodeURIComponent` on every id; ctrl/cmd/shift/middle-click fall through to the browser |
 
 ### Verification
 - Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 189 tests pass.
-- Frontend chain (lint warning-free, vitest, build): 39 tests pass.
+- Frontend chain (lint warning-free, vitest, build): 43 tests pass.
 - Local E2E against Docker Postgres: 1 passed.
 
 ---

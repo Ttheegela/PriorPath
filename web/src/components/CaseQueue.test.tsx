@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import CaseQueue from "./CaseQueue";
@@ -74,7 +74,7 @@ test("rejects files over 4 MB without calling the API", async () => {
   const fetchMock = stubFetch({ "/api/cases": () => ok(cases) });
   render(<CaseQueue onOpen={() => {}} />);
   await screen.findByText("C0001");
-  const big = new File(["x".repeat(4 * 1024 * 1024 + 1)], "big.json", { type: "application/json" });
+  const big = new File(["x".repeat(4_000_001)], "big.json", { type: "application/json" });
   await userEvent.upload(screen.getByLabelText("FHIR bundle (JSON, up to 4 MB)"), big);
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("larger than 4 MB");
@@ -91,4 +91,21 @@ test("shows API errors from upload", async () => {
   await userEvent.upload(screen.getByLabelText("FHIR bundle (JSON, up to 4 MB)"), new File(["nope"], "x.json"));
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("$: body is not valid JSON");
+});
+
+test("a failed list shows the error and no empty-state claim", async () => {
+  stubFetch({ "/api/cases": () => ok({ detail: "boom" }, 503) });
+  render(<CaseQueue onOpen={() => {}} />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("boom");
+  expect(screen.queryByText("No cases match.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Loading cases…")).not.toBeInTheDocument();
+});
+
+test("modifier-click on a case link leaves navigation to the browser", async () => {
+  stubFetch({ "/api/cases": () => ok(cases) });
+  const onOpen = vi.fn();
+  render(<CaseQueue onOpen={onOpen} />);
+  const link = await screen.findByRole("link", { name: "C0001" });
+  fireEvent.click(link, { ctrlKey: true });
+  expect(onOpen).not.toHaveBeenCalled();
 });

@@ -3,7 +3,7 @@ import { ensureWorkspace, messageOf } from "./lib/api";
 import CaseQueue from "./components/CaseQueue";
 import AuditLog from "./components/AuditLog";
 import CaseDetail from "./components/CaseDetail";
-import { routeHref, useRoute, type Route } from "./lib/route";
+import { isPlainClick, routeHref, useRoute, type Route } from "./lib/route";
 
 export default function App() {
   const [route, navigate] = useRoute();
@@ -21,6 +21,7 @@ export default function App() {
     <a
       href={routeHref(r)}
       onClick={(e) => {
+        if (!isPlainClick(e)) return;
         e.preventDefault();
         navigate(r);
       }}

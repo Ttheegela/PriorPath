@@ -10,6 +10,11 @@ export function parseRoute(search: string): Route {
   return { name: "queue" };
 }
 
+/** True for a plain left click; modified clicks should fall through to the browser (new tab etc.). */
+export function isPlainClick(e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number }): boolean {
+  return !(e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0);
+}
+
 export function routeHref(r: Route): string {
   if (r.name === "case") return `/?case=${encodeURIComponent(r.id)}`;
   if (r.name === "log") return "/?view=log";

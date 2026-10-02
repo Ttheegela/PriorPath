@@ -127,18 +127,18 @@ export function ensureWorkspace(): Promise<void> {
 }
 
 export const listCases = () => request<CaseSummary[]>("/api/cases");
-export const getCase = (id: string) => request<CaseDetail>(`/api/cases/${id}`);
-export const auditCase = (id: string) => request<CaseDetail>(`/api/cases/${id}/audit`, { method: "POST" });
+export const getCase = (id: string) => request<CaseDetail>(`/api/cases/${encodeURIComponent(id)}`);
+export const auditCase = (id: string) => request<CaseDetail>(`/api/cases/${encodeURIComponent(id)}/audit`, { method: "POST" });
 export const resetDemo = () => request<{ cases: number }>("/api/demo/reset", { method: "POST" });
-export const draftLetter = (caseId: string) => request<Letter>(`/api/cases/${caseId}/letter`, { method: "POST" });
-export const editLetter = (id: string, body: string) => request<Letter>(`/api/letters/${id}`, jsonInit("PATCH", { body }));
-export const approveLetter = (id: string) => request<Letter>(`/api/letters/${id}/approve`, { method: "POST" });
-export const exportUrl = (id: string, format: "txt" | "docx") => `/api/letters/${id}/export?format=${format}`;
+export const draftLetter = (caseId: string) => request<Letter>(`/api/cases/${encodeURIComponent(caseId)}/letter`, { method: "POST" });
+export const editLetter = (id: string, body: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}`, jsonInit("PATCH", { body }));
+export const approveLetter = (id: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}/approve`, { method: "POST" });
+export const exportUrl = (id: string, format: "txt" | "docx") => `/api/letters/${encodeURIComponent(id)}/export?format=${format}`;
 export const auditLog = (caseId?: string) =>
-  request<AuditEvent[]>(caseId ? `/api/cases/${caseId}/audit-log` : "/api/audit-log");
+  request<AuditEvent[]>(caseId ? `/api/cases/${encodeURIComponent(caseId)}/audit-log` : "/api/audit-log");
 
 export const updateFlag = (id: string, status: FlagStatus, rejectReason?: string) =>
-  request<Flag>(`/api/flags/${id}`, jsonInit("PATCH", { status, reject_reason: rejectReason ?? null }));
+  request<Flag>(`/api/flags/${encodeURIComponent(id)}`, jsonInit("PATCH", { status, reject_reason: rejectReason ?? null }));
 
 export async function uploadCases(file: File, payerType: PayerType): Promise<UploadResult> {
   return request<UploadResult>(`/api/cases?payer_type=${payerType}`, {
@@ -149,7 +149,7 @@ export async function uploadCases(file: File, payerType: PayerType): Promise<Upl
 }
 
 export async function streamExplanations(caseId: string, onEvent: (e: SseEvent) => void): Promise<void> {
-  const res = await fetch(`/api/cases/${caseId}/explain`, { method: "POST", credentials: "same-origin" });
+  const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/explain`, { method: "POST", credentials: "same-origin" });
   if (!res.ok || !res.body) throw new ApiError(res.status, await errorMessage(res));
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

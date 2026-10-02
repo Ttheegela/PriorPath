@@ -61,3 +61,11 @@ test("streamExplanations feeds events and throws on HTTP errors", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => json(404, { detail: "case not found" })));
   await expect(streamExplanations("nope", () => {})).rejects.toThrow("case not found");
 });
+
+test("ids are encoded in request paths", async () => {
+  const fetchMock = vi.fn(async () => json(200, {}));
+  vi.stubGlobal("fetch", fetchMock);
+  const { getCase } = await import("./api");
+  await getCase("a/b");
+  expect(fetchMock.mock.calls[0]).toEqual(["/api/cases/a%2Fb", expect.anything()]);
+});

@@ -63,3 +63,12 @@ test("approved letters are read-only with export links", () => {
   expect(screen.getByRole("link", { name: "Download .txt" })).toHaveAttribute("href", "/api/letters/l1/export?format=txt");
   expect(screen.getByRole("link", { name: "Download .docx" })).toHaveAttribute("href", "/api/letters/l1/export?format=docx");
 });
+
+test("redraft is disabled with a hint while there are unsaved edits", async () => {
+  render(<LetterPanel caseDetail={caseWith({ letter: letter() })} onChange={() => {}} />);
+  const redraft = screen.getByRole("button", { name: "Redraft from accepted flags" });
+  expect(redraft).toBeEnabled();
+  await userEvent.type(screen.getByLabelText("Letter text"), " more");
+  expect(redraft).toBeDisabled();
+  expect(screen.getByText("Save or undo your edits first.")).toBeInTheDocument();
+});

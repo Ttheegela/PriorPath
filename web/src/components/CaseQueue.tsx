@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { listCases, messageOf, resetDemo, uploadCases, type CaseSummary, type PayerType, type UploadResult } from "../lib/api";
 import { money, STATUS_LABEL, statusLabel } from "../lib/format";
-import { routeHref } from "../lib/route";
+import { isPlainClick, routeHref } from "../lib/route";
 
-const MAX_UPLOAD = 4 * 1024 * 1024;
+const MAX_UPLOAD = 4_000_000;
 
 export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) {
   const [cases, setCases] = useState<CaseSummary[] | null>(null);
@@ -111,8 +111,8 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
         </label>
       </div>
 
-      {cases === null && !error ? (
-        <p>Loading cases…</p>
+      {cases === null ? (
+        error ? null : <p>Loading cases…</p>
       ) : (
         <div className="overflow-x-auto border border-black bg-white">
           <table className="w-full text-left text-sm">
@@ -133,6 +133,7 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
                     <a
                       href={routeHref({ name: "case", id: c.id })}
                       onClick={(e) => {
+                        if (!isPlainClick(e)) return;
                         e.preventDefault();
                         onOpen(c.id);
                       }}
