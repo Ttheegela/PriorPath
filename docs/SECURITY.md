@@ -115,12 +115,14 @@ is not enough).
 **Columns:** pdfium's text joins table cells with a single space, so text spacing can't show where a column ends.
 Each printed line is split into column segments from the character boxes. A gap between two neighbouring
 characters starts a new segment when it is wider than 2.2 times the line's space width (measured from the line's
-real, not pdfium-generated, space characters; falling back to the page's, then half a glyph width). Where pdfium
+real, not pdfium-generated, space characters; falling back to the page's, then, on a page with no real spaces,
+one glyph width if every glyph on the page is the same width, else half the median character width). Where pdfium
 filled the gap with a generated separator, which it does between separately drawn pieces of text such as table
-cells, the bar is lower: wider than one real space, or than 0.4 of the line's character height (only the height
-bar applies on a page with no real spaces, where generated separators may be ordinary word gaps). One or two
-typed spaces never split a value, in any font; three or more do, and so do cells whose text fills the cell (about
-5.7 pt apart in the tested fonts, Helvetica, Times and Courier). Presidio reads each segment as its own line, and
+cells, the bar is lower on lines that contain real spaces themselves: wider than one real space, or than 0.4 of the
+line's character height. A line with no real spaces may be drawn one word at a time (every word gap a generated
+separator), so there only the 2.2-space rule applies. One or two typed spaces never split a value, in any font;
+three or more do, and so do cells whose text fills the cell (about 5.7 pt apart with fpdf's 1 mm cell margins, in
+the tested fonts, Helvetica, Times and Courier, at 11 pt). Presidio reads each segment as its own line, and
 every match is cut at the end of the segment it starts in. A labelled value (after "Patient:", "Address:", "Member
 ID" and the other labels above) may carry on across one more gap made of typed spaces inside the same cell, up to
 the end of that next segment or the first billing-shaped token, whichever comes first: a date (`m/d/yyyy`,
@@ -133,8 +135,18 @@ phone matches need a separator and are dropped when the matched text itself over
 This is checked by tests on generated bills of every layout (in Helvetica, Times and Courier) and on tight table
 cells, but it is not a guarantee: a provider name, payer name or claim number may be masked if it looks like a
 person's name or a labelled ID; a billing value printed in the same cell right after an identifier (one or two
-spaces apart, so in the same segment) can still be covered; and cells drawn so close that pdfium inserts no
-separator and the gap stays under 2.2 spaces (as can happen in PDFs from other tools) are read as one column.
+spaces apart, so in the same segment) can still be covered; cells drawn so close that pdfium inserts no
+separator and the gap stays under 2.2 spaces (as can happen in PDFs from other tools) are read as one column; and
+tight cells may also be read as one column when the cell bar can't see them: Courier cells at 13 pt and above with
+about 1 mm cell margins (the gap falls under 0.4 of the character height and under one space), and cells on a line
+that has no real spaces.
+
+**Missed:** Presidio's phone parser can miss a number followed directly by an ISO date (`(217) 555-0143
+2026-10-15`) or inside a sentence ("please call (217) 555-0143 if ..."). On text layers drawn one word at a time, as
+some PDF tools and OCR layers do, each line is read as one segment while its word gaps stay under 2.2 spaces; on a
+page with no real spaces in a proportional font, word gaps of about half an em or more (widely justified text) split
+every word into its own segment, and names, addresses and phone numbers on it can be missed. OCR text layers are
+not tested.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
 or a page whose text and character positions don't line up is sent unmasked and counted as not redactable. A

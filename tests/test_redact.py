@@ -292,6 +292,29 @@ def test_tight_table_cells_are_separate_columns(
     _assert_masked(_render([row], font), masked, kept)
 
 
+@pytest.mark.parametrize(
+    ("font", "gap", "header"),
+    [(font, gap, True) for font in ("Helvetica", "Times", "Courier") for gap in (1.05, 1.2)]
+    + [("Courier", 1.05, False), ("Courier", 1.2, False)],
+)
+def test_text_drawn_word_by_word_is_masked(font: str, gap: float, header: bool) -> None:
+    # Every word gap is then a pdfium-generated char about one space wide; it mustn't split names or addresses
+    # into per-word columns, whether or not some other line on the page has real spaces.
+    pdf = FPDF(unit="pt", format="Letter")
+    pdf.add_page()
+    pdf.set_font(font, "", 11)
+    if header:
+        pdf.cell(0, 16, "Itemized statement for services rendered", new_x="LMARGIN", new_y="NEXT")
+    space, y = pdf.get_string_width(" "), 120
+    for row in ("Patient: Maria Garcia", f"Address: {PHI[1]}", f"Phone: {PHI[2]}", "Statement for services"):
+        x = 72.0
+        for word in row.split(" "):
+            pdf.text(x, y, word)
+            x += pdf.get_string_width(word) + space * gap
+        y += 16
+    _assert_masked(bytes(pdf.output()), ["Maria Garcia", PHI[1], PHI[2]], [])
+
+
 @pytest.mark.parametrize("date", ["2026-10-15", "Oct 15, 2026", "15 October 2026"])
 def test_labelled_carry_over_stops_at_any_date(date: str) -> None:
     _assert_masked(

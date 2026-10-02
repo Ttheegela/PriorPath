@@ -26,8 +26,9 @@ SCORE_THRESHOLD = 0.5
 # two spaces never split (in any font), three or more and table-cell boundaries do. Tuned by tests.
 COLUMN_GAP = 2.2
 # A gap pdfium filled with a generated separator (separately drawn text, like table cells) starts a column at
-# a lower bar: wider than one real space, or than this fraction of the line's char height. Cells whose text
-# fills their width sit ~5.7 pt apart: under 2.2 spaces in Helvetica/Times, under one space in Courier.
+# a lower bar: wider than one real space, or than this fraction of the line's char height, on lines that have
+# real spaces of their own. Cells whose text fills their width sit ~5.7 pt apart: under 2.2 spaces in
+# Helvetica/Times, under one space in Courier.
 CELL_GAP_SPACES = 1.0
 CELL_GAP_HEIGHT = 0.4
 
@@ -181,9 +182,10 @@ def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[in
     """Indices of chars that start a new column, and the subset separated only by real spaces (in a cell).
 
     A break is a gap after the previous character wider than COLUMN_GAP times the line's space width, measured
-    from the line's real (not pdfium-generated) space characters; fallbacks: the page's, then half a glyph.
+    from the line's real (not pdfium-generated) space characters; fallbacks: the page's, then one glyph on an
+    all-monospace page, else half a glyph.
     A gap holding a pdfium-generated char (a cell boundary) also breaks when wider than CELL_GAP_SPACES real
-    spaces (only if the page has real spaces) or CELL_GAP_HEIGHT of the line's char height.
+    spaces or CELL_GAP_HEIGHT of the line's char height, only on lines that contain real spaces themselves.
     """
     boxes = {i: tp.get_charbox(i, loose=True) for i, c in enumerate(text) if c not in "\r\n"}
 
@@ -199,7 +201,13 @@ def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[in
             lines[-1].append(i)
     widths = [boxes[i][2] - boxes[i][0] for i in boxes]
     spaces = [boxes[i][2] - boxes[i][0] for i in boxes if real_space(i)]
-    page_space = statistics.median(spaces) if spaces else statistics.median(widths or [0]) * 0.5
+    glyphs = [boxes[i][2] - boxes[i][0] for i in boxes if not text[i].isspace()]
+    if spaces:
+        page_space = statistics.median(spaces)
+    elif glyphs and max(glyphs) - min(glyphs) <= 0.02 * max(glyphs):  # monospace: a space is one glyph wide
+        page_space = glyphs[0]
+    else:
+        page_space = statistics.median(widths or [0]) * 0.5
     inf = float("inf")
     breaks: list[int] = []
     soft: set[int] = set()
@@ -207,8 +215,8 @@ def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[in
         line_spaces = [boxes[i][2] - boxes[i][0] for i in line if real_space(i)]
         space = statistics.median(line_spaces) if line_spaces else page_space
         height = statistics.median([boxes[i][3] - boxes[i][1] for i in line if not text[i].isspace()] or [0])
-        # with no real spaces on the page, a generated char may be an ordinary word gap: height bar only
-        cell_gap = min(CELL_GAP_SPACES * space if spaces else inf, CELL_GAP_HEIGHT * height)
+        # a line with no real spaces may be drawn word by word (each word gap a generated char): no cell bar
+        cell_gap = min(CELL_GAP_SPACES * space, CELL_GAP_HEIGHT * height) if line_spaces else inf
         prev: int | None = None
         for i in line:
             if text[i].isspace():
