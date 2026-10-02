@@ -43,8 +43,7 @@ def build_prompt(flag: Flag) -> tuple[str, list[str]]:
         rule,
         flag.message,
         evidence,
-        str(flag.est_overcharge),
-        " ".join(flag.line_ids),
+        f"${flag.est_overcharge}",
         flag.evidence.ref_version or "",
     ]
     return prompt, sources

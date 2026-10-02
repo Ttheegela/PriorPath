@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import pytest
+
 from app.llm.explain import build_prompt, explain_flag
 from app.llm.grounding import numbers_in, unsupported_numbers
 from app.models import Evidence, Severity, make_flag
@@ -64,3 +66,44 @@ def test_still_ungrounded_after_retry_returns_none() -> None:
 def test_empty_reply_and_llm_errors_return_none() -> None:
     assert explain_flag(FLAG, FakeLLM(["", ""])) is None
     assert explain_flag(FLAG, FakeLLM(error=TimeoutError("slow"))) is None
+
+
+SRC = [*build_prompt(FLAG)[1], "service date 2026-10-15"]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "$7.00",
+        "5%",
+        "10 percent",
+        "$4k",
+        "4.000,00",
+        "4 000",
+        "$99213",
+        "$2026",
+        "four thousand dollars",
+        "$1,00,000",
+    ],
+)
+def test_bypass_attempts_are_rejected(text: str) -> None:
+    assert unsupported_numbers(text, SRC) != []
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["billed 2 times", "3 times the rate", "$92.15", "92.15", "$23.55", "on 2026-10-15"],
+)
+def test_grounded_phrases_are_accepted(text: str) -> None:
+    assert unsupported_numbers(text, SRC) == []
+
+
+def test_prompt_excludes_provider_and_payer() -> None:
+    c = claim(line("L1", code="99213", charge="300.00")).model_copy(
+        update={"provider": "Acme Clinic", "payer": "Aetna"}
+    )
+    prompt, sources = build_prompt(
+        make_flag(c, "R5", Severity.OUTLIER, c.lines, FLAG.evidence, Decimal("23.55"), FLAG.message)
+    )
+    assert "Acme" not in prompt and "Aetna" not in prompt
+    assert not any("Acme" in x or "Aetna" in x for x in sources)

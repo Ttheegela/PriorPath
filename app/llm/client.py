@@ -13,7 +13,7 @@ class LLMClient(Protocol):
 
 class OpenRouterClient:
     def __init__(self, api_key: str, model: str, timeout: float = 30.0) -> None:
-        self._client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL, timeout=timeout, max_retries=1)
+        self._client = OpenAI(api_key=api_key, base_url=OPENROUTER_BASE_URL, timeout=timeout, max_retries=0)
         self._model = model
 
     def complete(self, system: str, user: str) -> str:
