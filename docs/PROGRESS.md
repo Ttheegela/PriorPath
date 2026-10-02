@@ -1,4 +1,4 @@
-# PriorPath v2 — Progress Log (Plans 1 to 3)
+# PriorPath v2 — Progress Log (Plans 1 to 4)
 
 _Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1; production was deployed from this branch with the Vercel CLI) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
 
@@ -8,20 +8,21 @@ PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill a
 - Plan 1: `docs/superpowers/plans/2026-10-01-priorpath-v2-plan1-core-engine.md`
 - Plan 2: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan2-backend-ai.md`
 - Plan 3: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan3-reviewer-ui.md`
+- Plan 4: `docs/superpowers/plans/2026-10-02-priorpath-v2-plan4-usability-pdf-readme.md`
 
 ---
 
 ## At a glance
 
-| | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) |
-|---|---|---|---|
-| Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 |
-| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) |
-| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI |
-| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E |
-| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` |
+| | Plan 1 (core engine) | Plan 2 (backend, database, AI) | Plan 3 (reviewer UI) | Plan 4 (usability, PDF bills, README) |
+|---|---|---|---|---|
+| Dates | 2026-10-01 | 2026-10-02 | 2026-10-02 | 2026-10-02 |
+| Commits | 14 (c9fe87b → b5c7c8d, plus final-review fixes) | 27 (08dbf27 → c0fafe3) | 13 commits (f394756..HEAD at ship, including the final-review fix commit) | 16 on the branch (45b011b → the README commit) plus 3 from the parallel Plan 5a branch (merged as 3d641b0) |
+| Outcome | Rule engine + CMS data + FHIR input + eval gate + first deploy | Usable audit API with Postgres, per-visitor demo, grounded AI explanations, dispute letters | React reviewer UI served by the same FastAPI app, Playwright smoke test in CI | Upload runs the audit, sample files, PDF bills with vision extraction and line review, PDF extraction eval, Q3 2026 data, eval negative plants, SECURITY.md, README |
+| Tests at end | 73 | 183 | backend 189, web 43 + 1 E2E | backend 279 + 1 skipped, web 60, 2 E2E specs (the PDF one skips until demo extractions are recorded) |
+| Live | `/api/health`, `/api/version` | Full audit flow via `/api/docs` | Full flow in the browser at `/` | Not yet deployed (release step: record extraction eval, demo extractions, Neon migration `0f2549585d12`, deploy) |
 
-All three plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
+All four plans were built with subagent-driven development: a fresh implementer per task (test-first), a separate reviewer per task, scoped re-reviews for every fix round, and an Opus whole-branch review before each deploy.
 
 ---
 
@@ -103,7 +104,7 @@ Compared on the 12 demo flags by grounding-pass rate:
 - A few rare amount formats still pass the number check ("7 US dollars", "7 euros").
 - Plain counts up to 10 are always allowed, so "billed 2 times" could be edited to "billed 9 times" in a letter.
 - Bots that call the API create throwaway workspaces; bounded by the storage breaker and daily cleanup.
-- Demo service dates are Oct–Dec 2026 (the loaded CMS quarter); bills from before 2026-10-01 get a "cannot audit" notice until earlier releases are loaded (spec §16 item 4).
+- Demo service dates are Oct–Dec 2026. Since Plan 4 (merged Plan 5a), 2026 Q3 and Q4 releases are loaded, so bills dated Jul–Dec 2026 are auditable; other dates get a "cannot audit" notice.
 - `main` still holds v1; Vercel production is deployed from this branch with the CLI. Merging anything to `main` before v2 is finished would deploy v1.
 
 ---
@@ -146,14 +147,64 @@ Compared on the 12 demo flags by grounding-pass rate:
 
 ---
 
+## Plan 4 — Usability fixes, PDF bills, README
+
+### What was built
+| Task | Details |
+|---|---|
+| 1. Usability | Title links home. `POST /api/cases` now runs the audit for every new case and returns audited summaries. Friendly messages for non-JSON and non-FHIR uploads. `GET /api/samples/claim.json` (2 demo claims) with a download link in the queue. |
+| 2. Synthetic PDF bills | `evals/pdf_render.py`: three layouts (table, statement, compact) and seeded scan noise. Rows never split across pages; headers repeat on continuation pages; noisy pages stay around 255 KB so bills fit the 4 MB upload cap. |
+| 3. PDF ingest and vision extraction | `app/ingest/pdf.py` (at most 10 pages, encrypted or unreadable PDFs refused, 150 DPI rendering, 20-megapixel page cap checked before rendering). `app/llm/vision.py` (OpenRouter, strict JSON schema, temperature 0). `app/llm/extract.py`: `parse_page` validates every row through `LineItem`, drops invalid rows with a per-line error, keeps per-field confidence. |
+| 4. PDF API | PDF branch of `POST /api/cases` (`confirm_synthetic=true` required; 422/429/502/503 mapped), `GET /api/cases/{id}/pages/{n}` (one page rendered per request, cached privately), `PATCH /api/cases/{id}/lines`. New `case_documents` table and `llm_usage.kind`; migration `0f2549585d12`. Row error text from the model is capped at 160 characters. |
+| 5. Line review UI | Required "synthetic or test bill" checkbox, `LineReview` screen with page images beside editable lines; fields below 0.9 confidence are marked (same threshold as the backend). |
+| 6. Extraction eval | `evals/extract_eval.py`: 30 bills (seed 11), line F1 on (code, units, charge), end-to-end recall per rule from rebuilt claims, per-layout and clean/noisy breakdowns, record/replay so CI never calls a model, resumable atomic recordings. CI replays a recording when one is committed. |
+| 7. Demo PDF bills | `build_demo.py --bills [--extract [--explain]]`, 2 committed sample bills, `GET /api/samples/bill.pdf`, demo seeding of PDF cases from recorded extractions (per-bill savepoint), Playwright `pdf.spec.ts`. |
+| 8. Docs | README rewritten (architecture, rules, evals, setup, API, deployment, security, full glossary); EVALS.md and SECURITY.md updated for Plan 4. |
+
+**Plan 5a, built in parallel and merged before Task 6** (commits 4eeefba, a31f679, 0836105; merge 3d641b0): eval negative plants (spec §16 item 3), 2026 Q3 NCCI/MUE and RVU26C with overlap validation (spec §16 item 4), `docs/SECURITY.md` and `docs/EVALS.md`.
+
+### Key decisions and rulings in Plan 4
+1. **Split AI budget** (user question): explanations 20 per workspace per hour and PDF pages 20 per workspace per hour as separate pools, 100 per hour globally shared by both. One shared pool would let a single PDF starve explanations.
+2. **Place of service added to PDF extraction.** R5 picks the facility or non-facility rate from POS, so all three bill layouts print POS and the schema has an optional `place_of_service`. An unreadable POS keeps the line but sends it to line review; "-", "N/A" or blank means not shown.
+3. **FastAPI serves the UI with `app.frontend()`**, and `[tool.vercel.fastapi.static] exclude = true` lets Vercel serve the built files from its CDN instead of the function bundle.
+4. **Extraction eval noise split** is `(i // 3) % 2 == 1`, so every layout appears both clean and noisy.
+5. **PDF page images are unredacted until Plan 5**, so PDF uploads require an explicit synthetic-bill confirmation in the API and the UI.
+6. Extraction eval numbers, the extraction model choice and the demo extractions are recorded in the release step (they need an OpenRouter key).
+
+### What reviews caught (and fixed) in Plan 4
+| Task | Problem found | Fix |
+|---|---|---|
+| 2 | Statement layout split a line across pages; noisy PDFs were ~1.4 MB per page (over the upload cap with 3 pages); headers not repeated | Rows kept together, compressed grayscale noise (~255 KB/page), repeated headers, pagination and determinism tests |
+| 3 | A corrupt page could raise outside the error handling (500); `parse_page` crashed on malformed model output; unguarded empty model response | All pdfium errors map to a readable 422; malformed pages and rows become errors; empty responses raise `VisionError` |
+| 4 | The page endpoint rendered every page per request | `render_page` renders only the requested page, with a private cache header |
+| 5 | UI marked fields below 0.8 confidence while the backend sends lines below 0.9 to review (a case could need review with nothing marked) | UI threshold aligned to 0.9; empty and locked line review handled |
+| 6 | An invalid POS dropped the whole line | Line kept, POS cleared, line sent to review |
+| 6 | Noise coincided with one layout | Noise split across layouts; per-layout F1 reported |
+| 7 | `pdf.spec` skip could hide seeding regressions; `--extract` saved only at the end (paid results lost on error); one bad demo bill could roll back all demo cases | Spec fails when recordings exist but no PDF case shows; extraction saved per bill and resumable; per-bill savepoint |
+| 7 | Flaky App test (~1 in 3) from a stub that returned the wrong shape for `/api/audit-log` | Stub fixed; 5 consecutive green runs |
+
+### Verification
+- Backend chain (ruff, format, mypy, pytest, alembic check, eval, stale-results check): 279 passed, 1 skipped (the committed-demo PDF test skips until demo extractions are recorded).
+- Frontend chain (lint warning-free, vitest, build): 60 tests pass.
+- E2E: smoke spec passes locally; the PDF spec passes with a temporary extraction recording and skips without one.
+
+### Known limits (logged, not blocking)
+- PDF page images go to the hosted vision model unredacted until Plan 5 (Presidio). Uploads require the synthetic-bill confirmation.
+- Uploaded PDFs are stored for the life of the workspace and can contain anything printed on the bill, including names.
+- The workspace cookie has no embedded timestamp, so a copied cookie works until the daily cleanup deletes the workspace (up to about 48 hours).
+- `scripts/smoke.py` expects exactly 10 demo cases; once demo PDF extractions are recorded, new workspaces get 12.
+
+---
+
 ## How to run it
 
 ```bash
 # local
 docker compose up -d db
 source .venv/bin/activate
-pytest -q                                   # 189 tests against Docker Postgres
+pytest -q                                   # 279 tests against Docker Postgres
 python -m evals.run --n 300 --seed 7        # rule-engine eval gate
+python -m evals.extract_eval --replay evals/recorded/extraction-<model>.json   # PDF extraction eval (after recording)
 
 # UI: unit tests and browser smoke test (needs the DB env vars; builds the UI and starts uvicorn)
 cd web && npm test && npm run e2e && cd ..
@@ -167,4 +218,5 @@ Rebuilding the demo or migrating production needs secrets, so those steps run in
 ---
 
 ## What's next
-- **Plan 4:** PDF bills (vision extraction + line review screen), Presidio redaction, Langfuse tracing and an LLM-judge faithfulness eval, README rewrite, and the remaining spec §16 items (eval negative plants, Q3 2026 reference data).
+- **Plan 4 release step:** record the extraction eval and choose the extraction model, record demo PDF extractions, migrate Neon to `0f2549585d12`, deploy, run the smoke test.
+- **Plan 5:** Presidio redaction before model calls (PDF text and page images), Langfuse tracing, an LLM-judge faithfulness eval for explanations, the remaining Definition-of-Done docs, and the portfolio entry.

@@ -13,7 +13,7 @@ before the rules run. The gate (`evals/run.py`) fails CI when any of these is no
 |---|---|
 | Precision and recall for R1 to R5 (errors and outliers only) | 1.000 each |
 | Positive support per rule | at least 10 |
-| Clean claims (nothing planted) with any error or outlier flag | 0 |
+| Claims with no positive plant (negative plants allowed) with any error or outlier flag | 0 |
 | FHIR parse errors | 0 |
 | Negative plants flagged by the rule they target ("Neg FP") | 0 |
 | Negative-plant support for R1, R2 and R5 | at least 10 each |
@@ -42,7 +42,9 @@ The negative plants were checked by mutation: removing the 76/91 exemption, the 
 26/TC skip, or using the facility rate in offices, each fails the gate.
 
 **Not covered:**
-- PDF extraction and end-to-end PDF recall (spec §8; not built yet).
+- PDF extraction and end-to-end PDF recall. These are scored by a separate eval, `python -m evals.extract_eval`
+  (line F1 gate 0.95, end-to-end recall gate 0.90, replayed from a recording in `evals/recorded/`), with results
+  in `evals/results/extraction.md`.
 - Explanation and letter quality. The number check has unit tests but no gate here.
 - Payer-aware R4 (status I is a lead for non-Medicare payers); the eval claims are Medicare.
 - MUE adjudication edge cases beyond per-line vs per-day, and NCCI deletion dates inside a quarter (unit-tested only).

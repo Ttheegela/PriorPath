@@ -4,8 +4,8 @@ PriorPath is a public demo of a medical-bill auditor. It is built for **syntheti
 This page describes what the deployed demo (https://priorpath.vercel.app) actually does today, and
 what is still missing before it could handle real patient data.
 
-Status as of 2026-10-02 (branch `v2-bill-audit`). Items marked *(Plan 4)* describe the PDF upload path that
-is being built and should be re-checked once it is merged.
+Status as of 2026-10-02 (branch `v2-bill-audit`). Items marked *(Plan 4)* describe the PDF upload path added in
+Plan 4.
 
 ## Not HIPAA compliant
 
@@ -50,7 +50,7 @@ All application data lives in one Postgres database (Neon in production).
 | `flags` | Rule findings: rule id, severity, line ids, evidence row (codes, dates, indicators, rates, units), estimated overcharge, the AI explanation text, accept/reject status and the reviewer's reject reason. |
 | `letters` | Dispute-letter drafts and approved text, and the generated baseline used for the number check. |
 | `audit_events` | Per-workspace timeline of actions (upload, audit, accept, reject, letter actions) with small JSON details. |
-| `llm_usage` | Per-workspace hourly counters for AI calls. |
+| `llm_usage` | Per-workspace hourly counters for AI calls, by kind (explanations, PDF pages). |
 | `case_documents` *(Plan 4)* | The uploaded PDF bytes, kept for the life of the workspace so page images can be re-rendered for line review. A PDF can contain anything printed on the bill, including names. |
 
 Nothing is written to disk on the server; functions are stateless.
@@ -69,7 +69,9 @@ provider's retention window; check the Neon project's history retention setting.
 ## Access model
 
 - Each browser gets a workspace from a signed cookie `pp_ws` (itsdangerous, signed with `SESSION_SECRET`;
-  HttpOnly, SameSite=Lax, Secure on Vercel, 24 h max age).
+  HttpOnly, SameSite=Lax, Secure on Vercel, 24 h max age). The signed value has no embedded timestamp, so the
+  max age only limits the browser: a copied cookie keeps working until the cleanup job deletes the workspace
+  (up to about 48 hours).
 - Every route looks up data by workspace. Ids from another workspace return **404**, not 403, so they do not
   reveal that the record exists.
 - The cleanup endpoint requires `Authorization: Bearer <CRON_SECRET>`, compared in constant time.
@@ -108,8 +110,9 @@ payer, dates and codes are still stored.
 - Uploads: at most 4,000,000 bytes (413 above that); FHIR JSON, or PDF with at most 10 pages *(Plan 4)*.
   The FHIR parser never raises on bad input; bad items become errors with their JSON path.
 - Field length limits on codes, modifiers, claim ids, provider/payer names and reject reasons.
-- AI calls: 20 per workspace per hour and 100 per hour across all workspaces; the OpenRouter key also has a
-  credit cap. Explanation output is capped at 300 tokens, with one retry if the number check fails.
+- AI calls: 20 explanations and 20 PDF pages per workspace per hour (separate pools) *(Plan 4)*, and 100 per hour
+  across all workspaces, shared by both kinds; a PDF that would go over budget gets 429 and nothing is stored.
+  The OpenRouter key also has a credit cap. Explanation output is capped at 300 tokens, with one retry if the number check fails.
 - Explanation streams stop after 240 seconds (serverless time limit).
 - Storage breaker: new workspaces and uploads get 503 when the database passes 400 MB.
 - Prompt-injection controls: document content is data; explanations and letters may only contain numbers found
