@@ -8,6 +8,8 @@ from decimal import Decimal
 from typing import Protocol
 
 KINDS = ("ncci", "mue", "pfs")
+# D = deleted, I = not valid for Medicare; Medicare uses another code
+INVALID_STATUSES = frozenset({"D", "I"})
 
 
 @dataclass(frozen=True)
