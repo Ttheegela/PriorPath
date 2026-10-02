@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml/badge.svg?branch=v2-bill-audit)](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml)
 
+![Walkthrough: sort the case queue by overcharge, accept a billing error, draft, approve and download the dispute letter, then open a PDF bill case](docs/demo.gif)
+
 PriorPath audits medical bills for billing errors using public Medicare rules, explains each finding in plain English with AI (artificial intelligence), and drafts a dispute letter a person approves.
 
 - **Live demo:** https://priorpath.vercel.app (no sign-up, nothing to install)
@@ -41,7 +43,8 @@ Every abbreviation in this file is spelled out the first time it appears and aga
 5. Try your own upload from the queue:
    - **FHIR (Fast Healthcare Interoperability Resources) claim:** click **Download a sample claim (FHIR JSON)** to get a JSON (JavaScript Object Notation) file, then upload it. The audit runs automatically and the new case appears in the list.
    - **PDF (Portable Document Format) bill:** click **Download a sample bill (PDF)**, tick **"This is a synthetic or test bill (page images are sent to an AI model)"**, then upload it. An AI vision model reads the line items and the new case appears with an **Open** link. If any value was hard to read, the case opens on a line review screen where you check the lines against the page images and save before the audit runs.
-6. **Audit log** (top of the page) shows every action taken in your workspace.
+6. Testing locally? [`samples/test-bills/`](samples/test-bills/) has six synthetic PDF bills (three layouts, clean and scanned) and a FHIR claim, with an `ANSWER_KEY.md` listing the rules each should trigger and which header identifiers redaction should black out. Regenerate them with `PYTHONPATH=. python scripts/make_test_bills.py`.
+7. **Audit log** (top of the page) shows every action taken in your workspace.
 
 All demo data is synthetic. Workspaces are deleted after 24 hours (a daily cleanup job, so in practice up to about 48 hours). **Reset demo data** restores the sample cases at any time. Do not upload real patient data.
 
@@ -142,7 +145,8 @@ Every step writes an entry to the workspace's audit log.
 | Letter edit check | The same number check runs on letter edits against the generated letter; links are refused; approval fails if the accepted findings changed after drafting. | `app/api/letters.py` |
 | Budgets and rate limits | Two separate hourly pools per workspace: 20 explanations and 20 PDF pages. Across all workspaces, 100 AI calls per hour in total, shared by both kinds. A PDF that would go over budget is refused with 429 ("hourly AI limit reached; try again later") and nothing is stored. Explanations are capped at 300 output tokens; a stream stops after 240 seconds. PDF reading also stops at 240 seconds (504, nothing stored). The OpenRouter key also has a credit cap. | `app/services/llm_budget.py` |
 | What is sent to a model | **Explanations:** one flag at a time: rule ID (identifier), severity, finding message, evidence row (codes, dates, units, modifiers, rates, release) and estimated overcharge. **Never sent:** patient pseudonym, provider name, payer name, or any other claim line. **PDF extraction:** the page images, with identifiers blacked out on text-layer pages (see the redaction row). Demo-case explanations are precomputed, so browsing the demo makes no model calls. | `app/llm/explain.py`, `app/services/pdf_cases.py` |
-| PDF redaction | On pages with a text layer, Presidio (small spaCy model) and patterns for labelled fields find names, phone numbers, email addresses, SSNs (Social Security numbers), locations and labelled member/policy IDs in the page text; each match is cut at the edge of its table column, and those regions are painted black on the image before it is sent. Codes, modifiers, units, charges, dates of service and place of service are not targeted, and tests check this on generated bills of every layout. Scanned or rotated pages can't be redacted and are sent as they are; the upload response reports `pages_redacted`, `pages_not_redactable`, `pages_partially_redacted` and entity counts. Best-effort, not de-identification. | `app/ingest/redact.py`, `app/ingest/pdf.py` |
+| Langfuse tracing | Optional, off unless `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set. Each model call records only the model ID, prompt version, latency, token usage, finish reason, success or error type, rule ID, page and flag counts and a hashed workspace ID. **Never sent:** prompts, model outputs, page images, PDF bytes, letter text, or patient, provider or payer names. Tracing failures are swallowed and never affect a request. | `app/observability.py`, [`docs/SECURITY.md`](docs/SECURITY.md) |
+| PDF redaction | On pages with a text layer, Presidio (small spaCy model) and patterns for labelled fields find names, phone numbers, email addresses, SSNs (Social Security numbers), locations and labelled member/policy IDs in the page text; each match is cut at the edge of its table column, and those regions are painted black on the image before it is sent. Codes, modifiers, units, charges, dates of service and place of service are not targeted, and tests check this on generated bills of every layout. Scanned or rotated pages can't be redacted and are sent as they are; the upload response reports `pages_redacted`, `pages_not_redactable`, `pages_partially_redacted` and entity counts. Best-effort, not de-identification; see [`docs/SECURITY.md`](docs/SECURITY.md). | `app/ingest/redact.py`, `app/ingest/pdf.py` |
 | PDF synthetic-only confirmation | Page images go to a hosted model and redaction is best-effort, so the API refuses a PDF unless the request carries `confirm_synthetic=true` (422 "PDF uploads must be synthetic or test bills; confirm to continue"), and the UI requires the checkbox. | `app/api/cases.py`, `web/src/components/CaseQueue.tsx` |
 | Extraction is not a decision | The vision model only reads lines; rules still decide flags. Its output must pass the JSON schema and `LineItem` validation; text on the page is treated as data, not instructions. Low-confidence lines go to human line review. | `app/llm/extract.py` |
 | Human approval for letters | Letters are templates over findings a person accepted; a person approves and downloads every letter. Nothing is sent by the app. | `app/services/letters.py` |
@@ -186,6 +190,12 @@ A perfect score shows the rules do what they say on synthetic claims built from 
 
 Each candidate model's output is recorded once (`--record <model>`, needs `OPENROUTER_API_KEY`) into `evals/recorded/candidates/`. The chosen model's recording is promoted (`--promote <model>`) to `evals/recorded/extraction.json`, the one file CI replays (`--replay`), so CI never calls a model; replay re-runs our own parsing and validation on the raw model JSON. The chosen model's results table is in [`evals/results/extraction.md`](evals/results/extraction.md); the hand-written comparison of candidate models (scores, cost, latency) is in [`evals/results/extraction-comparison.md`](evals/results/extraction-comparison.md).
 
+### Explanation faithfulness eval
+
+`python -m evals.faithfulness` rebuilds the flags by auditing the demo claims, then asks a separate judge model (not the explanation model) to check each of the 15 precomputed demo explanations against its flag: rule text, severity, message, evidence row and estimated overcharge. An explanation is unfaithful if it states a number, date, code or unit that is not in the evidence, misdescribes the rule, implies fraud or certainty the rule does not support, or recommends actions beyond asking the provider or payer for clarification. Rewording and plain-language definitions are fine.
+
+Faithfulness is faithful explanations divided by all explanations, with unreadable judge output counted as not faithful. Gate: at least 0.90, replayed from a recorded judge run (`evals/recorded/faithfulness.json`), so CI never calls a model. Results and every unfaithful item are in [`evals/results/faithfulness.md`](evals/results/faithfulness.md); method details in [`docs/EVALS.md`](docs/EVALS.md). It is an LLM judge over a small set, so read the rate as a smoke signal, not a precise measurement.
+
 ### Explanation model choice
 
 Compared on the 12 demo flags by how many explanations passed the number check:
@@ -200,7 +210,7 @@ Compared on the 12 demo flags by how many explanations passed the number check:
 - No rule for diagnosis-to-procedure mismatch, upcoding, modifier misuse beyond NCCI bypass, global surgery periods, or payer-specific contract rates.
 - MUE edge cases beyond per-line vs per-day, and NCCI edits deleted part-way through a quarter, are unit-tested only.
 - Payer-aware R4 (status I as a lead) is unit-tested; the eval claims are all Medicare.
-- Explanation and letter quality: the number check is unit-tested but there is no faithfulness gate yet (an LLM-judge faithfulness eval is planned for Plan 5).
+- Explanation and letter quality: the number check is unit-tested but the faithfulness eval is an LLM judge over 15 demo explanations, and letter quality has no gate.
 - A few rare amount formats still pass the number check ("7 US dollars", "7 euros"), and plain counts up to 10 are always allowed, so a letter edit could change "2 times" to "9 times".
 - Every eval claim and bill is synthetic.
 
@@ -422,6 +432,7 @@ curl -s -c jar -b jar -H 'Content-Type: application/json' --data-binary @claim.j
 | JSON | JavaScript Object Notation | Text data format for FHIR uploads, API bodies and model output. |
 | LLM | Large language model | A text (or vision) AI model, called through OpenRouter. |
 | MB | Megabyte | Upload limit is 4,000,000 bytes (shown as 4 MB in the UI). |
+| MIT | Massachusetts Institute of Technology (license) | A permissive open-source software license; it covers this repository's code only. |
 | MUE | Medically Unlikely Edit | CMS limit on units of a service per line or per day (rule R3). |
 | NCCI | National Correct Coding Initiative | CMS program whose PTP edits list code pairs not billed together (rule R2). |
 | ORM | Object-relational mapper | SQLAlchemy maps Python classes to database tables. |

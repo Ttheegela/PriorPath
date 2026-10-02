@@ -1,0 +1,130 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "ExplanationOfBenefit",
+        "id": "C0000",
+        "status": "active",
+        "use": "claim",
+        "patient": {
+          "reference": "Patient/P-0000"
+        },
+        "diagnosis": [],
+        "item": [
+          {
+            "sequence": 1,
+            "productOrService": {
+              "coding": [
+                {
+                  "system": "http://www.ama-assn.org/go/cpt",
+                  "code": "90472"
+                }
+              ]
+            },
+            "servicedDate": "2026-09-21",
+            "quantity": {
+              "value": 1
+            },
+            "net": {
+              "value": 31.26,
+              "currency": "USD"
+            },
+            "locationCodeableConcept": {
+              "coding": [
+                {
+                  "code": "11"
+                }
+              ]
+            }
+          },
+          {
+            "sequence": 2,
+            "productOrService": {
+              "coding": [
+                {
+                  "system": "http://www.ama-assn.org/go/cpt",
+                  "code": "71045"
+                }
+              ]
+            },
+            "servicedDate": "2026-09-21",
+            "quantity": {
+              "value": 1
+            },
+            "net": {
+              "value": 43.65,
+              "currency": "USD"
+            },
+            "locationCodeableConcept": {
+              "coding": [
+                {
+                  "code": "11"
+                }
+              ]
+            }
+          },
+          {
+            "sequence": 3,
+            "productOrService": {
+              "coding": [
+                {
+                  "system": "http://www.ama-assn.org/go/cpt",
+                  "code": "97598"
+                }
+              ]
+            },
+            "servicedDate": "2026-09-21",
+            "quantity": {
+              "value": 1
+            },
+            "net": {
+              "value": 117.97,
+              "currency": "USD"
+            },
+            "locationCodeableConcept": {
+              "coding": [
+                {
+                  "code": "11"
+                }
+              ]
+            }
+          },
+          {
+            "sequence": 4,
+            "productOrService": {
+              "coding": [
+                {
+                  "system": "http://www.ama-assn.org/go/cpt",
+                  "code": "97110"
+                }
+              ]
+            },
+            "servicedDate": "2026-09-21",
+            "quantity": {
+              "value": 7
+            },
+            "net": {
+              "value": 386.5,
+              "currency": "USD"
+            },
+            "locationCodeableConcept": {
+              "coding": [
+                {
+                  "code": "11"
+                }
+              ]
+            }
+          }
+        ],
+        "provider": {
+          "display": "Synthetic Clinic"
+        },
+        "insurer": {
+          "display": "Synthetic Health Plan"
+        }
+      }
+    }
+  ]
+}

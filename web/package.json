@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "demo:record": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
