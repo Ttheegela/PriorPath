@@ -479,7 +479,7 @@ Details, decisions and what each review caught: [`docs/PROGRESS.md`](docs/PROGRE
 
 ## License and data notices
 
-- **Code:** this repository does not include a license file yet, so default copyright applies.
+- **Code:** MIT License — see [`LICENSE`](LICENSE). The license covers the source code only, not the CMS reference data or the AMA-licensed CPT code set described below.
 - **CMS data:** NCCI, MUE and PFS files are public data published by CMS ([`data/reference/SOURCES.md`](data/reference/SOURCES.md) lists every file, release and download URL). The committed subset holds only code numbers, edit dates, indicators, unit limits and computed rates.
 - **AMA notice:** CPT is a registered trademark of the American Medical Association. CPT codes and descriptions are copyright AMA. PriorPath uses code numbers only and includes no CPT descriptors; the CMS/AMA licence terms were accepted before the raw files were downloaded.
 - PriorPath is not legal, medical or billing advice. Findings are rule-based estimates for a person to review.
