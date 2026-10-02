@@ -1,18 +1,24 @@
 import json
+import json as jsonlib
 import uuid
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from app.api.deps import RefDep, SessionDep, WorkspaceDep
+from app.api.deps import LLMDep, RefDep, SessionDep, WorkspaceDep
 from app.api.schemas import CaseDetail, CaseSummary, FlagOut, LetterOut, LineOut, ParseErrorOut, UploadResult
-from app.db.models import Case, Letter
+from app.db.models import Case, FlagRow, Letter
+from app.db.session import get_engine
 from app.ingest.fhir import parse_fhir
 from app.rules import PayerType
+from app.services.audit_log import record
 from app.services.audit_run import run_audit
 from app.services.cases import case_flags, create_cases, get_case_or_404, summarize, to_claim
+from app.services.explanations import explain_row
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 4_000_000
@@ -88,3 +94,54 @@ def audit_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, ref: R
     run_audit(session, case, ref)
     session.commit()
     return case_detail(session, case)
+
+
+EXPLAINABLE = ("pending", "unavailable")
+
+
+def _sse(event: str, data: dict[str, object]) -> str:
+    return f"event: {event}\ndata: {jsonlib.dumps(data)}\n\n"
+
+
+@router.post("/api/cases/{case_id}/explain")
+def explain_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, llm: LLMDep) -> StreamingResponse:
+    case = get_case_or_404(session, ws, case_id)
+    claim_id = str(case.claim["id"])
+    workspace_id = ws.id
+    flag_ids = [r.id for r in case_flags(session, case.id) if r.explanation_status in EXPLAINABLE]
+
+    def stream() -> Iterator[str]:
+        # The request's session closes when the response starts streaming, so use our own.
+        with Session(get_engine(), expire_on_commit=False) as s:
+            yield _sse("start", {"pending": len(flag_ids)})
+            ready = unavailable = 0
+            for index, flag_id in enumerate(flag_ids, start=1):
+                row = s.get(FlagRow, flag_id)
+                if row is None:
+                    continue
+                status, reason = explain_row(s, workspace_id, row, claim_id, llm)
+                s.commit()
+                ready += status == "ready"
+                unavailable += status == "unavailable"
+                yield _sse(
+                    "explanation",
+                    {
+                        "index": index,
+                        "total": len(flag_ids),
+                        "flag_id": str(flag_id),
+                        "status": status,
+                        "explanation": row.explanation,
+                        "reason": reason,
+                    },
+                )
+            record(
+                s,
+                workspace_id,
+                "explanations_generated",
+                case_id=case_id,
+                detail={"ready": ready, "unavailable": unavailable},
+            )
+            s.commit()
+            yield _sse("done", {"ready": ready, "unavailable": unavailable})
+
+    return StreamingResponse(stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"})

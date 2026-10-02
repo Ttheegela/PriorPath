@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.db.models import Workspace
 from app.db.session import get_session
+from app.llm.client import LLMClient, default_client
 from app.reference.base import InMemoryReference
 from app.reference.normalized import load_normalized
 
@@ -62,3 +63,10 @@ def current_workspace(request: Request, response: Response, session: SessionDep,
 
 
 WorkspaceDep = Annotated[Workspace, Depends(current_workspace)]
+
+
+def get_llm() -> LLMClient | None:
+    return default_client()
+
+
+LLMDep = Annotated[LLMClient | None, Depends(get_llm)]
