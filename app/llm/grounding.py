@@ -5,14 +5,21 @@ same type; plain integers match any source number or are small counts (0-10).
 """
 
 import re
+import unicodedata
 from collections.abc import Iterable
 from decimal import Decimal, InvalidOperation
 
+_CUR_AFTER = r"\s?(?:dollars?|bucks?|cents?|USD)\b"
 _TOKEN = re.compile(
-    r"(\$?)(\d+(?:[,.]\d+)*)(?:(\s?(?:%|percent\b))|(\s?(?:k|m|bn|thousand|million|billion)\b))?", re.I
+    r"(\$\s?|US\$\s?|USD\s?)?([0-9]+(?:[,.][0-9]+)*)"
+    rf"(?:(\s?(?:%|percent\b))|(\s?(?:k|m|bn|thousand|million|billion)\b)|({_CUR_AFTER}))?",
+    re.I,
 )
 _GROUPED = re.compile(r"^\d{1,3}(,\d{3})+(\.\d+)?$")
 _WORDS = re.compile(r"\b(hundred|thousand|million|billion)\b", re.I)
+_NUM = "zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen"
+_NUM += "|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety"
+_WORD_UNIT = re.compile(rf"\b({_NUM})\b(?:\s+\w+)?(?:\s*%|\s+(?:dollars?|bucks?|cents?|percent)\b)", re.I)
 SMALL_INTEGERS = {str(i) for i in range(11)}  # counts like "2 lines" or "3 times" are allowed
 
 
@@ -30,13 +37,13 @@ def _tokens(text: str) -> list[tuple[str, str | None, str]]:
     """(raw, normalized, kind) with kind in money / percent / plain / scaled."""
     out = []
     for m in _TOKEN.finditer(text):
-        dollar, raw, pct, scale = m.groups()
+        dollar, raw, pct, scale, cur = m.groups()
         decimals = len(raw.rsplit(".", 1)[1]) if "." in raw and "," not in raw.rsplit(".", 1)[1] else 0
         if scale:
             kind = "scaled"
         elif pct:
             kind = "percent"
-        elif dollar or ("." in raw and decimals == 2):
+        elif dollar or cur or ("." in raw and decimals == 2):
             kind = "money"
         else:
             kind = "plain"
@@ -65,6 +72,8 @@ def unsupported_numbers(text: str, sources: Iterable[str]) -> list[str]:
                 plain.add(n)
                 plain_raw.add(raw)
     bad = {w.lower() for w in _WORDS.findall(text)}
+    bad |= {w.lower() for w in _WORD_UNIT.findall(text)}
+    bad |= {c for c in text if ord(c) > 127 and unicodedata.category(c) == "Nd"}
     for raw, n, kind in _tokens(text):
         if n is None or kind == "scaled":
             ok = False

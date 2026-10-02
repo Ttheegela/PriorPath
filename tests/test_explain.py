@@ -84,6 +84,16 @@ SRC = [*build_prompt(FLAG)[1], "service date 2026-10-15"]
         "$2026",
         "four thousand dollars",
         "$1,00,000",
+        "7 dollars",
+        "USD 7",
+        "US$ 7",
+        "$ 7",
+        "7 bucks",
+        "50 cents",
+        "seven dollars",
+        "eighty percent",
+        "ten dollars",
+        "$7\u066b00",
     ],
 )
 def test_bypass_attempts_are_rejected(text: str) -> None:
@@ -92,7 +102,16 @@ def test_bypass_attempts_are_rejected(text: str) -> None:
 
 @pytest.mark.parametrize(
     "text",
-    ["billed 2 times", "3 times the rate", "$92.15", "92.15", "$23.55", "on 2026-10-15"],
+    [
+        "billed 2 times",
+        "3 times the rate",
+        "$92.15",
+        "92.15",
+        "$23.55",
+        "on 2026-10-15",
+        "$23.55 above the benchmark",
+        "about 23.55 dollars",
+    ],
 )
 def test_grounded_phrases_are_accepted(text: str) -> None:
     assert unsupported_numbers(text, SRC) == []
