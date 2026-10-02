@@ -44,7 +44,7 @@ def main() -> int:
     args = ap.parse_args()
     with httpx.Client(base_url=args.base_url.rstrip("/"), timeout=120) as c:
         health = call(c, "GET", "/api/health").json()
-        if health != {"status": "ok"}:
+        if health.get("status") != "ok":
             raise fail("health", health)
         cases = call(c, "GET", "/api/cases").json()
         if len(cases) < 10:  # 10 FHIR demo cases, plus PDF ones once their extractions are recorded

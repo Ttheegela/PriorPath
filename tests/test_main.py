@@ -1,17 +1,37 @@
 from pathlib import Path
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import Engine
+from sqlalchemy.exc import OperationalError
 
+from app import main
 from app.main import app, mount_frontend
 
 client = TestClient(app)
 
 
-def test_health() -> None:
+def test_health_checks_db_and_reference(db: Engine) -> None:
     resp = client.get("/api/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    body = resp.json()
+    assert body["status"] == "ok"
+    assert body["db"] == "ok"
+    assert body["reference"] == [v["ref_version"] for v in client.get("/api/version").json()["reference"]]
+    assert body["reference"]
+
+
+def test_health_503_without_leaking_when_db_down(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DownEngine:
+        def connect(self) -> None:
+            raise OperationalError("SELECT 1", {}, Exception("postgresql://user:pw@host/db refused"))
+
+    monkeypatch.setattr(main, "get_engine", lambda: DownEngine())
+    resp = client.get("/api/health")
+    assert resp.status_code == 503
+    assert resp.json() == {"status": "degraded", "db": "unavailable"}
+    assert "postgresql" not in resp.text
 
 
 def test_docs_served_under_api() -> None:
