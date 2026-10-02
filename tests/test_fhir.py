@@ -120,3 +120,76 @@ def test_round_trip_preserves_audit_fields() -> None:
         )
     bundle = claims_to_bundle([original, original])
     assert len(parse_fhir(bundle).claims) == 2
+
+
+def _bundle(*resources: Any) -> dict[str, Any]:
+    return {"resourceType": "Bundle", "entry": [{"resource": r} for r in resources]}
+
+
+def test_malformed_inputs_never_raise_and_report_paths() -> None:
+    cases: list[tuple[Any, str]] = [
+        (eob(None), "$.item"),  # type: ignore[arg-type]
+        (eob("x"), "$.item"),  # type: ignore[arg-type]
+        (eob([1]), "$.item[0]"),
+        (eob([None]), "$.item[0]"),
+        (eob([item(net=5)]), "$.item[0]"),
+        (eob([item(productOrService={"coding": ["x"]})]), "$.item[0]"),
+        (eob([item(quantity={"value": "1e999999999"})]), "$.item[0]"),
+        (eob([item(quantity={"value": "Infinity"})]), "$.item[0]"),
+        (eob([item(quantity={"value": "NaN"})]), "$.item[0]"),
+        (eob([item(quantity={"value": 10001})]), "$.item[0]"),
+        (eob([item(modifier=[1])]), "$.item[0]"),
+        (eob([item(diagnosisSequence=5)]), "$.item[0]"),
+        (eob([item(sequence="x")]), "$.item[0]"),
+        (eob([item(net={"value": 1e400})]), "$.item[0]"),
+        (eob([item(servicedDate=5)]), "$.item[0]"),
+        (_bundle(), "$.entry"),
+        ({"resourceType": "Bundle", "entry": None}, "$.entry"),
+        ({"resourceType": "Bundle", "entry": "x"}, "$.entry"),
+        ({"resourceType": "Bundle", "entry": [5]}, "$.entry[0]"),
+        ({"resourceType": "Bundle", "entry": [{"resource": 5}]}, "$.entry[0]"),
+        ({"resourceType": "Bundle", "entry": [{}]}, "$.entry[0]"),
+    ]
+    for data, path in cases:
+        res = parse_fhir(data)
+        assert path in [e.path for e in res.errors], (data, res.errors)
+
+
+def test_wrong_typed_claim_level_fields_are_tolerated() -> None:
+    res = parse_fhir(
+        eob(
+            [item()],
+            diagnosis=None,
+            patient="x",
+            billablePeriod="x",
+            provider="x",
+            insurer={"display": 5},
+        )
+    )
+    assert res.errors == []
+    (c,) = res.claims
+    assert c.provider is None and c.payer is None and c.lines[0].diagnosis_codes == []
+
+
+def test_duplicate_sequence_keeps_first() -> None:
+    res = parse_fhir(eob([item(1), item(1, net={"value": 5.0})]))
+    assert [x.charge for x in res.claims[0].lines] == [Decimal("150.0")]
+    assert [(e.path, e.message) for e in res.errors] == [("$.item[1]", "duplicate item sequence 1")]
+
+
+def test_bundle_with_malformed_entry_still_parses_good_eob() -> None:
+    bundle = {
+        "resourceType": "Bundle",
+        "entry": [5, {"resource": {"resourceType": "Patient"}}, {"resource": eob([item()])}],
+    }
+    res = parse_fhir(bundle)
+    assert len(res.claims) == 1
+    assert [e.path for e in res.errors] == ["$.entry[0]"]
+
+
+def test_serviced_period_start_fallback() -> None:
+    it = item()
+    del it["servicedDate"]
+    it["servicedPeriod"] = {"start": "2026-10-22"}
+    (c,) = parse_fhir(eob([it])).claims
+    assert c.lines[0].date_of_service.isoformat() == "2026-10-22"

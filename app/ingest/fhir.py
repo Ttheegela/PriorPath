@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 from pydantic import ValidationError
@@ -35,41 +35,63 @@ def _describe(exc: Exception) -> str:
     return str(exc) or exc.__class__.__name__
 
 
+def _obj(v: object) -> dict[str, Any]:
+    return v if isinstance(v, dict) else {}
+
+
+def _list(v: object) -> list[Any]:
+    return v if isinstance(v, list) else []
+
+
+def _display(v: object) -> str | None:
+    d = _obj(v).get("display")
+    return d if isinstance(d, str) else None
+
+
 def _charge(item: dict[str, Any]) -> Decimal:
-    net = (item.get("net") or {}).get("value")
+    net = _obj(item.get("net")).get("value")
     if net is None:
-        for adj in item.get("adjudication", []):
-            codes = {c.get("code") for c in (adj.get("category") or {}).get("coding", [])}
-            if "submitted" in codes:
-                net = adj["amount"]["value"]
+        for adj in _list(item.get("adjudication")):
+            codings = _list(_obj(_obj(adj).get("category")).get("coding"))
+            if "submitted" in {_obj(c).get("code") for c in codings}:
+                net = _obj(_obj(adj).get("amount")).get("value")
                 break
     if net is None:
         raise ValueError("no charge: item.net and submitted adjudication missing")
-    return Decimal(str(net))
+    charge = Decimal(str(net))
+    if not charge.is_finite():
+        raise ValueError("charge out of range")
+    return charge
 
 
 def _units(item: dict[str, Any]) -> int:
-    q = Decimal(str((item.get("quantity") or {}).get("value", 1)))
+    q = Decimal(str(_obj(item.get("quantity")).get("value", 1)))
+    if not q.is_finite() or abs(q) > 10_000:
+        raise ValueError("quantity out of range")
     if q != q.to_integral_value():
         raise ValueError(f"quantity must be a whole number, got {q}")
     return int(q)
 
 
-def _parse_item(item: dict[str, Any], index: int, diag: dict[int, str], default_dos: str | None) -> LineItem:
+def _parse_item(item: object, index: int, diag: dict[int, str], default_dos: str | None) -> LineItem:
+    if not isinstance(item, dict):
+        raise ValueError("expected an object")
     seq = int(item.get("sequence", index + 1))
-    codings = item["productOrService"]["coding"]
+    codings = [c for c in _list(_obj(item.get("productOrService")).get("coding")) if isinstance(c, dict)]
+    if not codings:
+        raise ValueError("no productOrService coding")
     coding = next(
         (c for c in codings if any(s in str(c.get("system", "")).lower() for s in ("cpt", "hcpcs"))),
         codings[0],
     )
-    dos_raw = item.get("servicedDate") or (item.get("servicedPeriod") or {}).get("start") or default_dos
+    dos_raw = item.get("servicedDate") or _obj(item.get("servicedPeriod")).get("start") or default_dos
     if not dos_raw:
         raise ValueError("no date of service")
     loc = item.get("locationCodeableConcept")
     return LineItem(
         id=f"L{seq}",
         code=coding["code"],
-        modifiers=[m["coding"][0]["code"] for m in item.get("modifier", [])],
+        modifiers=[m["coding"][0]["code"] for m in _list(item.get("modifier"))],
         units=_units(item),
         charge=_charge(item),
         date_of_service=date.fromisoformat(str(dos_raw)[:10]),
@@ -84,29 +106,44 @@ def _parse_eob(eob: dict[str, Any], path: str, errors: list[ParseError]) -> Clai
         errors.append(ParseError(f"{path}.id", "missing id"))
         return None
     diag: dict[int, str] = {}
-    for d in eob.get("diagnosis", []):
+    for d in _list(eob.get("diagnosis")):
         try:
             diag[int(d["sequence"])] = d["diagnosisCodeableConcept"]["coding"][0]["code"]
-        except (KeyError, IndexError, TypeError, ValueError):
+        except (KeyError, IndexError, TypeError, ValueError, OverflowError):
             continue
-    default_dos = (eob.get("billablePeriod") or {}).get("start")
-    lines = []
-    for j, item in enumerate(eob.get("item", [])):
+    default_dos = _obj(eob.get("billablePeriod")).get("start")
+    raw_items = eob.get("item", [])
+    if not isinstance(raw_items, list):
+        errors.append(ParseError(f"{path}.item", "expected a list"))
+        return None
+    lines: list[LineItem] = []
+    seen: set[str] = set()
+    for j, item in enumerate(raw_items):
         try:
-            lines.append(_parse_item(item, j, diag, default_dos))
-        except (KeyError, IndexError, TypeError, ValueError, InvalidOperation) as exc:
+            line = _parse_item(item, j, diag, default_dos)
+        except (KeyError, IndexError, TypeError, ValueError, ArithmeticError, AttributeError) as exc:
             errors.append(ParseError(f"{path}.item[{j}]", _describe(exc)))
+            continue
+        if line.id in seen:
+            errors.append(ParseError(f"{path}.item[{j}]", f"duplicate item sequence {line.id[1:]}"))
+            continue
+        seen.add(line.id)
+        lines.append(line)
     if not lines:
         errors.append(ParseError(f"{path}.item", "no valid items"))
         return None
-    return Claim(
-        id=str(eob_id),
-        patient_pseudonym=pseudonym(str((eob.get("patient") or {}).get("reference", "unknown"))),
-        provider=(eob.get("provider") or {}).get("display"),
-        payer=(eob.get("insurer") or {}).get("display"),
-        lines=lines,
-        source="fhir",
-    )
+    try:
+        return Claim(
+            id=str(eob_id),
+            patient_pseudonym=pseudonym(str(_obj(eob.get("patient")).get("reference", "unknown"))),
+            provider=_display(eob.get("provider")),
+            payer=_display(eob.get("insurer")),
+            lines=lines,
+            source="fhir",
+        )
+    except Exception as exc:  # noqa: BLE001 - trust boundary: never raise on user JSON
+        errors.append(ParseError(path, _describe(exc)))
+        return None
 
 
 def parse_fhir(data: object) -> ParseResult:
@@ -115,16 +152,22 @@ def parse_fhir(data: object) -> ParseResult:
         result.errors.append(ParseError("$", "expected a JSON object"))
         return result
     rtype = data.get("resourceType")
+    eobs: list[tuple[str, dict[str, Any]]] = []
     if rtype == "ExplanationOfBenefit":
         eobs = [("$", data)]
     elif rtype == "Bundle":
-        eobs = [
-            (f"$.entry[{i}].resource", e["resource"])
-            for i, e in enumerate(data.get("entry", []))
-            if isinstance(e, dict)
-            and isinstance(e.get("resource"), dict)
-            and e["resource"].get("resourceType") == "ExplanationOfBenefit"
-        ]
+        entries = data.get("entry")
+        if not isinstance(entries, list):
+            result.errors.append(ParseError("$.entry", "expected a list"))
+            return result
+        for i, e in enumerate(entries):
+            res = e.get("resource") if isinstance(e, dict) else None
+            if not isinstance(res, dict):
+                result.errors.append(ParseError(f"$.entry[{i}]", "expected an object with a resource"))
+            elif res.get("resourceType") == "ExplanationOfBenefit":
+                eobs.append((f"$.entry[{i}].resource", res))
+        if not eobs:
+            result.errors.append(ParseError("$.entry", "no ExplanationOfBenefit resources"))
     else:
         result.errors.append(
             ParseError("$.resourceType", f"expected Bundle or ExplanationOfBenefit, got {rtype!r}")
