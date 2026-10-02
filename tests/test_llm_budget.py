@@ -32,3 +32,18 @@ def test_global_hourly_cap_across_workspaces(db: Engine, monkeypatch: pytest.Mon
         assert llm_budget.try_consume(s, b.id, now) is True
         assert llm_budget.try_consume(s, b.id, now) is False
         assert llm_budget.try_consume(s, a.id, now + timedelta(hours=1)) is True
+
+
+def test_refused_retries_do_not_drain_the_global_budget(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(llm_budget, "EXPLANATIONS_PER_HOUR", 2)
+    monkeypatch.setattr(llm_budget, "GLOBAL_EXPLANATIONS_PER_HOUR", 3)
+    now = datetime(2026, 10, 2, 14, 30, tzinfo=UTC)
+    with Session(db) as s:
+        noisy, other = Workspace(), Workspace()
+        s.add_all([noisy, other])
+        s.flush()
+        # The noisy workspace keeps retrying long after its own cap of 2.
+        assert [llm_budget.try_consume(s, noisy.id, now) for _ in range(10)] == [True, True] + [False] * 8
+        # Its refused attempts count at most 2 toward the global cap of 3, so another workspace still gets 1.
+        assert llm_budget.try_consume(s, other.id, now) is True
+        assert llm_budget.try_consume(s, other.id, now) is False

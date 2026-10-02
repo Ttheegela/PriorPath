@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.models import LlmUsage
 
 EXPLANATIONS_PER_HOUR = 20
-GLOBAL_EXPLANATIONS_PER_HOUR = 200
+GLOBAL_EXPLANATIONS_PER_HOUR = 100
 
 
 def try_consume(session: Session, workspace_id: uuid.UUID, now: datetime | None = None) -> bool:
@@ -23,7 +23,10 @@ def try_consume(session: Session, workspace_id: uuid.UUID, now: datetime | None 
     )
     if session.execute(stmt).scalar_one() > EXPLANATIONS_PER_HOUR:
         return False
+    # Count each workspace at most up to its own cap, so refused retries from one workspace
+    # can't use up the global budget for everyone else.
+    per_workspace = func.least(LlmUsage.calls, EXPLANATIONS_PER_HOUR)
     total = session.scalar(
-        select(func.coalesce(func.sum(LlmUsage.calls), 0)).where(LlmUsage.hour_start == hour)
+        select(func.coalesce(func.sum(per_workspace), 0)).where(LlmUsage.hour_start == hour)
     )
     return bool(total is not None and total <= GLOBAL_EXPLANATIONS_PER_HOUR)
