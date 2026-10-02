@@ -12,7 +12,7 @@ from app.models import Severity
 from app.reference.base import Reference
 from app.reference.normalized import load_normalized
 from app.rules import run_rules
-from evals.generate import PLANTABLE, LabeledClaim, generate
+from evals.generate import NEGATIVE_KINDS, PLANTABLE, LabeledClaim, generate
 
 SCORED = (Severity.ERROR, Severity.OUTLIER)
 
@@ -23,6 +23,8 @@ class RuleScore:
     tp: int = 0
     fp: int = 0
     fn: int = 0
+    neg_support: int = 0  # negative plants: lines this rule must not flag
+    neg_fp: int = 0  # negative plants it flagged anyway
 
     @property
     def precision(self) -> float:
@@ -52,6 +54,10 @@ class Report:
                 out.append(f"{s.rule_id}: precision {s.precision:.3f}, recall {s.recall:.3f} (gate 1.000)")
             if s.support < min_support:
                 out.append(f"{s.rule_id}: support {s.support} < {min_support}")
+            if s.neg_fp:
+                out.append(f"{s.rule_id}: {s.neg_fp} negative plant(s) flagged (gate 0)")
+            if s.rule_id in NEGATIVE_KINDS.values() and s.neg_support < min_support:
+                out.append(f"{s.rule_id}: negative support {s.neg_support} < {min_support}")
         if self.clean_fp:
             out.append(f"clean claims with flags: {self.clean_fp} (gate 0)")
         if self.parse_errors:
@@ -59,9 +65,13 @@ class Report:
         return out
 
     def to_markdown(self) -> str:
-        rows = ["| Rule | Support | TP | FP | FN | Precision | Recall |", "|---|---|---|---|---|---|---|"]
+        rows = [
+            "| Rule | Support | TP | FP | FN | Precision | Recall | Neg plants | Neg FP |",
+            "|---|---|---|---|---|---|---|---|---|",
+        ]
         rows += [
-            f"| {s.rule_id} | {s.support} | {s.tp} | {s.fp} | {s.fn} | {s.precision:.3f} | {s.recall:.3f} |"
+            f"| {s.rule_id} | {s.support} | {s.tp} | {s.fp} | {s.fn} | {s.precision:.3f} | {s.recall:.3f} "
+            f"| {s.neg_support} | {s.neg_fp} |"
             for s in self.scores.values()
         ]
         rows.append("")
@@ -90,6 +100,11 @@ def evaluate(labeled: list[LabeledClaim], ref: Reference, via_fhir: bool = True)
             score.tp += len(exp & hit)
             score.fp += len(hit - exp)
             score.fn += len(exp - hit)
+        for neg in lc.negatives:
+            score = report.scores[neg.rule_id]
+            score.neg_support += 1
+            if any(r == neg.rule_id and ids & neg.line_ids for r, ids in got):
+                score.neg_fp += 1
         if not lc.expected:
             report.clean_claims += 1
             report.clean_fp += 1 if got else 0

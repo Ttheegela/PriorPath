@@ -2,52 +2,65 @@
   "n": 300,
   "seed": 7,
   "reference": [
+    "NCCI-2026Q3",
+    "MUE-2026Q3",
+    "PFS-2026C",
     "NCCI-2026Q4",
     "MUE-2026Q4",
     "PFS-2026D"
   ],
   "claims": 300,
-  "clean_claims": 109,
+  "clean_claims": 110,
   "clean_fp": 0,
   "parse_errors": 0,
   "rules": {
     "R1": {
       "rule_id": "R1",
-      "tp": 62,
+      "tp": 59,
       "fp": 0,
       "fn": 0,
+      "neg_support": 33,
+      "neg_fp": 0,
       "precision": 1.0,
       "recall": 1.0
     },
     "R2": {
       "rule_id": "R2",
-      "tp": 46,
+      "tp": 61,
       "fp": 0,
       "fn": 0,
+      "neg_support": 24,
+      "neg_fp": 0,
       "precision": 1.0,
       "recall": 1.0
     },
     "R3": {
       "rule_id": "R3",
-      "tp": 54,
+      "tp": 51,
       "fp": 0,
       "fn": 0,
+      "neg_support": 0,
+      "neg_fp": 0,
       "precision": 1.0,
       "recall": 1.0
     },
     "R4": {
       "rule_id": "R4",
-      "tp": 45,
+      "tp": 41,
       "fp": 0,
       "fn": 0,
+      "neg_support": 0,
+      "neg_fp": 0,
       "precision": 1.0,
       "recall": 1.0
     },
     "R5": {
       "rule_id": "R5",
-      "tp": 45,
+      "tp": 43,
       "fp": 0,
       "fn": 0,
+      "neg_support": 54,
+      "neg_fp": 0,
       "precision": 1.0,
       "recall": 1.0
     }
