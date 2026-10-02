@@ -15,5 +15,6 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy app
+      - run: mypy app evals scripts
       - run: pytest -q
+      - run: python -m evals.run --n 300 --seed 7
