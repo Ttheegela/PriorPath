@@ -47,3 +47,6 @@ filterwarnings = [
 # UI is served from Vercel's CDN (built into public/), not bundled into the function.
 [tool.vercel.fastapi.static]
 exclude = true
+# The trace-flush ASGI middleware would otherwise keep the frontend inside the function,
+# where `exclude` removes it; promote static files to the CDN regardless.
+cdn = true
