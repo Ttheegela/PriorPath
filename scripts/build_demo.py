@@ -13,13 +13,13 @@ import sys
 from pathlib import Path
 
 from app.ingest.fhir import claims_to_bundle
-from app.ingest.pdf import pdf_page_images
+from app.ingest.pdf import PdfError, pdf_page_images
 from app.llm.cache import DEMO_EXPLANATIONS, explanation_cache_key
 from app.llm.client import default_client
 from app.llm.explain import explain_flag
 from app.llm.extract import extract_page, merge
-from app.llm.vision import DEFAULT_EXTRACT_MODEL, default_vision_client
-from app.models import Claim, Severity
+from app.llm.vision import DEFAULT_EXTRACT_MODEL, VisionError, default_vision_client
+from app.models import Claim, LineItem, Severity
 from app.reference.base import InMemoryReference
 from app.reference.normalized import load_normalized
 from app.rules import RuleConfig, run_rules
@@ -96,11 +96,23 @@ def _build_bills(extract: bool, explain: bool, ref: InMemoryReference) -> int:
         print("OPENROUTER_API_KEY is not set", file=sys.stderr)
         return 1
     model = os.environ.get("EXTRACT_MODEL") or DEFAULT_EXTRACT_MODEL
-    out: dict[str, object] = {}
-    extracted: list[Claim] = []
+    out: dict[str, dict[str, object]] = {}
+    if EXTRACTIONS.exists():
+        out = json.loads(EXTRACTIONS.read_text())
     for c in claims:
+        if out.get(c.id, {}).get("model") == model:
+            print(f"{c.id}: already extracted with {model}; skipping")
+            continue
         data = BILLS.joinpath(f"{c.id}.pdf").read_bytes()
-        m = merge([extract_page(png, n, vision) for n, png in enumerate(pdf_page_images(data), start=1)])
+        try:
+            pages = pdf_page_images(data)
+            m = merge([extract_page(png, n, vision) for n, png in enumerate(pages, start=1)])
+        except (VisionError, PdfError) as exc:
+            print(
+                f"{c.id}: extraction failed ({exc}); saved bills kept, rerun to resume",
+                file=sys.stderr,
+            )
+            return 1
         out[c.id] = {
             "lines": [ln.model_dump(mode="json") for ln in m.lines],
             "errors": m.errors,
@@ -108,10 +120,23 @@ def _build_bills(extract: bool, explain: bool, ref: InMemoryReference) -> int:
             "payer": m.payer,
             "model": model,
         }
-        extracted.append(c.model_copy(update={"lines": m.lines, "provider": m.provider, "payer": m.payer}))
-    EXTRACTIONS.write_text(json.dumps(out, indent=1) + "\n")
-    print(f"wrote {EXTRACTIONS}")
-    return _explain(extracted, ref, merge_existing=True) if explain else 0
+        tmp = EXTRACTIONS.with_suffix(".tmp")
+        tmp.write_text(json.dumps(out, indent=1) + "\n")
+        tmp.replace(EXTRACTIONS)  # saved per bill: a later failure keeps this one
+        print(f"{c.id}: extracted {len(m.lines)} lines")
+    if not explain:
+        return 0
+    extracted = [
+        c.model_copy(
+            update={
+                "lines": [LineItem.model_validate(ln) for ln in out[c.id]["lines"]],  # type: ignore[attr-defined]
+                "provider": out[c.id]["provider"],
+                "payer": out[c.id]["payer"],
+            }
+        )
+        for c in claims
+    ]
+    return _explain(extracted, ref, merge_existing=True)
 
 
 def main() -> int:

@@ -125,3 +125,37 @@ def test_missing_recording_or_bill_seeds_fhir_demo_only(
     _pdf_demo(tmp_path, monkeypatch, 0.99)
     monkeypatch.setattr("app.services.demo.DEMO_BILLS", tmp_path / "no-bills")
     assert _seed(db) == []
+
+
+def test_corrupt_extraction_drops_only_that_bill(
+    db: Engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _pdf_demo(tmp_path, monkeypatch, 0.99)
+    rec = json.loads((tmp_path / "pdf_extractions.json").read_text())
+    rec["B0002"] = {"lines": [{"id": "x"}], "errors": []}
+    (tmp_path / "bills" / "B0002.pdf").write_bytes(b"%PDF-1.4 broken")
+    (tmp_path / "pdf_extractions.json").write_text(json.dumps({"B0002": rec["B0002"], "B0001": rec["B0001"]}))
+    with Session(db) as s:
+        ws = Workspace()
+        s.add(ws)
+        s.flush()
+        assert seed_demo(s, ws, FIXTURE_REF) == 11
+        s.commit()
+        cases = list(s.scalars(select(Case)))
+    assert len(cases) == 11 and [c.claim["id"] for c in cases if c.source == "pdf"] == ["B0001"]
+
+
+def test_committed_demo_seeds_every_recorded_bill(db: Engine) -> None:
+    rec_path = DEMO_CASES.parent / "pdf_extractions.json"
+    if not rec_path.exists():
+        pytest.skip("data/demo/pdf_extractions.json not committed yet")
+    n = len(json.loads(rec_path.read_text()))
+    with Session(db) as s:
+        ws = Workspace()
+        s.add(ws)
+        s.flush()
+        assert seed_demo(s, ws, FIXTURE_REF) == 10 + n
+        s.commit()
+        pdf = list(s.scalars(select(Case).where(Case.source == "pdf")))
+        assert len(pdf) == n
+        assert all(s.scalar(select(CaseDocument).where(CaseDocument.case_id == c.id)) for c in pdf)

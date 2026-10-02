@@ -1,10 +1,15 @@
+import { existsSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+
+// Once the recorded extraction is committed, a missing PDF case is a seeding regression, not a skip.
+const recorded = existsSync("../data/demo/pdf_extractions.json");
 
 test("PDF demo case: review lines, see the bill page, save, see flags", async ({ page }) => {
   await page.goto("/");
   const link = page.getByRole("link", { name: /^B\d{4}/ }).first();
   await expect(page.getByRole("row").first()).toBeVisible();
-  test.skip((await link.count()) === 0, "no PDF demo case until the recorded extraction is committed");
+  if (recorded) await expect(link).toBeVisible();
+  else test.skip((await link.count()) === 0, "no PDF demo case until the recorded extraction is committed");
   await link.click();
 
   const review = page.getByRole("heading", { name: "Review extracted lines" });

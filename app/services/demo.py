@@ -55,21 +55,26 @@ def _seed_pdf_cases(session: Session, ws: Workspace, ref: InMemoryReference) -> 
         if not bill.exists():
             log.warning("demo bill %s is missing; skipping it", bill)
             continue
-        data = bill.read_bytes()
-        lines = [LineItem.model_validate(ln) for ln in rec["lines"]]
-        case = store_pdf_case(
-            session,
-            ws,
-            data,
-            page_count(data),
-            claim_id,
-            rec.get("provider"),
-            rec.get("payer"),
-            lines,
-            "medicare",
-            ref,
-            actor="system",
-        )
+        try:
+            with session.begin_nested():  # a malformed bill drops only itself
+                data = bill.read_bytes()
+                lines = [LineItem.model_validate(ln) for ln in rec["lines"]]
+                case = store_pdf_case(
+                    session,
+                    ws,
+                    data,
+                    page_count(data),
+                    claim_id,
+                    rec.get("provider"),
+                    rec.get("payer"),
+                    lines,
+                    "medicare",
+                    ref,
+                    actor="system",
+                )
+        except Exception:
+            log.exception("demo bill %s could not be seeded; skipping it", claim_id)
+            continue
         _apply_cached_explanations(case, case_flags(session, case.id))  # none while awaiting line review
         cases.append(case)
     return cases

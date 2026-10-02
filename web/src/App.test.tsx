@@ -20,7 +20,7 @@ test("shows a readable error when the workspace can't be created", async () => {
 
 test("the title links to the case queue", async () => {
   vi.stubGlobal("fetch", vi.fn(async (url: string) =>
-    new Response(JSON.stringify(url === "/api/cases" ? [] : { id: "w", created_at: "x" }), { status: 200 })));
+    new Response(JSON.stringify(url === "/api/cases" || url.includes("/api/audit-log") ? [] : { id: "w", created_at: "x" }), { status: 200 })));
   window.history.pushState(null, "", "/?view=log");
   const { default: App } = await import("./App");
   render(<App />);
