@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import cases, flags, workspace
+from app.api import cases, flags, letters, workspace
 from app.api.deps import get_reference
 
 app = FastAPI(
@@ -14,6 +14,7 @@ app = FastAPI(
 app.include_router(workspace.router)
 app.include_router(cases.router)
 app.include_router(flags.router)
+app.include_router(letters.router)
 
 
 @app.get("/api/health")
