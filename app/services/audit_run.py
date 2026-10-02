@@ -1,7 +1,7 @@
 from collections import Counter
 from typing import cast
 
-from sqlalchemy import delete
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.db.models import Case, FlagRow, Letter
@@ -16,6 +16,12 @@ EXPLAINED = {Severity.ERROR, Severity.OUTLIER, Severity.LEAD}
 
 def run_audit(session: Session, case: Case, ref: InMemoryReference, actor: str = "reviewer") -> list[FlagRow]:
     claim = to_claim(case)
+    reviewed = session.scalar(
+        select(func.count()).select_from(FlagRow).where(FlagRow.case_id == case.id, FlagRow.status != "open")
+    )
+    drafts = session.scalar(
+        select(func.count()).select_from(Letter).where(Letter.case_id == case.id, Letter.status == "draft")
+    )
     session.execute(delete(FlagRow).where(FlagRow.case_id == case.id))
     session.execute(delete(Letter).where(Letter.case_id == case.id))
     flags = run_rules(claim, ref, RuleConfig(payer_type=cast(PayerType, case.payer_type)))
@@ -42,7 +48,12 @@ def run_audit(session: Session, case: Case, ref: InMemoryReference, actor: str =
         "audit_run",
         case_id=case.id,
         actor=actor,
-        detail={"flags": len(rows), "by_rule": dict(Counter(f.rule_id for f in flags))},
+        detail={
+            "flags": len(rows),
+            "by_rule": dict(Counter(f.rule_id for f in flags)),
+            "discarded_reviewed_flags": reviewed,
+            "discarded_draft_letters": drafts,
+        },
         ref_versions=[v.ref_version for v in ref.versions],
     )
     session.flush()

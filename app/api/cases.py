@@ -93,6 +93,8 @@ def get_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep) -> CaseD
 @router.post("/api/cases/{case_id}/audit", response_model=CaseDetail)
 def audit_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep, ref: RefDep) -> CaseDetail:
     case = get_case_or_404(session, ws, case_id)
+    if session.scalar(select(Letter.id).where(Letter.case_id == case.id, Letter.status == "approved")):
+        raise HTTPException(status_code=409, detail="this case already has an approved letter")
     run_audit(session, case, ref)
     session.commit()
     return case_detail(session, case)

@@ -119,3 +119,31 @@ def test_edit_rejects_control_characters(db: Engine) -> None:
     letter = c.post(f"/api/cases/{case_id}/letter").json()
     for bad in ("a\x00b", "a\x0bb"):
         assert c.patch(f"/api/letters/{letter['id']}", json={"body": bad}).status_code == 422
+
+
+def test_reaudit_blocked_when_letter_approved(db: Engine) -> None:
+    c, case_id = reviewed()
+    letter_id = c.post(f"/api/cases/{case_id}/letter").json()["id"]
+    c.post(f"/api/letters/{letter_id}/approve")
+    r = c.post(f"/api/cases/{case_id}/audit")
+    assert r.status_code == 409
+    assert r.json()["detail"] == "this case already has an approved letter"
+    assert c.get(f"/api/cases/{case_id}").json()["letter"]["status"] == "approved"
+
+
+def test_reaudit_records_discarded_reviews_and_drafts(db: Engine) -> None:
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from app.db.models import AuditEvent
+
+    c, case_id = reviewed()  # R1 and R5 accepted
+    c.post(f"/api/cases/{case_id}/letter")
+    assert c.post(f"/api/cases/{case_id}/audit").status_code == 200
+    with Session(db) as s:
+        detail = s.scalars(
+            select(AuditEvent).where(AuditEvent.action == "audit_run").order_by(AuditEvent.id.desc())
+        ).first()
+        assert detail is not None
+        assert detail.detail["discarded_reviewed_flags"] == 2
+        assert detail.detail["discarded_draft_letters"] == 1
