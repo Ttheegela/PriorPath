@@ -44,7 +44,7 @@ class FlagRow(Base):
     id: Mapped[uuid.UUID] = _uuid_pk()
     case_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), index=True)
     position: Mapped[int] = mapped_column(Integer)
-    flag_key: Mapped[str] = mapped_column(String(300))  # the engine's Flag.id
+    flag_key: Mapped[str] = mapped_column(Text)  # the engine's Flag.id
     rule_id: Mapped[str] = mapped_column(String(8))
     severity: Mapped[str] = mapped_column(String(16))
     line_ids: Mapped[list[str]] = mapped_column(JSONB)

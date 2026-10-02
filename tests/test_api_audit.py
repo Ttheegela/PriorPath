@@ -95,3 +95,13 @@ def test_other_workspace_cannot_audit_or_review(db: Engine) -> None:
     assert other.post(f"/api/cases/{detail['id']}/audit").status_code == 404
     flag_id = detail["flags"][0]["id"]
     assert other.patch(f"/api/flags/{flag_id}", json={"status": "accepted"}).status_code == 404
+
+
+def test_claim_with_many_identical_lines_audits(db: Engine) -> None:
+    c = client()
+    claim = sample_claim()
+    claim.lines = [line(f"L{i}", code="96372", charge="30.00") for i in range(1, 121)]
+    case_id = upload(c, [claim]).json()["cases"][0]["id"]
+    r = c.post(f"/api/cases/{case_id}/audit")
+    assert r.status_code == 200
+    assert r.json()["flags"]

@@ -29,7 +29,7 @@ class LineSource(StrEnum):
 
 class LineItem(BaseModel):
     id: str
-    code: str
+    code: str = Field(max_length=16)
     modifiers: list[str] = Field(default_factory=list)
     units: int = Field(gt=0)
     charge: Decimal = Field(ge=0)
@@ -55,7 +55,17 @@ class LineItem(BaseModel):
     @field_validator("modifiers")
     @classmethod
     def _normalize_modifiers(cls, v: list[str]) -> list[str]:
-        return [m.strip().upper() for m in v if m.strip()]
+        mods = [m.strip().upper() for m in v if m.strip()]
+        if any(len(m) > 4 for m in mods):
+            raise ValueError("modifier longer than 4 characters")
+        return mods
+
+    @field_validator("diagnosis_codes")
+    @classmethod
+    def _diagnosis_length(cls, v: list[str]) -> list[str]:
+        if any(len(d) > 16 for d in v):
+            raise ValueError("diagnosis code longer than 16 characters")
+        return v
 
     @property
     def unit_price(self) -> Decimal:
@@ -63,10 +73,10 @@ class LineItem(BaseModel):
 
 
 class Claim(BaseModel):
-    id: str
+    id: str = Field(max_length=128)
     patient_pseudonym: str
-    provider: str | None = None
-    payer: str | None = None
+    provider: str | None = Field(default=None, max_length=200)
+    payer: str | None = Field(default=None, max_length=200)
     lines: list[LineItem]
     source: Literal["fhir", "pdf"] = "fhir"
 

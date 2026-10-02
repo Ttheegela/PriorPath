@@ -211,3 +211,40 @@ def test_non_whole_sequence_is_parse_error() -> None:
         assert "sequence must be a whole number" in res.errors[0].message
     (c,) = parse_fhir(eob([item(sequence=3.0)])).claims
     assert c.lines[0].id == "L3"
+
+
+def test_overlong_fields_are_path_errors_and_normal_claims_unaffected() -> None:
+    long_code = "9" * 1500
+    res = parse_fhir(
+        _bundle(
+            eob(
+                [
+                    item(1),
+                    item(
+                        2,
+                        productOrService={"coding": [{"code": long_code}]},
+                    ),
+                    item(3, modifier=[{"coding": [{"code": "ABCDE"}]}]),
+                    item(4, diagnosisSequence=[2]),
+                ],
+                diagnosis=[
+                    {"sequence": 1, "diagnosisCodeableConcept": {"coding": [{"code": "E11.9"}]}},
+                    {"sequence": 2, "diagnosisCodeableConcept": {"coding": [{"code": "D" * 40}]}},
+                ],
+            )
+        )
+    )
+    assert [e.path for e in res.errors] == [
+        "$.entry[0].resource.item[1]",
+        "$.entry[0].resource.item[2]",
+        "$.entry[0].resource.item[3]",
+    ]
+    assert len(res.claims[0].lines) == 1
+
+
+def test_overlong_claim_id_provider_payer_are_errors() -> None:
+    res = parse_fhir(_bundle(eob([item(1)], id="x" * 400)))
+    assert res.claims == []
+    assert [e.path for e in res.errors] == ["$.entry[0].resource.id"]
+    res = parse_fhir(_bundle(eob([item(1)], provider={"display": "p" * 201})))
+    assert res.claims == [] and res.errors[0].path == "$.entry[0].resource"

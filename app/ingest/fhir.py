@@ -117,6 +117,9 @@ def _parse_eob(eob: dict[str, Any], path: str, errors: list[ParseError]) -> Clai
     if not eob_id:
         errors.append(ParseError(f"{path}.id", "missing id"))
         return None
+    if len(str(eob_id)) > 128:
+        errors.append(ParseError(f"{path}.id", "id longer than 128 characters"))
+        return None
     diag: dict[int, str] = {}
     for d in _list(eob.get("diagnosis")):
         try:
