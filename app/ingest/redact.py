@@ -25,6 +25,11 @@ SCORE_THRESHOLD = 0.5
 # A gap between two characters wider than this many of the line's own space widths starts a new column: one or
 # two spaces never split (in any font), three or more and table-cell boundaries do. Tuned by tests.
 COLUMN_GAP = 2.2
+# A gap pdfium filled with a generated separator (separately drawn text, like table cells) starts a column at
+# a lower bar: wider than one real space, or than this fraction of the line's char height. Cells whose text
+# fills their width sit ~5.7 pt apart: under 2.2 spaces in Helvetica/Times, under one space in Courier.
+CELL_GAP_SPACES = 1.0
+CELL_GAP_HEIGHT = 0.4
 
 # Labelled values ("v" group), matched outside Presidio so a wider model span can't swallow them; each value
 # is then cut to its column. [ \t], not \s, so a value never starts on the next printed row.
@@ -46,10 +51,16 @@ _LABELLED = [
     ("EMAIL_ADDRESS", r"(?P<v>\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b)"),
 ]
 _LABELLED_RX = [(entity, re.compile(rx)) for entity, rx in _LABELLED]
-_DATE_OR_AMOUNT = re.compile(r"\$|\b\d{1,2}/\d{1,2}/\d{2,4}\b")
+_MONTH = r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?"
+_MONTH += r"|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?"
+_DATE = (
+    r"\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b\d{4}-\d{1,2}-\d{1,2}\b"
+    rf"|(?i:\b{_MONTH}[ \t]+\d{{1,2}},?[ \t]+\d{{4}}\b|\b\d{{1,2}}[ \t]+{_MONTH},?[ \t]+\d{{4}}\b)"
+)
+_DATE_OR_AMOUNT = re.compile(rf"\$[ \t]*\d[\d,]*(?:\.\d+)?|{_DATE}")
 _DIGIT_WORD = re.compile(r"\S*\d")
 # Where a labelled value carried past an in-cell gap must stop: a date, a $ amount, a CPT/HCPCS-shaped code.
-_BILLING_TOKEN = re.compile(r"\$|\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b(?:\d{4}[0-9A-Z]|[A-Z]\d{4})\b")
+_BILLING_TOKEN = re.compile(rf"\$|{_DATE}|\b(?:\d{{4}}[0-9A-Z]|[A-Z]\d{{4}})\b")
 
 _UNMAPPED_SPACY_LABELS = ["CARDINAL", "EVENT", "FAC", "LANGUAGE", "LAW", "MONEY", "ORDINAL", "PERCENT"]
 _UNMAPPED_SPACY_LABELS += ["PRODUCT", "QUANTITY", "WORK_OF_ART"]
@@ -122,8 +133,14 @@ def matches(text: str, breaks: Sequence[int] = (), soft: Collection[int] = ()) -
     """Identifier spans, each within its column segment. `breaks` are sorted indices that start a column;
     `soft` are the breaks inside one cell (real spaces), which a labelled value may cross once."""
     found = []
+    # Presidio reads each column as its own line (same length, so indices hold): the phone parser otherwise
+    # drops "(217) 555-0143" when the next cell starts with a date, and spaCy runs names across cells.
+    cols = list(text)
+    for i in breaks:
+        if i > 0 and cols[i - 1].isspace():
+            cols[i - 1] = "\n"
     for res in analyzer().analyze(
-        text, language="en", entities=_PRESIDIO_ENTITIES, score_threshold=SCORE_THRESHOLD
+        "".join(cols), language="en", entities=_PRESIDIO_ENTITIES, score_threshold=SCORE_THRESHOLD
     ):
         start, end = _cut(text, breaks, res.start, res.end)
         if res.recognition_metadata.get("recognizer_name") == "SpacyRecognizer":
@@ -131,11 +148,12 @@ def matches(text: str, breaks: Sequence[int] = (), soft: Collection[int] = ()) -
             if digit := _DIGIT_WORD.search(text, start, end):
                 start, end = _cut(text, breaks, start, digit.start())
         elif res.entity_type == "PHONE_NUMBER":
-            seg_start, seg_end = _segment(text, breaks, start)
-            if not any(c in text[start:end] for c in "()-.") or _DATE_OR_AMOUNT.search(
-                text, seg_start, seg_end
+            line_start, line_end = _segment(text, (), start)
+            if not any(c in text[start:end] for c in "()-.") or any(
+                t.start() < end and start < t.end()
+                for t in _DATE_OR_AMOUNT.finditer(text, line_start, line_end)
             ):
-                continue  # bare digit runs (codes, NPIs, accounts) and columns holding amounts or dates
+                continue  # bare digit runs (codes, NPIs, accounts), and dates or amounts read as a phone
         found.append(Match(res.entity_type, start, end))
     for entity, rx in _LABELLED_RX:
         for hit in rx.finditer(text):
@@ -164,6 +182,8 @@ def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[in
 
     A break is a gap after the previous character wider than COLUMN_GAP times the line's space width, measured
     from the line's real (not pdfium-generated) space characters; fallbacks: the page's, then half a glyph.
+    A gap holding a pdfium-generated char (a cell boundary) also breaks when wider than CELL_GAP_SPACES real
+    spaces (only if the page has real spaces) or CELL_GAP_HEIGHT of the line's char height.
     """
     boxes = {i: tp.get_charbox(i, loose=True) for i, c in enumerate(text) if c not in "\r\n"}
 
@@ -180,20 +200,27 @@ def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[in
     widths = [boxes[i][2] - boxes[i][0] for i in boxes]
     spaces = [boxes[i][2] - boxes[i][0] for i in boxes if real_space(i)]
     page_space = statistics.median(spaces) if spaces else statistics.median(widths or [0]) * 0.5
+    inf = float("inf")
     breaks: list[int] = []
     soft: set[int] = set()
     for line in lines:
         line_spaces = [boxes[i][2] - boxes[i][0] for i in line if real_space(i)]
         space = statistics.median(line_spaces) if line_spaces else page_space
+        height = statistics.median([boxes[i][3] - boxes[i][1] for i in line if not text[i].isspace()] or [0])
+        # with no real spaces on the page, a generated char may be an ordinary word gap: height bar only
+        cell_gap = min(CELL_GAP_SPACES * space if spaces else inf, CELL_GAP_HEIGHT * height)
         prev: int | None = None
         for i in line:
             if text[i].isspace():
                 continue
-            if prev is not None and boxes[i][0] - boxes[prev][2] > COLUMN_GAP * space:
-                breaks.append(i)
+            if prev is not None:
+                gap = boxes[i][0] - boxes[prev][2]
                 between = range(prev + 1, i)
-                if between and all(real_space(j) for j in between):
-                    soft.add(i)
+                generated = any(pdfium_c.FPDFText_IsGenerated(tp.raw, j) == 1 for j in between)
+                if gap > COLUMN_GAP * space or (generated and gap > cell_gap):
+                    breaks.append(i)
+                    if between and all(real_space(j) for j in between):
+                        soft.add(i)
             prev = i
     return breaks, soft
 

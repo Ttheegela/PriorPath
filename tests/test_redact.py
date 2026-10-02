@@ -167,7 +167,9 @@ def test_generated_bills_in_courier(layout: str, monkeypatch: pytest.MonkeyPatch
     assert (masked, unmasked) == ([], [])
 
 
-Cells = list[tuple[float, str]]  # one printed row: (cell width in mm, 0 = rest of the line; text)
+# One printed row of cells: (width in mm, 0 = rest of the line, or "fit+N" = the text's own width plus N mm;
+# text; optional font, else the page's).
+Cells = list[tuple[Any, ...]]
 
 
 def _render(rows: list[Cells], font: str = "Helvetica") -> bytes:
@@ -176,7 +178,10 @@ def _render(rows: list[Cells], font: str = "Helvetica") -> bytes:
     pdf.set_font(font, "", 11)
     pdf.cell(0, 6, "Itemized statement for services rendered", new_x="LMARGIN", new_y="NEXT")
     for row in rows:
-        for width, text in row:
+        for width, text, *cell_font in row:
+            pdf.set_font(cell_font[0] if cell_font else font, "", 11)
+            if isinstance(width, str):  # text fills the cell: only fpdf's 1 mm margins either side apart
+                width = pdf.get_string_width(text) + 2 * pdf.c_margin + float(width.removeprefix("fit+"))
             pdf.cell(width, 6, text)
         pdf.ln(6)
     return bytes(pdf.output())
@@ -193,6 +198,7 @@ def _render(rows: list[Cells], font: str = "Helvetica") -> bytes:
         ),
         ("Courier", "Phone: (217) 555-0143", "(217) 555-0143"),
         ("Courier", "Member ID: XQH4471029", "XQH4471029"),
+        ("Courier", "Patient: Maria  Garcia", "Maria Garcia"),
         # pdfium reports runs of spaces as one; the needles are as pdfium prints them
         (
             "Helvetica",
@@ -240,7 +246,63 @@ def test_whole_labelled_values_are_masked(font: str, row: str, needle: str) -> N
     ],
 )
 def test_matches_stay_in_their_column(rows: list[Cells], masked: list[str], kept: list[str]) -> None:
-    page = pdfium.PdfDocument(_render(rows))[0]
+    _assert_masked(_render(rows), masked, kept)
+
+
+ADDRESS = "Address: 1200 Maple Avenue, Springfield, IL 62704"
+BILLING = "10/15/2026 99213 $40.00"
+
+
+@pytest.mark.parametrize(
+    ("font", "row", "masked", "kept"),
+    [
+        *[
+            (font, [("fit+0", ADDRESS), (0, BILLING)], [PHI[1]], [BILLING])
+            for font in ("Helvetica", "Times", "Courier")
+        ],
+        *[
+            (
+                font,
+                [("fit+0", "Phone: (217) 555-0143"), (0, "Date of birth: 01/02/1980")],
+                [PHI[2]],
+                ["01/02/1980"],
+            )
+            for font in ("Helvetica", "Times", "Courier")
+        ],
+        *[  # an unlabelled date right after the phone once made Presidio's phone parser drop the number
+            (font, [("fit+0", "Phone: (217) 555-0143"), (0, "01/02/1980")], [PHI[2]], ["01/02/1980"])
+            for font in ("Helvetica", "Times", "Courier")
+        ],
+        *[("Courier", [(f"fit+{mm}", ADDRESS), (0, BILLING)], [PHI[1]], [BILLING]) for mm in (1, 2.5, 4.9)],
+        ("Helvetica", [("fit+3", ADDRESS, "Courier"), (0, BILLING)], [PHI[1]], [BILLING]),
+        ("Helvetica", [("fit+0", ADDRESS), (0, BILLING, "Courier")], [PHI[1]], [BILLING]),
+        (
+            "Helvetica",
+            [("fit+0", "Patient: Maria Garcia"), (0, "J1100 1 11 $30.00")],
+            ["Maria Garcia"],
+            ["J1100"],
+        ),
+    ],
+)
+def test_tight_table_cells_are_separate_columns(
+    font: str, row: Cells, masked: list[str], kept: list[str]
+) -> None:
+    # Cells whose text fills their width sit only ~5.7 pt apart, under the space-width rule; pdfium marks the
+    # boundary with a generated separator.
+    _assert_masked(_render([row], font), masked, kept)
+
+
+@pytest.mark.parametrize("date", ["2026-10-15", "Oct 15, 2026", "15 October 2026"])
+def test_labelled_carry_over_stops_at_any_date(date: str) -> None:
+    _assert_masked(
+        _render([[(0, f"Address: 1200 Maple Avenue   {date} 99213 $40.00")]]),
+        ["1200 Maple Avenue"],
+        [f"{date} 99213 $40.00"],
+    )
+
+
+def _assert_masked(pdf: bytes, masked: list[str], kept: list[str]) -> None:
+    page = pdfium.PdfDocument(pdf)[0]
     r = find_phi_boxes(page)
     tp = page.get_textpage()
     text = tp.get_text_range()
@@ -267,6 +329,9 @@ def test_a_label_with_no_value_does_not_reach_into_the_next_row() -> None:
 def test_digit_runs_are_not_phone_numbers() -> None:
     assert _found("99213 25 1 11 $150.00\r\nNPI 1234567893\r\nAccount 412345678\r\n") == []
     assert _found("Billing office phone 217-555-0143") == [("PHONE_NUMBER", "217-555-0143")]
+    # a date or amount elsewhere in the column no longer hides the phone
+    assert _found("Phone: (217) 555-0143 Date of birth: 01/02/1980") == [("PHONE_NUMBER", "(217) 555-0143")]
+    assert _found("Phone (217) 555-0143 Balance due $40.00") == [("PHONE_NUMBER", "(217) 555-0143")]
 
 
 def test_member_ids() -> None:

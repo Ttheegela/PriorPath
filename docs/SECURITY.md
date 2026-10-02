@@ -109,25 +109,32 @@ after "Member ID", "Subscriber #", "Policy number", "Patient ID", "MRN" and simi
 characters are not matched). Because the small model misses many names and street lines, the value after
 "Patient:", "Patient name:", "Guarantor:", "Insured:" and "Address:" labels is also targeted. The labelled
 patterns run separately from Presidio, so a wider model match can't absorb them. Presidio matches scoring below
-0.5 are dropped, so a phone number usually needs a nearby word such as "phone" or "tel".
+0.5 are dropped, so a phone number needs a nearby word such as "phone", "telephone", "cell" or "call" ("Tel" alone
+is not enough).
 
 **Columns:** pdfium's text joins table cells with a single space, so text spacing can't show where a column ends.
-Each printed line is split into column segments wherever the gap between two neighbouring characters' boxes is
-wider than 2.2 times that line's space width, measured from the line's real (not pdfium-generated) space
-characters (falling back to the page's spaces, then half a glyph width). One or two spaces never split a value,
-in any font; three or more spaces and cell boundaries do. Every match is cut at the end of the segment it starts
-in. A labelled value (after "Patient:", "Address:", "Member ID" and the other labels above) may carry on across
-one more gap made of real spaces inside the same cell, up to the end of that next segment or the first
-billing-shaped token (a date, a dollar amount, or a 5-character CPT/HCPCS-shaped code), whichever comes first. It
-never crosses a pdfium-generated cell separator.
+Each printed line is split into column segments from the character boxes. A gap between two neighbouring
+characters starts a new segment when it is wider than 2.2 times the line's space width (measured from the line's
+real, not pdfium-generated, space characters; falling back to the page's, then half a glyph width). Where pdfium
+filled the gap with a generated separator, which it does between separately drawn pieces of text such as table
+cells, the bar is lower: wider than one real space, or than 0.4 of the line's character height (only the height
+bar applies on a page with no real spaces, where generated separators may be ordinary word gaps). One or two
+typed spaces never split a value, in any font; three or more do, and so do cells whose text fills the cell (about
+5.7 pt apart in the tested fonts, Helvetica, Times and Courier). Presidio reads each segment as its own line, and
+every match is cut at the end of the segment it starts in. A labelled value (after "Patient:", "Address:", "Member
+ID" and the other labels above) may carry on across one more gap made of typed spaces inside the same cell, up to
+the end of that next segment or the first billing-shaped token, whichever comes first: a date (`m/d/yyyy`,
+`yyyy-mm-dd`, "Oct 15, 2026" or "15 October 2026"), a dollar amount, or a 5-character CPT/HCPCS-shaped code. Words
+before that token (a service description, say) are masked with the value. It never crosses a cell separator.
 
 **Not targeted:** procedure codes, modifiers, units, charges, dates of service and place of service. Dates are
 not a redacted type; a name or place found by the language model is cut before its first word containing a digit;
-phone matches need a separator and are dropped when their column segment holds a dollar amount or a date. This
-is checked by tests on generated bills of every layout (in Helvetica and Courier), but it is not a guarantee: a
-provider name, payer name or claim number may be masked if it looks like a person's name or a labelled ID, and a
-billing value printed in the same cell right after an identifier (one or two spaces apart, so in the same
-segment) can still be covered.
+phone matches need a separator and are dropped when the matched text itself overlaps a date or dollar amount.
+This is checked by tests on generated bills of every layout (in Helvetica, Times and Courier) and on tight table
+cells, but it is not a guarantee: a provider name, payer name or claim number may be masked if it looks like a
+person's name or a labelled ID; a billing value printed in the same cell right after an identifier (one or two
+spaces apart, so in the same segment) can still be covered; and cells drawn so close that pdfium inserts no
+separator and the gap stays under 2.2 spaces (as can happen in PDFs from other tools) are read as one column.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
 or a page whose text and character positions don't line up is sent unmasked and counted as not redactable. A
