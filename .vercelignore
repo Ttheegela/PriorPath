@@ -8,3 +8,10 @@ tests
 evals
 scripts
 .github
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.claude
+migrations
+alembic.ini
+docker-compose.yml

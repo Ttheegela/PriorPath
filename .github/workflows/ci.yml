@@ -19,6 +19,7 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       TEST_DATABASE_URL: postgresql+psycopg://priorpath:priorpath@localhost:5433/priorpath_test
+      DATABASE_URL: postgresql+psycopg://priorpath:priorpath@localhost:5433/priorpath_test
       REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@v4
@@ -32,5 +33,6 @@ jobs:
       - run: ruff format --check .
       - run: mypy app evals scripts
       - run: pytest -q
+      - run: alembic check
       - run: python -m evals.run --n 300 --seed 7
       - run: git diff --exit-code evals/results

@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import Any
 
+import pytest
+
 from app.ingest.fhir import claim_to_eob, claims_to_bundle, parse_fhir
 from app.rules import run_rules
 from tests.helpers import FIXTURE_REF, claim, line
@@ -248,3 +250,16 @@ def test_overlong_claim_id_provider_payer_are_errors() -> None:
     assert [e.path for e in res.errors] == ["$.entry[0].resource.id"]
     res = parse_fhir(_bundle(eob([item(1)], provider={"display": "p" * 201})))
     assert res.claims == [] and res.errors[0].path == "$.entry[0].resource"
+
+
+def test_pseudonym_is_keyed_and_hides_the_reference(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.ingest.fhir import pseudonym
+
+    monkeypatch.setenv("PSEUDONYM_SECRET", "key-one")
+    a = pseudonym("Patient/abc")
+    assert a.startswith("P-") and len(a) == 18 and "abc" not in a
+    monkeypatch.setenv("PSEUDONYM_SECRET", "key-two")
+    assert pseudonym("Patient/abc") != a
+    monkeypatch.delenv("PSEUDONYM_SECRET")
+    monkeypatch.setenv("SESSION_SECRET", "key-one")
+    assert pseudonym("Patient/abc") == a

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import os
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
@@ -24,7 +26,9 @@ class ParseResult:
 
 
 def pseudonym(patient_reference: str) -> str:
-    return "P-" + hashlib.sha256(patient_reference.encode()).hexdigest()[:8]
+    # Fixed dev key only when no secret is configured (tests, evals); real deployments set one.
+    key = os.environ.get("PSEUDONYM_SECRET") or os.environ.get("SESSION_SECRET") or "dev-pseudonym-key"
+    return "P-" + hmac.new(key.encode(), patient_reference.encode(), hashlib.sha256).hexdigest()[:16]
 
 
 def _describe(exc: Exception) -> str:
