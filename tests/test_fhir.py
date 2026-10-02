@@ -2,7 +2,8 @@ from decimal import Decimal
 from typing import Any
 
 from app.ingest.fhir import claim_to_eob, claims_to_bundle, parse_fhir
-from tests.helpers import claim, line
+from app.rules import run_rules
+from tests.helpers import FIXTURE_REF, claim, line
 
 
 def eob(items: list[dict[str, Any]], **extra: Any) -> dict[str, Any]:
@@ -193,3 +194,20 @@ def test_serviced_period_start_fallback() -> None:
     it["servicedPeriod"] = {"start": "2026-10-22"}
     (c,) = parse_fhir(eob([it])).claims
     assert c.lines[0].date_of_service.isoformat() == "2026-10-22"
+
+
+def test_huge_charge_is_parse_error_and_cap_edge_runs_rules() -> None:
+    res = parse_fhir(eob([item(), item(2, net={"value": 1e30})]))
+    assert [e.path for e in res.errors] == ["$.item[1]"]
+    assert "charge out of range" in res.errors[0].message
+    (c,) = parse_fhir(eob([item(net={"value": 9999999.99})])).claims
+    run_rules(c, FIXTURE_REF)
+
+
+def test_non_whole_sequence_is_parse_error() -> None:
+    for bad in (1.2, 1.7, True, "abc"):
+        res = parse_fhir(eob([item(), item(2, sequence=bad)]))
+        assert [e.path for e in res.errors] == ["$.item[1]"], bad
+        assert "sequence must be a whole number" in res.errors[0].message
+    (c,) = parse_fhir(eob([item(sequence=3.0)])).claims
+    assert c.lines[0].id == "L3"

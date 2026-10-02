@@ -59,7 +59,7 @@ def _charge(item: dict[str, Any]) -> Decimal:
     if net is None:
         raise ValueError("no charge: item.net and submitted adjudication missing")
     charge = Decimal(str(net))
-    if not charge.is_finite():
+    if not charge.is_finite() or abs(charge) > 10_000_000:
         raise ValueError("charge out of range")
     return charge
 
@@ -73,10 +73,22 @@ def _units(item: dict[str, Any]) -> int:
     return int(q)
 
 
+def _sequence(raw: object) -> int:
+    try:
+        if isinstance(raw, bool):
+            raise ValueError
+        d = Decimal(str(raw))
+        if not d.is_finite() or d != d.to_integral_value():
+            raise ValueError
+        return int(d)
+    except (ValueError, ArithmeticError):
+        raise ValueError("sequence must be a whole number") from None
+
+
 def _parse_item(item: object, index: int, diag: dict[int, str], default_dos: str | None) -> LineItem:
     if not isinstance(item, dict):
         raise ValueError("expected an object")
-    seq = int(item.get("sequence", index + 1))
+    seq = _sequence(item.get("sequence", index + 1))
     codings = [c for c in _list(_obj(item.get("productOrService")).get("coding")) if isinstance(c, dict)]
     if not codings:
         raise ValueError("no productOrService coding")
