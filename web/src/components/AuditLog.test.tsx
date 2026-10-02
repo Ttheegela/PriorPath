@@ -37,3 +37,25 @@ test("empty and error states", async () => {
   render(<AuditLog caseId="c1" />);
   expect(await screen.findByRole("alert")).toHaveTextContent("case not found");
 });
+
+test("a new refreshKey refetches and a later success clears the error", async () => {
+  let n = 0;
+  const fetchMock = vi.fn(async () => (++n === 1 ? json({ detail: "boom" }, 500) : json([ev({})])));
+  vi.stubGlobal("fetch", fetchMock);
+  const { rerender } = render(<AuditLog caseId="c1" refreshKey="a" />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("boom");
+  rerender(<AuditLog caseId="c1" refreshKey="b" />);
+  expect(await screen.findByText("Flag reviewed")).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+test("a failed refresh keeps the loaded events visible", async () => {
+  let n = 0;
+  vi.stubGlobal("fetch", vi.fn(async () => (++n === 1 ? json([ev({})]) : json({ detail: "boom" }, 500))));
+  const { rerender } = render(<AuditLog caseId="c1" refreshKey="a" />);
+  expect(await screen.findByText("Flag reviewed")).toBeInTheDocument();
+  rerender(<AuditLog caseId="c1" refreshKey="b" />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("boom");
+  expect(screen.getByText("Flag reviewed")).toBeInTheDocument();
+});

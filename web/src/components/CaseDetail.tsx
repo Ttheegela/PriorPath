@@ -166,7 +166,7 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
       })}
       <LetterPanel key={`${detail.letter?.id}:${detail.letter?.body}`} caseDetail={detail} onChange={reload} />
       <h3 className="font-semibold">Activity</h3>
-      <AuditLog caseId={id} refreshKey={detail.status + detail.flags.map((f) => f.status).join()} />
+      <AuditLog caseId={id} refreshKey={[detail.status, detail.letter?.id, detail.letter?.status, detail.letter?.body, ...detail.flags.map((f) => `${f.status}:${f.explanation_status}`)].join("|")} />
     </div>
   );
 }

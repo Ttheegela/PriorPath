@@ -16,7 +16,11 @@ export default function AuditLog({ caseId, refreshKey, onOpenCase }: { caseId?: 
   useEffect(() => {
     let live = true;
     auditLog(caseId).then(
-      (e) => live && setEvents(e),
+      (e) => {
+        if (!live) return;
+        setEvents(e);
+        setError(null);
+      },
       (e) => live && setError(messageOf(e)),
     );
     return () => {
@@ -24,15 +28,16 @@ export default function AuditLog({ caseId, refreshKey, onOpenCase }: { caseId?: 
     };
   }, [caseId, refreshKey]);
 
-  if (error) return <p role="alert" className="border border-black p-2 font-medium">{error}</p>;
-  if (!events) return <p>Loading activity…</p>;
-  if (events.length === 0) return <p className="text-neutral-600">No activity yet.</p>;
+  const heading = !caseId && <h2 className="text-xl font-semibold">Audit log</h2>;
+  if (!events && !error) return <section className="space-y-2">{heading}<p>Loading activity…</p></section>;
+  if (events?.length === 0 && !error) return <section className="space-y-2">{heading}<p className="text-neutral-600">No activity yet.</p></section>;
 
   return (
     <section className="space-y-2">
-      {!caseId && <h2 className="text-xl font-semibold">Audit log</h2>}
+      {heading}
+      {error && <p role="alert" className="border border-black p-2 font-medium">{error}</p>}
       <ol className="space-y-2">
-        {events.map((e) => (
+        {(events ?? []).map((e) => (
           <li key={e.id} className="rounded border border-black bg-white p-2 text-sm">
             <div className="flex flex-wrap gap-3">
               <time dateTime={e.at} className="text-neutral-500">{new Date(e.at).toLocaleString()}</time>
