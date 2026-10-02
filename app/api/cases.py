@@ -7,21 +7,35 @@ from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import select
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+from pydantic import ValidationError
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import LLMDep, RefDep, SessionDep, WorkspaceDep
-from app.api.schemas import CaseDetail, CaseSummary, FlagOut, LetterOut, LineOut, ParseErrorOut, UploadResult
-from app.db.models import Case, FlagRow, Letter
+from app.api.deps import LLMDep, RefDep, SessionDep, VisionDep, WorkspaceDep
+from app.api.schemas import (
+    CaseDetail,
+    CaseSummary,
+    FlagOut,
+    LetterOut,
+    LineOut,
+    LinesEdit,
+    ParseErrorOut,
+    UploadResult,
+)
+from app.db.models import Case, CaseDocument, FlagRow, Letter
 from app.db.session import get_engine
 from app.ingest.fhir import parse_fhir
+from app.ingest.pdf import PdfError, pdf_page_images
+from app.llm.vision import VisionError
+from app.models import LineItem, LineSource
 from app.rules import PayerType
 from app.services.audit_log import record
 from app.services.audit_run import run_audit
 from app.services.capacity import ensure_capacity
 from app.services.cases import case_flags, create_cases, get_case_or_404, summarize, to_claim
 from app.services.explanations import explain_row
+from app.services.pdf_cases import OverBudget, create_pdf_case
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 4_000_000
@@ -30,6 +44,7 @@ NOT_FHIR = (
     "This file isn't a FHIR claim bundle (ExplanationOfBenefit). "
     "Download the sample file to see the expected format."
 )
+NEEDS_CONFIRM = "PDF uploads must be synthetic or test bills; confirm to continue"
 EXPLAIN_DEADLINE_SECONDS = 240  # stay inside the serverless function time limit
 
 
@@ -49,8 +64,13 @@ def upload_cases(
     ws: WorkspaceDep,
     session: SessionDep,
     ref: RefDep,
+    request: Request,
+    vision: VisionDep,
     payer_type: PayerType = "unknown",
+    confirm_synthetic: bool = False,
 ) -> UploadResult | JSONResponse:
+    if body[:5] == b"%PDF-" or request.headers.get("content-type", "").startswith("application/pdf"):
+        return upload_pdf(body, ws, session, ref, vision, payer_type, confirm_synthetic)
     try:
         data = json.loads(body)
     except (UnicodeDecodeError, ValueError, RecursionError):
@@ -72,6 +92,38 @@ def upload_cases(
         run_audit(session, c, ref)
     session.commit()
     return UploadResult(cases=[summarize(c, case_flags(session, c.id)) for c in cases], errors=errors)
+
+
+def upload_pdf(
+    body: bytes,
+    ws: WorkspaceDep,
+    session: SessionDep,
+    ref: RefDep,
+    vision: VisionDep,
+    payer_type: PayerType,
+    confirm_synthetic: bool,
+) -> UploadResult:
+    if not confirm_synthetic:
+        raise HTTPException(status_code=422, detail=NEEDS_CONFIRM)
+    if vision is None:
+        raise HTTPException(status_code=503, detail="PDF extraction is not configured on this server")
+    ensure_capacity(session)
+    try:
+        case, errors = create_pdf_case(session, ws, body, payer_type, ref, vision)
+    except PdfError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except OverBudget:
+        raise HTTPException(status_code=429, detail="hourly AI limit reached; try again later") from None
+    except VisionError:
+        session.rollback()
+        raise HTTPException(
+            status_code=502, detail="the AI model could not read this bill; try again"
+        ) from None
+    session.commit()
+    return UploadResult(
+        cases=[summarize(case, case_flags(session, case.id))],
+        errors=[ParseErrorOut(path=p, message=m) for p, m in errors],
+    )
 
 
 @router.get("/api/cases", response_model=list[CaseSummary])
@@ -99,6 +151,50 @@ def case_detail(session: SessionDep, case: Case) -> CaseDetail:
 @router.get("/api/cases/{case_id}", response_model=CaseDetail)
 def get_case(case_id: uuid.UUID, ws: WorkspaceDep, session: SessionDep) -> CaseDetail:
     return case_detail(session, get_case_or_404(session, ws, case_id))
+
+
+@router.get("/api/cases/{case_id}/pages/{page}")
+def get_page(case_id: uuid.UUID, page: int, ws: WorkspaceDep, session: SessionDep) -> Response:
+    case = get_case_or_404(session, ws, case_id)
+    doc = session.get(CaseDocument, case.id)
+    if doc is None or not 1 <= page <= doc.page_count:
+        raise HTTPException(status_code=404, detail="page not found")
+    # ponytail: re-renders every page per request; cache or render one page if bills get long.
+    return Response(pdf_page_images(doc.content)[page - 1], media_type="image/png")
+
+
+@router.patch("/api/cases/{case_id}/lines", response_model=CaseDetail)
+def edit_lines(case_id: uuid.UUID, edit: LinesEdit, ws: WorkspaceDep, session: SessionDep) -> CaseDetail:
+    case = get_case_or_404(session, ws, case_id)
+    if session.scalar(select(Letter.id).where(Letter.case_id == case.id, Letter.status == "approved")):
+        raise HTTPException(status_code=409, detail="this case already has an approved letter")
+    ids = [e.id for e in edit.lines]
+    if len(set(ids)) != len(ids):
+        raise HTTPException(status_code=422, detail="line ids must be unique")
+    claim = to_claim(case)
+    diagnoses = {ln.id: ln.diagnosis_codes for ln in claim.lines}
+    lines = []
+    for i, e in enumerate(edit.lines):
+        try:
+            lines.append(
+                LineItem(
+                    **e.model_dump(),
+                    diagnosis_codes=diagnoses.get(e.id, []),
+                    source=LineSource.EXTRACTED,
+                    confidence=1.0,
+                )
+            )
+        except ValidationError as exc:
+            problems = [f"lines[{i}].{'.'.join(map(str, p['loc']))}: {p['msg']}" for p in exc.errors()]
+            raise HTTPException(status_code=422, detail="; ".join(problems)) from exc
+    claim.lines = lines
+    case.claim = claim.model_dump(mode="json")
+    session.execute(delete(FlagRow).where(FlagRow.case_id == case.id))
+    session.execute(delete(Letter).where(Letter.case_id == case.id))  # only drafts can exist here
+    case.status = "uploaded"
+    record(session, ws.id, "lines_edited", case_id=case.id, detail={"lines": len(lines)})
+    session.commit()
+    return case_detail(session, case)
 
 
 @router.post("/api/cases/{case_id}/audit", response_model=CaseDetail)

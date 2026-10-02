@@ -25,7 +25,7 @@ from sqlalchemy.exc import OperationalError  # noqa: E402
 
 from app.db.session import get_engine  # noqa: E402
 
-TABLES = "workspaces, cases, flags, letters, audit_events, llm_usage"
+TABLES = "workspaces, cases, flags, letters, audit_events, llm_usage, case_documents"
 
 
 @pytest.fixture(scope="session")

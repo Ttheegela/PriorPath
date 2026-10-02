@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Workspace
 from app.db.session import get_session
 from app.llm.client import LLMClient, default_client
+from app.llm.vision import VisionClient, default_vision_client
 from app.reference.base import InMemoryReference
 from app.reference.normalized import load_normalized
 
@@ -82,3 +83,10 @@ def get_llm() -> LLMClient | None:
 
 
 LLMDep = Annotated[LLMClient | None, Depends(get_llm)]
+
+
+def get_vision() -> VisionClient | None:
+    return default_vision_client()
+
+
+VisionDep = Annotated[VisionClient | None, Depends(get_vision)]

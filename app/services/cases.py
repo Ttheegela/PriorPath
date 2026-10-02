@@ -73,6 +73,7 @@ def summarize(case: Case, rows: list[FlagRow]) -> CaseSummary:
         source=case.source,
         status=case.status,
         line_count=len(claim.lines),
+        page_count=case.document.page_count if case.document else None,
         error_count=sum(r.severity == Severity.ERROR.value for r in live),
         est_overcharge=totals.errors,
         outlier_amount=totals.outliers,

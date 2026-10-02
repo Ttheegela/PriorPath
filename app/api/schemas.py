@@ -15,6 +15,9 @@ class LineOut(BaseModel):
     charge: Decimal
     date_of_service: date
     place_of_service: str | None
+    source: str
+    confidence: float | None
+    field_confidence: dict[str, float]
 
 
 class FlagOut(BaseModel):
@@ -49,6 +52,7 @@ class CaseSummary(BaseModel):
     source: str
     status: str
     line_count: int
+    page_count: int | None
     error_count: int
     est_overcharge: Decimal
     outlier_amount: Decimal
@@ -95,3 +99,19 @@ class AuditEventOut(BaseModel):
     detail: dict[str, Any]
     ref_versions: list[str]
     at: datetime
+
+
+class LineEdit(BaseModel):
+    """Loosely typed here; the endpoint validates each edit through LineItem."""
+
+    id: str = Field(min_length=1, max_length=64)
+    code: str
+    modifiers: list[str] = Field(default_factory=list)
+    units: int
+    charge: Decimal
+    date_of_service: date
+    place_of_service: str | None = None
+
+
+class LinesEdit(BaseModel):
+    lines: list[LineEdit] = Field(min_length=1, max_length=200)

@@ -1,31 +1,39 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.db.models import LlmUsage
 
 EXPLANATIONS_PER_HOUR = 20
-GLOBAL_EXPLANATIONS_PER_HOUR = 100
+EXTRACT_PAGES_PER_HOUR = 20
+GLOBAL_EXPLANATIONS_PER_HOUR = 100  # shared across both kinds
 
 
-def try_consume(session: Session, workspace_id: uuid.UUID, now: datetime | None = None) -> bool:
+def try_consume(
+    session: Session, workspace_id: uuid.UUID, kind: str = "explain", now: datetime | None = None
+) -> bool:
+    cap = EXTRACT_PAGES_PER_HOUR if kind == "extract" else EXPLANATIONS_PER_HOUR
     hour = (now or datetime.now(UTC)).replace(minute=0, second=0, microsecond=0)
     stmt = (
         insert(LlmUsage)
-        .values(workspace_id=workspace_id, hour_start=hour, calls=1)
+        .values(workspace_id=workspace_id, hour_start=hour, kind=kind, calls=1)
         .on_conflict_do_update(
-            index_elements=[LlmUsage.workspace_id, LlmUsage.hour_start], set_={"calls": LlmUsage.calls + 1}
+            index_elements=[LlmUsage.workspace_id, LlmUsage.hour_start, LlmUsage.kind],
+            set_={"calls": LlmUsage.calls + 1},
         )
         .returning(LlmUsage.calls)
     )
-    if session.execute(stmt).scalar_one() > EXPLANATIONS_PER_HOUR:
+    if session.execute(stmt).scalar_one() > cap:
         return False
-    # Count each workspace at most up to its own cap, so refused retries from one workspace
+    # Count each workspace/kind at most up to its own cap, so refused retries from one workspace
     # can't use up the global budget for everyone else.
-    per_workspace = func.least(LlmUsage.calls, EXPLANATIONS_PER_HOUR)
+    per_workspace = case(
+        (LlmUsage.kind == "extract", func.least(LlmUsage.calls, EXTRACT_PAGES_PER_HOUR)),
+        else_=func.least(LlmUsage.calls, EXPLANATIONS_PER_HOUR),
+    )
     total = session.scalar(
         select(func.coalesce(func.sum(per_workspace), 0)).where(LlmUsage.hour_start == hour)
     )
