@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml/badge.svg?branch=v2-bill-audit)](https://github.com/Ttheegela/PriorPath/actions/workflows/ci.yml)
 
-![Walkthrough: sort the case queue by overcharge, accept a billing error, draft, approve and download the dispute letter, then open a PDF bill case](docs/demo.gif)
+![Walkthrough: sort the case queue by overcharge, open a case, accept a billing error, draft, approve and download the dispute letter, return to the queue and open the pre-extracted PDF bill case](docs/demo.gif)
 
 PriorPath audits medical bills for billing errors using public Medicare rules, explains each finding in plain English with AI (artificial intelligence), and drafts a dispute letter a person approves.
 
@@ -145,7 +145,7 @@ Every step writes an entry to the workspace's audit log.
 | Letter edit check | The same number check runs on letter edits against the generated letter; links are refused; approval fails if the accepted findings changed after drafting. | `app/api/letters.py` |
 | Budgets and rate limits | Two separate hourly pools per workspace: 20 explanations and 20 PDF pages. Across all workspaces, 100 AI calls per hour in total, shared by both kinds. A PDF that would go over budget is refused with 429 ("hourly AI limit reached; try again later") and nothing is stored. Explanations are capped at 300 output tokens; a stream stops after 240 seconds. PDF reading also stops at 240 seconds (504, nothing stored). The OpenRouter key also has a credit cap. | `app/services/llm_budget.py` |
 | What is sent to a model | **Explanations:** one flag at a time: rule ID (identifier), severity, finding message, evidence row (codes, dates, units, modifiers, rates, release) and estimated overcharge. **Never sent:** patient pseudonym, provider name, payer name, or any other claim line. **PDF extraction:** the page images, with identifiers blacked out on text-layer pages (see the redaction row). Demo-case explanations are precomputed, so browsing the demo makes no model calls. | `app/llm/explain.py`, `app/services/pdf_cases.py` |
-| Langfuse tracing | Optional, off unless `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set. Each model call records only the model ID, prompt version, latency, token usage, finish reason, success or error type, rule ID, page and flag counts and a hashed workspace ID. **Never sent:** prompts, model outputs, page images, PDF bytes, letter text, or patient, provider or payer names. Tracing failures are swallowed and never affect a request. | `app/observability.py`, [`docs/SECURITY.md`](docs/SECURITY.md) |
+| Langfuse tracing | Optional, off unless `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set. Each model call records only the model ID, prompt version, latency, token usage, finish reason, success or error type and, where applicable, the rule ID (faithfulness judge) or page number (extraction). **Never sent:** prompts, model outputs, explanation or letter text, page images, PDF bytes, or patient, provider or payer names. Tracing failures are swallowed and never affect a request. | `app/observability.py`, [`docs/SECURITY.md`](docs/SECURITY.md) |
 | PDF redaction | On pages with a text layer, Presidio (small spaCy model) and patterns for labelled fields find names, phone numbers, email addresses, SSNs (Social Security numbers), locations and labelled member/policy IDs in the page text; each match is cut at the edge of its table column, and those regions are painted black on the image before it is sent. Codes, modifiers, units, charges, dates of service and place of service are not targeted, and tests check this on generated bills of every layout. Scanned or rotated pages can't be redacted and are sent as they are; the upload response reports `pages_redacted`, `pages_not_redactable`, `pages_partially_redacted` and entity counts. Best-effort, not de-identification; see [`docs/SECURITY.md`](docs/SECURITY.md). | `app/ingest/redact.py`, `app/ingest/pdf.py` |
 | PDF synthetic-only confirmation | Page images go to a hosted model and redaction is best-effort, so the API refuses a PDF unless the request carries `confirm_synthetic=true` (422 "PDF uploads must be synthetic or test bills; confirm to continue"), and the UI requires the checkbox. | `app/api/cases.py`, `web/src/components/CaseQueue.tsx` |
 | Extraction is not a decision | The vision model only reads lines; rules still decide flags. Its output must pass the JSON schema and `LineItem` validation; text on the page is treated as data, not instructions. Low-confidence lines go to human line review. | `app/llm/extract.py` |
@@ -155,7 +155,7 @@ Every step writes an entry to the workspace's audit log.
 
 ## Evaluation
 
-Both evals run in CI (continuous integration) on every push and never call a model there: the rule eval is fully deterministic, and the PDF extraction eval replays recorded model output once a recording is committed. Full description of the rule eval: [`docs/EVALS.md`](docs/EVALS.md).
+Three evals run in CI (continuous integration) on every push and never call a model there: the rule eval is fully deterministic, and the PDF extraction and faithfulness evals replay recorded model output, each skipped until its recording is committed. Full description of the rule eval: [`docs/EVALS.md`](docs/EVALS.md).
 
 ### Rule engine eval (gate)
 

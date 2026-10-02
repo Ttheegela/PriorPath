@@ -91,8 +91,9 @@ provider's retention window; check the Neon project's history retention setting.
 | Uptime checks of `/api/health` | UptimeRobot | Periodically; no user data. |
 
 Langfuse tracing *(Plan 5)* records only the model id, prompt version, timing, token usage and outcome
-(finish reason, success or error type) of each AI call, plus counts and a hashed workspace id. Prompts,
-completions, page images, PDF bytes and patient, provider or payer names are never sent (`app/observability.py`).
+(finish reason, success or error type) of each AI call, plus, where applicable, the rule id (faithfulness judge)
+or page number (extraction). Prompts, completions, explanation or letter text, page images, PDF bytes and
+patient, provider or payer names are never sent (`app/observability.py`).
 OpenRouter and model providers have their own logging and retention policies, which vary by provider;
 verify current vendor terms. Assume anything sent may be retained by them.
 
