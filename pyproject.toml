@@ -12,6 +12,8 @@ dependencies = [
     "openai>=1.40,<4",
     "itsdangerous>=2.2,<3",
     "python-docx>=1.1,<2",
+    "pypdfium2>=4.30,<6",
+    "pillow>=10,<13",
 ]
 
 [tool.ruff]
@@ -28,7 +30,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["openpyxl", "openpyxl.*", "docx", "docx.*"]
+module = ["openpyxl", "openpyxl.*", "docx", "docx.*", "pypdfium2", "pypdfium2.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

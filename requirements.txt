@@ -6,3 +6,5 @@ langgraph>=1.2,<2
 openai>=1.40,<4
 itsdangerous>=2.2,<3
 python-docx>=1.1,<2
+pypdfium2>=4.30,<6
+pillow>=10,<13
