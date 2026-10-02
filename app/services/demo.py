@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 
 from sqlalchemy import delete
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.db.models import Case, Workspace
 from app.ingest.fhir import parse_fhir
 from app.llm.cache import cached_explanation
+from app.models import Claim
 from app.reference.base import InMemoryReference
 from app.services.audit_log import record
 from app.services.audit_run import run_audit
@@ -22,11 +24,18 @@ def demo_enabled() -> bool:
     return os.environ.get("PRIORPATH_DEMO", "1") != "0"
 
 
+@lru_cache(maxsize=2)
+def _load_demo(path: Path) -> tuple[Claim, ...]:
+    if not path.exists():
+        return ()
+    return tuple(parse_fhir(json.loads(path.read_text())).claims)
+
+
 def seed_demo(session: Session, ws: Workspace, ref: InMemoryReference) -> int:
-    if not DEMO_CASES.exists():
+    claims = [c.model_copy(deep=True) for c in _load_demo(DEMO_CASES)]
+    if not claims:
         return 0
-    result = parse_fhir(json.loads(DEMO_CASES.read_text()))
-    cases = create_cases(session, ws, result.claims, payer_type="medicare", actor="system")
+    cases = create_cases(session, ws, claims, payer_type="medicare", actor="system")
     for case in cases:
         for row in run_audit(session, case, ref, actor="system"):
             text = cached_explanation(flag_from_row(row, str(case.claim["id"])))

@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from functools import lru_cache
@@ -54,7 +55,11 @@ def current_workspace(request: Request, response: Response, session: SessionDep,
         session.add(ws)
         session.flush()
         if demo_enabled():
-            seed_demo(session, ws, ref)
+            try:
+                with session.begin_nested():
+                    seed_demo(session, ws, ref)
+            except Exception:
+                logging.getLogger(__name__).exception("demo seeding failed")
         session.commit()
         response.set_cookie(
             COOKIE_NAME,

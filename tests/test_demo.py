@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,3 +49,23 @@ def test_cleanup_requires_cron_secret_and_deletes_old_workspaces(db: Engine) -> 
     with Session(db) as s:
         assert len(s.scalars(select(Workspace)).all()) == 1
         assert cleanup_old_workspaces(s) == 0
+
+
+def test_bad_demo_file_does_not_break_workspace_creation(
+    db: Engine, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    bad = tmp_path / "cases.json"
+    bad.write_text("not json")
+    monkeypatch.setenv("PRIORPATH_DEMO", "1")
+    monkeypatch.setattr("app.services.demo.DEMO_CASES", bad)
+    c = TestClient(app)
+    r = c.get("/api/workspace")
+    assert r.status_code == 200 and "pp_ws" in c.cookies
+    assert c.get("/api/cases").json() == []
+
+
+def test_cleanup_non_ascii_or_empty_secret_is_401(db: Engine, monkeypatch: pytest.MonkeyPatch) -> None:
+    c = TestClient(app)
+    assert c.get("/api/internal/cleanup", headers={"Authorization": "Bearer ñ".encode()}).status_code == 401
+    monkeypatch.setenv("CRON_SECRET", "")
+    assert c.get("/api/internal/cleanup", headers={"Authorization": "Bearer "}).status_code == 401
