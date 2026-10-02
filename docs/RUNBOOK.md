@@ -106,7 +106,7 @@ npx vercel deploy --prod                     # environment changes apply only to
 
 | Secret | Where the new value comes from | What rotating it does | Verify |
 |---|---|---|---|
-| `DATABASE_URL` | Neon console: reset the role's password, copy the pooled connection string | Old connections fail after the reset, so reset, replace and redeploy together | `curl -s https://priorpath.vercel.app/api/health` shows `"db": "ok"` |
+| `DATABASE_URL` | Neon console: reset the role's password, copy the pooled connection string (the runtime uses the pooled one; migrations use the direct, non-pooled one, see [Migrations](#migrations)) | Old connections fail after the reset, so reset, replace and redeploy together | `curl -s https://priorpath.vercel.app/api/health` shows `"db": "ok"` |
 | `OPENROUTER_API_KEY` | OpenRouter dashboard: create a key with a credit limit, then delete the old key | Nothing user-visible | Upload the sample PDF (below) and get 201, or upload a FHIR claim of your own and see explanations `ready` |
 | `SESSION_SECRET` | A long random string, piped straight in so it is never shown: `python -c "import secrets; print(secrets.token_urlsafe(48))" \| npx vercel env add SESSION_SECRET production --force` | Every existing `pp_ws` cookie becomes invalid: all visitors get a new workspace, and the old ones are deleted by the daily cleanup. If `PSEUDONYM_SECRET` is unset, future patient pseudonyms change too | Open the site: a fresh demo workspace appears |
 | `PSEUDONYM_SECRET` (optional) | Random string as above | New uploads get different pseudonyms for the same patient id; stored cases keep theirs | Upload a FHIR claim; the case shows a `P-` pseudonym |
@@ -185,8 +185,8 @@ The database passed 400 MB, so new workspaces and uploads are refused. Existing 
 1. Check the size: `psql "$DATABASE_URL" -c "select pg_size_pretty(pg_database_size(current_database()))"`.
 2. Run the cleanup now instead of waiting for 05:00 UTC (deletes workspaces older than 24 hours):
    ```bash
-   read -rs CRON_SECRET && export CRON_SECRET
-   curl -s -H "Authorization: Bearer $CRON_SECRET" https://priorpath.vercel.app/api/internal/cleanup
+   read -rs CRON_SECRET    # the header goes to curl on stdin, so the secret is never in its argv
+   printf 'Authorization: Bearer %s\n' "$CRON_SECRET" | curl -s -H @- https://priorpath.vercel.app/api/internal/cleanup
    unset CRON_SECRET
    ```
 3. If it's still full (for example a bot creating workspaces), delete younger workspaces; everything they own
@@ -229,9 +229,8 @@ return 500.
 1. Check the Neon console and status page: compute suspended, quota reached, an incident, or a project setting
    changed.
 2. If the password or host changed, update `DATABASE_URL` (see [Secrets](#secrets)) and redeploy.
-3. Known gap: the connection has no `connect_timeout`, so a database that accepts the TCP connection but never
-   answers can hold a request until the platform limit instead of failing fast; and if `DATABASE_URL` is missing
-   entirely the health check returns 500, not 503.
+3. Connections give up after 10 s (`connect_timeout`), and a missing `DATABASE_URL` also makes the health check
+   return 503.
 4. When Neon is back, run the smoke test. No data repair is needed: requests that failed rolled back.
 
 ## Evals and demo data

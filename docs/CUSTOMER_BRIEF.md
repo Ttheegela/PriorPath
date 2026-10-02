@@ -1,6 +1,6 @@
 # PriorPath: customer brief
 
-_For a buyer or pilot sponsor. Two pages, no engineering background needed. Technical detail is in
+_For a buyer or pilot sponsor. Short brief, no engineering background needed. Technical detail is in
 [`ARCHITECTURE.md`](ARCHITECTURE.md); the security position is in [`SECURITY.md`](SECURITY.md)._
 
 ## Who it is for
@@ -86,8 +86,9 @@ done. A pilot would measure it like this:
   flagged (precision and recall 1.000 for every rule). These claims are built from the same rules, so this shows
   the rules do what they say, not that they match every payer's real adjudication.
 - **PDF reading:** on 30 synthetic bills in three layouts (half with simulated scan noise), the vision model read
-  150 of 153 lines exactly (line F1 0.980), and every planted error was still found after reading. Real bills will
-  score lower. The current numbers are in [`evals/results/`](../evals/results/).
+  150 of 153 lines exactly (line F1 0.980, measured before redaction; re-recorded at release), and every planted
+  error was still found after reading. Real bills will score lower. The current numbers are in
+  [`evals/results/`](../evals/results/).
 - **Explanations:** a separate AI judge checks each demo explanation against its finding; the faithfulness rate
   is recorded at release in [`evals/results/`](../evals/results/). It covers 15 demo explanations, so it is a
   smoke signal, not a precise measurement.

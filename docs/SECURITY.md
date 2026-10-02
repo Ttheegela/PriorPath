@@ -142,11 +142,11 @@ tight cells may also be read as one column when the cell bar can't see them: Cou
 about 1 mm cell margins (the gap falls under 0.4 of the character height and under one space), and cells on a line
 that has no real spaces.
 
-**Missed:** Presidio's phone parser can miss a number followed directly by an ISO date (`(217) 555-0143
-2026-10-15`) or inside a sentence ("please call (217) 555-0143 if ..."). On text layers drawn one word at a time, as
-some PDF tools and OCR layers do, each line is read as one segment while its word gaps stay under 2.2 spaces; on a
-page with no real spaces in a proportional font, word gaps of about half an em or more (widely justified text) split
-every word into its own segment, and names, addresses and phone numbers on it can be missed. OCR text layers are
+**Missed:** Presidio's phone parser can miss a number followed directly by a date or number (`10/15/2026`,
+`2026-10-15`, `99213`) or inside a sentence ("please call (217) 555-0143 if ..."). On text layers drawn one word
+at a time, as some PDF tools and OCR layers do, each line is read as one segment while its word gaps stay under
+2.2 spaces; on a page with no real spaces in a proportional font, word gaps of about half an em or more (widely
+justified text) split every word into its own segment, and names, addresses and phone numbers on it can be missed. OCR text layers are
 not tested.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
@@ -154,6 +154,11 @@ or a page whose text and character positions don't line up is sent unmasked and 
 match that runs off the page edge is masked up to the edge and the page is counted as partially redacted. Text
 inside embedded images, an address line that wraps without a label, and anything Presidio does not detect are
 not covered.
+
+**Annotations and form fields:** annotation and form-field appearances (comments, stamps, filled-in fillable
+fields) are not in the text layer redaction reads, so model-bound images are rendered without them: their text is
+never sent to the model. A value that exists only in a fillable form field is therefore not read, and the case
+lands in line review. The reviewer's own page view still shows them.
 
 **Reported:** the upload response and the `case_uploaded` audit event carry
 `{"pages_redacted", "pages_not_redactable", "pages_partially_redacted", "entities": {type: count}}` (counts only,
