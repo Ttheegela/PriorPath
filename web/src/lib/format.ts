@@ -5,6 +5,7 @@ export const money = (v: string | number) => usd.format(Number(v));
 
 export const STATUS_LABEL: Record<string, string> = {
   uploaded: "Uploaded",
+  needs_line_review: "Needs line review",
   needs_review: "Needs review",
   letter_ready: "Letter drafted",
   approved: "Letter approved",

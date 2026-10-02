@@ -14,7 +14,7 @@ const letter = (over: Partial<Letter> = {}): Letter => ({
 });
 const caseWith = (over: Partial<CaseDetail>): CaseDetail => ({
   id: "c1", claim_id: "C0001", provider: null, payer: null, payer_type: "medicare", source: "fhir", status: "needs_review",
-  line_count: 2, error_count: 1, est_overcharge: "30.00", outlier_amount: "0.00", created_at: "x", lines: [],
+  line_count: 2, page_count: null, error_count: 1, est_overcharge: "30.00", outlier_amount: "0.00", created_at: "x", lines: [],
   flags: [accepted], letter: null, ...over,
 });
 const json = (body: unknown, status = 200) =>

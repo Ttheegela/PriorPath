@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { listCases, messageOf, resetDemo, uploadCases, type CaseSummary, type PayerType, type UploadResult } from "../lib/api";
+import { isPdf, listCases, messageOf, resetDemo, uploadCases, type CaseSummary, type PayerType, type UploadResult } from "../lib/api";
 import { money, STATUS_LABEL, statusLabel } from "../lib/format";
 import { isPlainClick, routeHref } from "../lib/route";
 
@@ -12,6 +12,7 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
   const [sort, setSort] = useState<"newest" | "overcharge">("newest");
   const [file, setFile] = useState<File | null>(null);
   const [payerType, setPayerType] = useState<PayerType>("medicare");
+  const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uploaded, setUploaded] = useState<UploadResult | null>(null);
 
@@ -42,9 +43,10 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
   const upload = () =>
     run(async () => {
       setUploaded(null);
-      if (!file) throw new Error("Choose a FHIR JSON file first.");
+      if (!file) throw new Error("Choose a FHIR JSON or PDF file first.");
       if (file.size > MAX_UPLOAD) throw new Error("That file is larger than 4 MB; split the bundle and try again.");
-      setUploaded(await uploadCases(file, payerType));
+      if (isPdf(file) && !confirmed) throw new Error("Confirm that this is a synthetic or test bill before uploading a PDF.");
+      setUploaded(await uploadCases(file, payerType, { confirmSynthetic: confirmed }));
       load();
     });
 
@@ -59,9 +61,15 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
     <section className="space-y-6">
       <div className="flex flex-wrap items-end gap-4 border border-black bg-white p-4">
         <label className="flex flex-col text-sm">
-          Claim file (FHIR JSON, up to 4 MB)
-          <input type="file" accept=".json,application/json" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          Claim file (FHIR JSON or PDF bill, up to 4 MB)
+          <input type="file" accept=".json,application/json,.pdf,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
+        {file && isPdf(file) && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
+            This is a synthetic or test bill (page images are sent to an AI model)
+          </label>
+        )}
         <label className="flex flex-col text-sm">
           Payer type
           <select value={payerType} onChange={(e) => setPayerType(e.target.value as PayerType)} className="rounded border border-black px-2 py-1">
@@ -78,8 +86,9 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
         </button>
       </div>
       <p className="text-sm text-neutral-700">
-        Upload a FHIR ExplanationOfBenefit bundle. PriorPath runs the audit automatically and the case appears below.{" "}
-        <a href="/api/samples/claim.json" download className="underline">Download a sample claim (FHIR JSON)</a>
+        Upload a FHIR ExplanationOfBenefit bundle or a PDF bill. PriorPath runs the audit automatically and the case appears below.{" "}
+        <a href="/api/samples/claim.json" download className="underline">Download a sample claim (FHIR JSON)</a>{" "}
+        <a href="/api/samples/bill.pdf" download className="underline">Download a sample bill (PDF)</a>
       </p>
 
       {error && <p role="alert" className="border border-black p-2 font-medium">{error}</p>}

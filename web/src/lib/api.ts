@@ -13,6 +13,19 @@ export interface Line {
   charge: string;
   date_of_service: string;
   place_of_service: string | null;
+  source: "structured" | "extracted";
+  confidence: number | null;
+  field_confidence: Record<string, number>;
+}
+
+export interface LineEdit {
+  id: string;
+  code: string;
+  modifiers: string[];
+  units: number;
+  charge: string;
+  date_of_service: string;
+  place_of_service: string | null;
 }
 
 export interface Flag {
@@ -47,6 +60,7 @@ export interface CaseSummary {
   source: string;
   status: string;
   line_count: number;
+  page_count: number | null;
   error_count: number;
   est_overcharge: string;
   outlier_amount: string;
@@ -140,11 +154,18 @@ export const auditLog = (caseId?: string) =>
 export const updateFlag = (id: string, status: FlagStatus, rejectReason?: string) =>
   request<Flag>(`/api/flags/${encodeURIComponent(id)}`, jsonInit("PATCH", { status, reject_reason: rejectReason ?? null }));
 
-export async function uploadCases(file: File, payerType: PayerType): Promise<UploadResult> {
-  return request<UploadResult>(`/api/cases?payer_type=${payerType}`, {
+export const updateLines = (caseId: string, lines: LineEdit[]) =>
+  request<CaseDetail>(`/api/cases/${encodeURIComponent(caseId)}/lines`, jsonInit("PATCH", { lines }));
+export const pageUrl = (caseId: string, n: number) => `/api/cases/${encodeURIComponent(caseId)}/pages/${n}`;
+
+export const isPdf = (file: File) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+export async function uploadCases(file: File, payerType: PayerType, { confirmSynthetic = false } = {}): Promise<UploadResult> {
+  const pdf = isPdf(file);
+  return request<UploadResult>(`/api/cases?payer_type=${payerType}${pdf && confirmSynthetic ? "&confirm_synthetic=true" : ""}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: await file.text(),
+    headers: { "Content-Type": pdf ? "application/pdf" : "application/json" },
+    body: pdf ? file : await file.text(),
   });
 }
 

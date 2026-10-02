@@ -6,7 +6,7 @@ import type { CaseSummary } from "../lib/api";
 
 const summary = (over: Partial<CaseSummary>): CaseSummary => ({
   id: "c1", claim_id: "C0001", provider: "Clinic A", payer: "Medicare", payer_type: "medicare", source: "fhir",
-  status: "needs_review", line_count: 4, error_count: 1, est_overcharge: "30.00", outlier_amount: "0.00",
+  status: "needs_review", line_count: 4, page_count: null, error_count: 1, est_overcharge: "30.00", outlier_amount: "0.00",
   created_at: "2026-10-02T10:00:00Z", ...over,
 });
 
@@ -14,7 +14,7 @@ const ok = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 function stubFetch(routes: Record<string, () => Response>) {
-  const fetchMock = vi.fn(async (url: string) => {
+  const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     const key = Object.keys(routes).find((k) => url.startsWith(k));
     if (!key) throw new Error(`unexpected fetch ${url}`);
     return routes[key]();
@@ -129,3 +129,47 @@ test("after upload the new case shows its audit result", async () => {
   expect(await screen.findByText(/NEW-1: 2 billing errors, est. overcharge \$60.00/)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Open NEW-1" })).toBeInTheDocument();
 });
+
+const CONFIRM = "This is a synthetic or test bill (page images are sent to an AI model)";
+const pdf = () => new File(["%PDF-1.4"], "bill.pdf", { type: "application/pdf" });
+
+test("accepts FHIR JSON or PDF and links a sample bill", async () => {
+  stubFetch({ "/api/cases": () => ok(cases) });
+  render(<CaseQueue onOpen={() => {}} />);
+  const input = await screen.findByLabelText("Claim file (FHIR JSON or PDF bill, up to 4 MB)");
+  expect(input).toHaveAttribute("accept", ".json,application/json,.pdf,application/pdf");
+  expect(screen.getByRole("link", { name: "Download a sample bill (PDF)" })).toHaveAttribute("href", "/api/samples/bill.pdf");
+  expect(screen.queryByLabelText(CONFIRM)).not.toBeInTheDocument();
+});
+
+test("a PDF upload is blocked until the synthetic-bill box is ticked, then sent as PDF", async () => {
+  const fetchMock = stubFetch({
+    "/api/cases?payer_type": () => ok({ cases: [summary({ id: "n", claim_id: "B1" })], errors: [] }, 201),
+    "/api/cases": () => ok(cases),
+  });
+  render(<CaseQueue onOpen={() => {}} />);
+  await screen.findByText("C0001");
+  await userEvent.upload(screen.getByLabelText(/Claim file/), pdf());
+  await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(/confirm/i);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByLabelText(CONFIRM));
+  await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+  expect(await screen.findByText(/B1:/)).toBeInTheDocument();
+  const call = fetchMock.mock.calls.find(([u]) => String(u).startsWith("/api/cases?payer_type"))!;
+  expect(call[0]).toBe("/api/cases?payer_type=medicare&confirm_synthetic=true");
+  expect(call[1]?.headers).toEqual({ "Content-Type": "application/pdf" });
+});
+
+test.each([[429, "hourly AI limit reached; try again later"], [502, "the model failed; try again"]])(
+  "shows a %i from a PDF upload verbatim",
+  async (status, detail) => {
+    stubFetch({ "/api/cases?payer_type": () => ok({ detail }, status), "/api/cases": () => ok(cases) });
+    render(<CaseQueue onOpen={() => {}} />);
+    await screen.findByText("C0001");
+    await userEvent.upload(screen.getByLabelText(/Claim file/), pdf());
+    await userEvent.click(screen.getByLabelText(CONFIRM));
+    await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(detail);
+  },
+);

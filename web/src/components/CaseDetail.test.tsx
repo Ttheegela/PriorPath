@@ -12,11 +12,11 @@ const flag = (over: Partial<Flag>): Flag => ({
 
 const detail = (over: Partial<Detail> = {}): Detail => ({
   id: "c1", claim_id: "C0001", provider: "Clinic A", payer: "Medicare", payer_type: "medicare", source: "fhir",
-  status: "needs_review", line_count: 2, error_count: 1, est_overcharge: "30.00", outlier_amount: "120.00",
+  status: "needs_review", line_count: 2, page_count: null, error_count: 1, est_overcharge: "30.00", outlier_amount: "120.00",
   created_at: "2026-10-02T10:00:00Z",
   lines: [
-    { id: "L1", code: "96372", modifiers: [], units: 1, charge: "30.00", date_of_service: "2026-11-03", place_of_service: "11" },
-    { id: "L2", code: "96372", modifiers: [], units: 1, charge: "30.00", date_of_service: "2026-11-03", place_of_service: "11" },
+    { id: "L1", code: "96372", modifiers: [], units: 1, charge: "30.00", date_of_service: "2026-11-03", place_of_service: "11", source: "structured", confidence: null, field_confidence: {} },
+    { id: "L2", code: "96372", modifiers: [], units: 1, charge: "30.00", date_of_service: "2026-11-03", place_of_service: "11", source: "structured", confidence: null, field_confidence: {} },
   ],
   flags: [
     flag({}),
@@ -146,4 +146,20 @@ test("an approved letter locks Run audit and every Accept", async () => {
   const accepts = screen.getAllByRole("button", { name: "Accept" });
   expect(accepts.length).toBeGreaterThan(0);
   for (const b of accepts) expect(b).toBeDisabled();
+});
+
+test("a PDF case needing line review shows the review section above the flags", async () => {
+  stubFetch(vi.fn(async () => json(detail({ source: "pdf", status: "needs_line_review", page_count: 1, flags: [] }))));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  expect(await screen.findByRole("heading", { name: "Review extracted lines" })).toBeInTheDocument();
+  expect(screen.getByText("Some values were hard to read. Check the marked fields against the bill, then save.")).toBeInTheDocument();
+  expect(screen.getByAltText("Bill page 1")).toBeInTheDocument();
+});
+
+test("an audited PDF case keeps the line review collapsed", async () => {
+  stubFetch(vi.fn(async () => json(detail({ source: "pdf", page_count: 1 }))));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  const summary = await screen.findByText("Extracted lines and bill pages");
+  expect(summary.closest("details")).not.toHaveAttribute("open");
+  expect(screen.queryByRole("heading", { name: "Review extracted lines" })).not.toBeInTheDocument();
 });

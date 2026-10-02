@@ -3,6 +3,7 @@ import { ApiError, auditCase, getCase, messageOf, streamExplanations, type CaseD
 import { money, SEVERITY_GROUPS, statusLabel } from "../lib/format";
 import AuditLog from "./AuditLog";
 import FlagCard from "./FlagCard";
+import LineReview from "./LineReview";
 import LetterPanel from "./LetterPanel";
 
 const EXPLAINABLE = new Set(["pending", "unavailable"]);
@@ -50,6 +51,8 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
   const replaceFlag = (f: Flag) => setDetail((d) => d && { ...d, flags: d.flags.map((x) => (x.id === f.id ? f : x)) });
   const flagsByLine = new Map<string, string[]>();
   for (const f of detail.flags) for (const l of f.line_ids) flagsByLine.set(l, [...(flagsByLine.get(l) ?? []), f.rule_id]);
+  const needsLineReview = detail.status === "needs_line_review";
+  const lineReview = <LineReview key={JSON.stringify(detail.lines)} caseDetail={detail} onSaved={reload} />;
   const canExplain = detail.flags.some((f) => EXPLAINABLE.has(f.explanation_status));
 
   async function runAudit() {
@@ -123,6 +126,19 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
         {progress && <span role="status" className="self-center text-sm text-neutral-600">{progress}</span>}
       </div>
       {error && <p role="alert" className="border border-black p-2 font-medium">{error}</p>}
+
+      {detail.source === "pdf" && (needsLineReview ? (
+        <section aria-labelledby="line-review" className="space-y-2">
+          <h3 id="line-review" className="font-semibold">Review extracted lines</h3>
+          <p className="text-sm">Some values were hard to read. Check the marked fields against the bill, then save.</p>
+          {lineReview}
+        </section>
+      ) : (
+        <details className="border border-black p-3">
+          <summary className="cursor-pointer font-medium">Extracted lines and bill pages</summary>
+          <div className="mt-3">{lineReview}</div>
+        </details>
+      ))}
 
       <div className="overflow-x-auto rounded border bg-white">
         <table className="w-full text-left text-sm">
