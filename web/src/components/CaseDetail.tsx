@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, auditCase, getCase, messageOf, streamExplanations, type CaseDetail as Detail, type Flag } from "../lib/api";
 import { money, SEVERITY_GROUPS, statusLabel } from "../lib/format";
+import AuditLog from "./AuditLog";
 import FlagCard from "./FlagCard";
 import LetterPanel from "./LetterPanel";
 
@@ -164,6 +165,8 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
         );
       })}
       <LetterPanel key={`${detail.letter?.id}:${detail.letter?.body}`} caseDetail={detail} onChange={reload} />
+      <h3 className="font-semibold">Activity</h3>
+      <AuditLog caseId={id} refreshKey={detail.status + detail.flags.map((f) => f.status).join()} />
     </div>
   );
 }

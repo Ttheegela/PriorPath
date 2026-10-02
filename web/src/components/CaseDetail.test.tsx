@@ -27,11 +27,14 @@ const detail = (over: Partial<Detail> = {}): Detail => ({
   ...over,
 });
 
+// the Activity timeline fetches /audit-log; keep it empty so tests only see case data
+const stubFetch = (h: (url: string, init?: RequestInit) => Promise<Response>) =>
+  vi.stubGlobal("fetch", (url: string, init?: RequestInit) => (url.endsWith("/audit-log") ? Promise.resolve(json([])) : h(url, init)));
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 test("shows totals, groups flags separately and badges flagged lines", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => json(detail())));
+  stubFetch(vi.fn(async () => json(detail())));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   expect(await screen.findByRole("heading", { name: /C0001/ })).toBeInTheDocument();
   expect(screen.getByText("$30.00", { selector: "[data-total=errors]" })).toBeInTheDocument();
@@ -51,7 +54,7 @@ test("rejecting requires a reason and shows API errors", async () => {
     }
     return json(detail());
   });
-  vi.stubGlobal("fetch", fetchMock);
+  stubFetch(fetchMock);
   render(<CaseDetail id="c1" onBack={() => {}} />);
   const card = within(await screen.findByRole("article", { name: /R1/ }));
   await userEvent.click(card.getByRole("button", { name: "Reject" }));
@@ -62,7 +65,7 @@ test("rejecting requires a reason and shows API errors", async () => {
 });
 
 test("accept shows server errors next to the flag", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+  stubFetch(vi.fn(async (url: string) =>
     url === "/api/flags/f1" ? json({ detail: "flag not found" }, 404) : json(detail())));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   const card = within(await screen.findByRole("article", { name: /R1/ }));
@@ -78,7 +81,7 @@ test("streams explanations, shows progress result and reloads", async () => {
     'event: done\ndata: {"ready": 1, "unavailable": 0, "remaining": 0}\n\n',
   ].join("");
   let gets = 0;
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+  stubFetch(vi.fn(async (url: string) => {
     if (url === "/api/cases/c1/explain") return new Response(sse, { status: 200 });
     if (url === "/api/cases/c1") gets += 1;
     return json(detail());
@@ -90,7 +93,7 @@ test("streams explanations, shows progress result and reloads", async () => {
 });
 
 test("a stream that ends without done is reported", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+  stubFetch(vi.fn(async (url: string) =>
     url.endsWith("/explain") ? new Response('event: start\ndata: {"pending": 1}\n\n', { status: 200 }) : json(detail())));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   await userEvent.click(await screen.findByRole("button", { name: "Generate explanations" }));
@@ -98,7 +101,7 @@ test("a stream that ends without done is reported", async () => {
 });
 
 test("unknown case shows not found with a way back", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => json({ detail: "case not found" }, 404)));
+  stubFetch(vi.fn(async () => json({ detail: "case not found" }, 404)));
   const onBack = vi.fn();
   render(<CaseDetail id="nope" onBack={onBack} />);
   expect(await screen.findByText("Case not found.")).toBeInTheDocument();
@@ -108,7 +111,7 @@ test("unknown case shows not found with a way back", async () => {
 
 test("done with remaining shows the run-again hint", async () => {
   const sse = 'event: start\ndata: {"pending": 2}\n\nevent: done\ndata: {"ready": 1, "unavailable": 0, "remaining": 1}\n\n';
-  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+  stubFetch(vi.fn(async (url: string) =>
     url.endsWith("/explain") ? new Response(sse, { status: 200 }) : json(detail())));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   await userEvent.click(await screen.findByRole("button", { name: "Generate explanations" }));
@@ -116,7 +119,7 @@ test("done with remaining shows the run-again hint", async () => {
 });
 
 test("a different case after a 404 loads normally", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+  stubFetch(vi.fn(async (url: string) =>
     url === "/api/cases/nope" ? json({ detail: "case not found" }, 404) : json(detail())));
   const { rerender } = render(<CaseDetail key="nope" id="nope" onBack={() => {}} />);
   expect(await screen.findByText("Case not found.")).toBeInTheDocument();
@@ -125,7 +128,7 @@ test("a different case after a 404 loads normally", async () => {
 });
 
 test("cancel clears the reject reason", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => json(detail())));
+  stubFetch(vi.fn(async () => json(detail())));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   const card = within(await screen.findByRole("article", { name: /R1/ }));
   await userEvent.click(card.getByRole("button", { name: "Reject" }));
@@ -137,7 +140,7 @@ test("cancel clears the reject reason", async () => {
 
 test("an approved letter locks Run audit and every Accept", async () => {
   const approved = { id: "l1", status: "approved" as const, body: "Dear provider", flag_ids: ["f1"], created_at: "2026-10-02T10:00:00Z", approved_at: "2026-10-02T11:00:00Z" };
-  vi.stubGlobal("fetch", vi.fn(async () => json(detail({ letter: approved }))));
+  stubFetch(vi.fn(async () => json(detail({ letter: approved }))));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   expect(await screen.findByRole("button", { name: "Run audit" })).toBeDisabled();
   const accepts = screen.getAllByRole("button", { name: "Accept" });
