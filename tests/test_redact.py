@@ -15,6 +15,7 @@ from app.ingest.pdf import RENDER_DPI, pdf_page_images, pdf_page_images_with_red
 from app.ingest.redact import find_phi_boxes, mask, matches
 from app.models import Claim
 from app.reference.normalized import load_normalized
+from evals import pdf_render
 from evals.generate import generate
 from evals.pdf_render import LAYOUTS, add_scan_noise, render_bill
 from tests.api_helpers import sample_claim
@@ -105,21 +106,22 @@ def test_identifiers_are_found_and_masked() -> None:
         assert _darkness(masked, box, height) < 30, needle
 
 
-def _masked_rows(pdf: bytes, fields: set[str]) -> list[str]:
-    """Printed rows holding any of `fields` that a redaction box touches."""
-    out = []
+def _misses(pdf: bytes, fields: set[str]) -> tuple[list[str], list[str]]:
+    """Billing rows (holding any of `fields`) touched by a mask, and header identifiers left visible."""
+    out, unmasked = [], []
     for page in pdfium.PdfDocument(pdf):
         r = find_phi_boxes(page)
         assert r.redactable
         tp = page.get_textpage()
         text = tp.get_text_range()
+        unmasked += [p for p in PHI if p in text and not any(_covers(rb, _find(tp, p)) for rb in r.boxes)]
         start = 0
         for row in text.split("\r\n"):
             boxes = _boxes_of(tp, start, start + len(row))
             start += len(row) + 2
             if any(f in row for f in fields) and any(_overlaps(b, rb) for b in boxes for rb in r.boxes):
                 out.append(row)
-    return out
+    return out, unmasked
 
 
 def _billing_fields(claim: Claim) -> set[str]:
@@ -133,31 +135,78 @@ def _billing_fields(claim: Claim) -> set[str]:
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_billing_rows_are_not_masked(layout: str) -> None:
     claim = _claim()
-    assert _masked_rows(render_bill(claim, layout), _billing_fields(claim)) == []
+    assert _misses(render_bill(claim, layout), _billing_fields(claim)) == ([], [])
 
 
 @pytest.mark.parametrize("layout", LAYOUTS)
 def test_billing_rows_are_not_masked_on_generated_bills(layout: str) -> None:
     # spaCy's small model once tagged dates, codes and claim numbers as names/places on these bills
-    masked = []
+    masked, unmasked = [], []
     for lc in generate(load_normalized(Path("data/reference/subset")), 50, 7):
-        masked += _masked_rows(render_bill(lc.claim, layout), _billing_fields(lc.claim))
-    assert masked == []
+        rows, phi = _misses(render_bill(lc.claim, layout), _billing_fields(lc.claim))
+        masked += rows
+        unmasked += phi
+    assert (masked, unmasked) == ([], [])
+
+
+@pytest.mark.parametrize("layout", LAYOUTS)
+def test_generated_bills_in_courier(layout: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A monospaced font has much wider spaces; column detection must scale with them (test-only font swap).
+    monkeypatch.setattr(
+        pdf_render._BillPdf,
+        "set_font",
+        lambda self, _family, *a, **k: FPDF.set_font(self, "Courier", *a, **k),
+    )
+    masked, unmasked = [], []
+    for lc in generate(load_normalized(Path("data/reference/subset")), 20, 23):
+        pdf = render_bill(lc.claim, layout)
+        assert "Courier" in str(pdf)
+        rows, phi = _misses(pdf, _billing_fields(lc.claim))
+        masked += rows
+        unmasked += phi
+    assert (masked, unmasked) == ([], [])
 
 
 Cells = list[tuple[float, str]]  # one printed row: (cell width in mm, 0 = rest of the line; text)
 
 
-def _render(rows: list[Cells]) -> bytes:
+def _render(rows: list[Cells], font: str = "Helvetica") -> bytes:
     pdf = FPDF(unit="mm", format="Letter")
     pdf.add_page()
-    pdf.set_font("Helvetica", "", 11)
+    pdf.set_font(font, "", 11)
     pdf.cell(0, 6, "Itemized statement for services rendered", new_x="LMARGIN", new_y="NEXT")
     for row in rows:
         for width, text in row:
             pdf.cell(width, 6, text)
         pdf.ln(6)
     return bytes(pdf.output())
+
+
+@pytest.mark.parametrize(
+    ("font", "row", "needle"),
+    [
+        ("Courier", "Patient: Maria Garcia", "Maria Garcia"),
+        (
+            "Courier",
+            "Address: 1200 Maple Avenue, Springfield, IL 62704",
+            "1200 Maple Avenue, Springfield, IL 62704",
+        ),
+        ("Courier", "Phone: (217) 555-0143", "(217) 555-0143"),
+        ("Courier", "Member ID: XQH4471029", "XQH4471029"),
+        # pdfium reports runs of spaces as one; the needles are as pdfium prints them
+        (
+            "Helvetica",
+            "Address: 1200 Maple Avenue, Springfield, IL  62704",
+            "1200 Maple Avenue, Springfield, IL 62704",
+        ),
+        ("Helvetica", "Patient: Maria  Garcia", "Maria Garcia"),
+        ("Helvetica", "Patient: Maria   Garcia", "Maria Garcia"),  # one in-cell gap: the value carries on
+    ],
+)
+def test_whole_labelled_values_are_masked(font: str, row: str, needle: str) -> None:
+    page = pdfium.PdfDocument(_render([[(0, row)]], font))[0]
+    r = find_phi_boxes(page)
+    assert any(_covers(rb, _find(page.get_textpage(), needle)) for rb in r.boxes)
 
 
 @pytest.mark.parametrize(
@@ -183,6 +232,11 @@ def _render(rows: list[Cells]) -> bytes:
             ["Date of service 10/15/2026 99213 $40.00"],
         ),
         ([[(0, "Phone: (217) 555-0143   Date of birth: 01/02/1980")]], ["(217) 555-0143"], ["01/02/1980"]),
+        (  # carried across an in-cell gap, but never into a billing token
+            [[(0, "Address: 1200 Maple Avenue   10/15/2026 99213 $40.00")]],
+            ["1200 Maple Avenue"],
+            ["10/15/2026 99213 $40.00"],
+        ),
     ],
 )
 def test_matches_stay_in_their_column(rows: list[Cells], masked: list[str], kept: list[str]) -> None:

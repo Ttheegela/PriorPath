@@ -6,12 +6,14 @@ Callers hold the pdfium lock around find_phi_boxes (it reads the page's text lay
 
 import bisect
 import re
+import statistics
 import threading
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
 import pypdfium2 as pdfium
+import pypdfium2.raw as pdfium_c
 from PIL import Image, ImageDraw
 
 # DATE_TIME is deliberately absent: dates of service are billing data.
@@ -20,9 +22,9 @@ _PRESIDIO_ENTITIES = ["PERSON", "PHONE_NUMBER", "US_SSN", "LOCATION"]  # the res
 MIN_TEXT_CHARS = 20  # fewer non-space chars than this: treat the page as a scan
 PAD_PX = 2
 SCORE_THRESHOLD = 0.5
-# A gap between two characters wider than this share of the line height starts a new column. One space is
-# ~0.25 of the (loose) char box height, two are ~0.5; table cells leave far more. Tuned by tests.
-COLUMN_GAP = 0.4
+# A gap between two characters wider than this many of the line's own space widths starts a new column: one or
+# two spaces never split (in any font), three or more and table-cell boundaries do. Tuned by tests.
+COLUMN_GAP = 2.2
 
 # Labelled values ("v" group), matched outside Presidio so a wider model span can't swallow them; each value
 # is then cut to its column. [ \t], not \s, so a value never starts on the next printed row.
@@ -46,6 +48,8 @@ _LABELLED = [
 _LABELLED_RX = [(entity, re.compile(rx)) for entity, rx in _LABELLED]
 _DATE_OR_AMOUNT = re.compile(r"\$|\b\d{1,2}/\d{1,2}/\d{2,4}\b")
 _DIGIT_WORD = re.compile(r"\S*\d")
+# Where a labelled value carried past an in-cell gap must stop: a date, a $ amount, a CPT/HCPCS-shaped code.
+_BILLING_TOKEN = re.compile(r"\$|\b\d{1,2}/\d{1,2}/\d{2,4}\b|\b(?:\d{4}[0-9A-Z]|[A-Z]\d{4})\b")
 
 _UNMAPPED_SPACY_LABELS = ["CARDINAL", "EVENT", "FAC", "LANGUAGE", "LAW", "MONEY", "ORDINAL", "PERCENT"]
 _UNMAPPED_SPACY_LABELS += ["PRODUCT", "QUANTITY", "WORK_OF_ART"]
@@ -114,8 +118,9 @@ def _cut(text: str, breaks: Sequence[int], start: int, end: int) -> tuple[int, i
     return start, end
 
 
-def matches(text: str, breaks: Sequence[int] = ()) -> list[Match]:
-    """Identifier spans, each within one column segment; `breaks` are sorted indices that start a column."""
+def matches(text: str, breaks: Sequence[int] = (), soft: Collection[int] = ()) -> list[Match]:
+    """Identifier spans, each within its column segment. `breaks` are sorted indices that start a column;
+    `soft` are the breaks inside one cell (real spaces), which a labelled value may cross once."""
     found = []
     for res in analyzer().analyze(
         text, language="en", entities=_PRESIDIO_ENTITIES, score_threshold=SCORE_THRESHOLD
@@ -134,7 +139,17 @@ def matches(text: str, breaks: Sequence[int] = ()) -> list[Match]:
         found.append(Match(res.entity_type, start, end))
     for entity, rx in _LABELLED_RX:
         for hit in rx.finditer(text):
-            found.append(Match(entity, *_cut(text, breaks, *hit.span("v"))))
+            v_start, v_end = hit.span("v")
+            start, end = _cut(text, breaks, v_start, v_end)
+            seg_end = _segment(text, breaks, start)[1]
+            if v_end > seg_end and seg_end in soft:  # privacy first: carry on across one in-cell gap
+                more = min(v_end, _segment(text, breaks, seg_end)[1])
+                if token := _BILLING_TOKEN.search(text, seg_end, more):
+                    more = token.start()
+                more_start, more_end = _cut(text, breaks, seg_end, more)
+                if more_end > more_start:
+                    end = more_end
+            found.append(Match(entity, start, end))
     kept: list[Match] = []
     for m in sorted(found, key=lambda m: (m.start, -m.end)):
         if m.end > m.start and not any(
@@ -144,19 +159,43 @@ def matches(text: str, breaks: Sequence[int] = ()) -> list[Match]:
     return kept
 
 
-def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> list[int]:
-    """Indices of characters that start a new column (a wide gap after the previous character on the line)."""
-    breaks = []
-    prev_right: float | None = None
+def _column_breaks(tp: pdfium.PdfTextPage, text: str) -> tuple[list[int], set[int]]:
+    """Indices of chars that start a new column, and the subset separated only by real spaces (in a cell).
+
+    A break is a gap after the previous character wider than COLUMN_GAP times the line's space width, measured
+    from the line's real (not pdfium-generated) space characters; fallbacks: the page's, then half a glyph.
+    """
+    boxes = {i: tp.get_charbox(i, loose=True) for i, c in enumerate(text) if c not in "\r\n"}
+
+    def real_space(i: int) -> bool:
+        return text[i] == " " and pdfium_c.FPDFText_IsGenerated(tp.raw, i) != 1 and boxes[i][2] > boxes[i][0]
+
+    lines: list[list[int]] = [[]]
     for i, c in enumerate(text):
         if c in "\r\n":
-            prev_right = None
-        elif not c.isspace():
-            left, bottom, right, top = tp.get_charbox(i, loose=True)
-            if prev_right is not None and left - prev_right > COLUMN_GAP * (top - bottom):
+            if lines[-1]:
+                lines.append([])
+        else:
+            lines[-1].append(i)
+    widths = [boxes[i][2] - boxes[i][0] for i in boxes]
+    spaces = [boxes[i][2] - boxes[i][0] for i in boxes if real_space(i)]
+    page_space = statistics.median(spaces) if spaces else statistics.median(widths or [0]) * 0.5
+    breaks: list[int] = []
+    soft: set[int] = set()
+    for line in lines:
+        line_spaces = [boxes[i][2] - boxes[i][0] for i in line if real_space(i)]
+        space = statistics.median(line_spaces) if line_spaces else page_space
+        prev: int | None = None
+        for i in line:
+            if text[i].isspace():
+                continue
+            if prev is not None and boxes[i][0] - boxes[prev][2] > COLUMN_GAP * space:
                 breaks.append(i)
-            prev_right = right
-    return breaks
+                between = range(prev + 1, i)
+                if between and all(real_space(j) for j in between):
+                    soft.add(i)
+            prev = i
+    return breaks, soft
 
 
 def find_phi_boxes(page: pdfium.PdfPage) -> PageRedaction:
@@ -173,7 +212,7 @@ def find_phi_boxes(page: pdfium.PdfPage) -> PageRedaction:
         x0, y0, x1, y1 = page.get_cropbox()
         boxes: list[Box] = []
         entities: dict[str, int] = {}
-        for m in matches(text, _column_breaks(tp, text)):
+        for m in matches(text, *_column_breaks(tp, text)):
             entities[m.entity_type] = entities.get(m.entity_type, 0) + 1
             chars = [tp.get_charbox(i) for i in range(m.start, m.end) if not text[i].isspace()]
             boxes.append(

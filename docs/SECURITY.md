@@ -113,15 +113,21 @@ patterns run separately from Presidio, so a wider model match can't absorb them.
 
 **Columns:** pdfium's text joins table cells with a single space, so text spacing can't show where a column ends.
 Each printed line is split into column segments wherever the gap between two neighbouring characters' boxes is
-wider than 0.4 of the line height (one space is about 0.25, two spaces about 0.5). Every match is cut at the end
-of the segment it starts in, so a name or address never runs into the next cell.
+wider than 2.2 times that line's space width, measured from the line's real (not pdfium-generated) space
+characters (falling back to the page's spaces, then half a glyph width). One or two spaces never split a value,
+in any font; three or more spaces and cell boundaries do. Every match is cut at the end of the segment it starts
+in. A labelled value (after "Patient:", "Address:", "Member ID" and the other labels above) may carry on across
+one more gap made of real spaces inside the same cell, up to the end of that next segment or the first
+billing-shaped token (a date, a dollar amount, or a 5-character CPT/HCPCS-shaped code), whichever comes first. It
+never crosses a pdfium-generated cell separator.
 
 **Not targeted:** procedure codes, modifiers, units, charges, dates of service and place of service. Dates are
 not a redacted type; a name or place found by the language model is cut before its first word containing a digit;
 phone matches need a separator and are dropped when their column segment holds a dollar amount or a date. This
-is checked by tests on generated bills of every layout, but it is not a guarantee: a provider name, payer name or
-claim number may be masked if it looks like a person's name or a labelled ID, and a billing value printed in the
-same cell as an identifier, with less than about two spaces between them, can still be covered.
+is checked by tests on generated bills of every layout (in Helvetica and Courier), but it is not a guarantee: a
+provider name, payer name or claim number may be masked if it looks like a person's name or a labelled ID, and a
+billing value printed in the same cell right after an identifier (one or two spaces apart, so in the same
+segment) can still be covered.
 
 **Not redactable:** a page with no text layer (fewer than 20 characters, as in a scan or photo), a rotated page,
 or a page whose text and character positions don't line up is sent unmasked and counted as not redactable. A
