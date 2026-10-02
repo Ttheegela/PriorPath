@@ -59,7 +59,7 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
     <section className="space-y-6">
       <div className="flex flex-wrap items-end gap-4 border border-black bg-white p-4">
         <label className="flex flex-col text-sm">
-          FHIR bundle (JSON, up to 4 MB)
+          Claim file (FHIR JSON, up to 4 MB)
           <input type="file" accept=".json,application/json" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </label>
         <label className="flex flex-col text-sm">
@@ -77,11 +77,34 @@ export default function CaseQueue({ onOpen }: { onOpen: (id: string) => void }) 
           Reset demo data
         </button>
       </div>
+      <p className="text-sm text-neutral-700">
+        Upload a FHIR ExplanationOfBenefit bundle. PriorPath runs the audit automatically and the case appears below.{" "}
+        <a href="/api/samples/claim.json" download className="underline">Download a sample claim (FHIR JSON)</a>
+      </p>
 
       {error && <p role="alert" className="border border-black p-2 font-medium">{error}</p>}
       {uploaded && (
         <div className="border border-black p-3 text-sm" role="status">
           <p>{uploaded.cases.length} case{uploaded.cases.length === 1 ? "" : "s"} added.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {uploaded.cases.map((c) => (
+              <li key={c.id}>
+                {`${c.claim_id}: ${c.error_count} billing error${c.error_count === 1 ? "" : "s"}, est. overcharge ${money(c.est_overcharge)}`}{" "}
+                <a
+                  href={routeHref({ name: "case", id: c.id })}
+                  aria-label={`Open ${c.claim_id}`}
+                  onClick={(e) => {
+                    if (!isPlainClick(e)) return;
+                    e.preventDefault();
+                    onOpen(c.id);
+                  }}
+                  className="underline"
+                >
+                  Open
+                </a>
+              </li>
+            ))}
+          </ul>
           {uploaded.errors.length > 0 && (
             <ul className="mt-1 list-disc pl-5">
               {uploaded.errors.map((e) => (

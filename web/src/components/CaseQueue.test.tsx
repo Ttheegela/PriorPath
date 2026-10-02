@@ -63,7 +63,7 @@ test("upload shows created cases and per-path errors", async () => {
   render(<CaseQueue onOpen={() => {}} />);
   await screen.findByText("C0001");
   const file = new File(['{"resourceType": "Bundle"}'], "claims.json", { type: "application/json" });
-  await userEvent.upload(screen.getByLabelText("FHIR bundle (JSON, up to 4 MB)"), file);
+  await userEvent.upload(screen.getByLabelText(/Claim file/), file);
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
   expect(await screen.findByText(/1 case added/)).toBeInTheDocument();
   expect(screen.getByText("$.entry[1]: unknown code")).toBeInTheDocument();
@@ -75,7 +75,7 @@ test("rejects files over 4 MB without calling the API", async () => {
   render(<CaseQueue onOpen={() => {}} />);
   await screen.findByText("C0001");
   const big = new File(["x".repeat(4_000_001)], "big.json", { type: "application/json" });
-  await userEvent.upload(screen.getByLabelText("FHIR bundle (JSON, up to 4 MB)"), big);
+  await userEvent.upload(screen.getByLabelText(/Claim file/), big);
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("larger than 4 MB");
   expect(fetchMock).toHaveBeenCalledTimes(1); // only the initial list
@@ -83,14 +83,14 @@ test("rejects files over 4 MB without calling the API", async () => {
 
 test("shows API errors from upload", async () => {
   stubFetch({
-    "/api/cases?payer_type": () => ok({ cases: [], errors: [{ path: "$", message: "body is not valid JSON" }] }, 422),
+    "/api/cases?payer_type": () => ok({ cases: [], errors: [{ path: "$", message: "This file isn't valid JSON." }] }, 422),
     "/api/cases": () => ok(cases),
   });
   render(<CaseQueue onOpen={() => {}} />);
   await screen.findByText("C0001");
-  await userEvent.upload(screen.getByLabelText("FHIR bundle (JSON, up to 4 MB)"), new File(["nope"], "x.json"));
+  await userEvent.upload(screen.getByLabelText(/Claim file/), new File(["nope"], "x.json"));
   await userEvent.click(screen.getByRole("button", { name: "Upload" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("$: body is not valid JSON");
+  expect(await screen.findByRole("alert")).toHaveTextContent("$: This file isn't valid JSON.");
 });
 
 test("a failed list shows the error and no empty-state claim", async () => {
@@ -108,4 +108,24 @@ test("modifier-click on a case link leaves navigation to the browser", async () 
   const link = await screen.findByRole("link", { name: "C0001" });
   fireEvent.click(link, { ctrlKey: true });
   expect(onOpen).not.toHaveBeenCalled();
+});
+
+test("offers a sample file and explains the accepted formats", async () => {
+  stubFetch({ "/api/cases": () => ok(cases) });
+  render(<CaseQueue onOpen={() => {}} />);
+  expect(await screen.findByRole("link", { name: "Download a sample claim (FHIR JSON)" })).toHaveAttribute("href", "/api/samples/claim.json");
+  expect(screen.getByText(/runs the audit automatically/i)).toBeInTheDocument();
+});
+
+test("after upload the new case shows its audit result", async () => {
+  stubFetch({
+    "/api/cases?payer_type": () => ok({ cases: [summary({ id: "n", claim_id: "NEW-1", error_count: 2, est_overcharge: "60.00" })], errors: [] }, 201),
+    "/api/cases": () => ok(cases),
+  });
+  render(<CaseQueue onOpen={() => {}} />);
+  await screen.findByText("C0001");
+  await userEvent.upload(screen.getByLabelText(/Claim file/), new File(["{}"], "c.json", { type: "application/json" }));
+  await userEvent.click(screen.getByRole("button", { name: "Upload" }));
+  expect(await screen.findByText(/NEW-1: 2 billing errors, est. overcharge \$60.00/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Open NEW-1" })).toBeInTheDocument();
 });

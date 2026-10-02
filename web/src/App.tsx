@@ -35,7 +35,18 @@ export default function App() {
     <div className="min-h-screen bg-neutral-100 text-black">
       <header className="border-b border-black bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-baseline gap-x-6 gap-y-1 px-4 py-3">
-          <h1 className="text-xl font-semibold">PriorPath</h1>
+          <h1 className="text-xl font-semibold">
+            <a
+              href="/"
+              onClick={(e) => {
+                if (!isPlainClick(e)) return;
+                e.preventDefault();
+                navigate({ name: "queue" });
+              }}
+            >
+              PriorPath
+            </a>
+          </h1>
           <span className="text-sm text-neutral-600">Medical bill auditor · synthetic demo data · nothing is sent anywhere</span>
           <nav className="ml-auto flex gap-4 text-sm">
             {link({ name: "queue" }, "Cases")}

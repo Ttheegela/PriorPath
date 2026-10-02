@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 
 test("waits for the workspace, then shows the queue", async () => {
@@ -15,4 +16,14 @@ test("shows a readable error when the workspace can't be created", async () => {
   const { default: App } = await import("./App");
   render(<App />);
   expect(await screen.findByRole("alert")).toHaveTextContent("the demo is full right now");
+});
+
+test("the title links to the case queue", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+    new Response(JSON.stringify(url === "/api/cases" ? [] : { id: "w", created_at: "x" }), { status: 200 })));
+  window.history.pushState(null, "", "/?view=log");
+  const { default: App } = await import("./App");
+  render(<App />);
+  await userEvent.click(screen.getByRole("link", { name: "PriorPath" }));
+  expect(window.location.search).toBe("");
 });

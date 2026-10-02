@@ -21,7 +21,7 @@ def test_case_log_is_newest_first_and_scoped_to_the_case(db: Engine) -> None:
     first, second = upload(c, [sample_claim("A"), sample_claim("B")]).json()["cases"]
     c.post(f"/api/cases/{first['id']}/audit")
     events = c.get(f"/api/cases/{first['id']}/audit-log").json()
-    assert [e["action"] for e in events] == ["audit_run", "case_uploaded"]
+    assert [e["action"] for e in events] == ["audit_run", "audit_run", "case_uploaded"]
     assert {e["case_id"] for e in events} == {first["id"]}
     assert second["id"] not in {e["case_id"] for e in events}
 

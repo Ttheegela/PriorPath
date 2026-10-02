@@ -25,6 +25,11 @@ from app.services.explanations import explain_row
 
 router = APIRouter()
 MAX_UPLOAD_BYTES = 4_000_000
+NOT_JSON = "This file isn't valid JSON. Upload a FHIR claim bundle (.json) or a PDF bill."
+NOT_FHIR = (
+    "This file isn't a FHIR claim bundle (ExplanationOfBenefit). "
+    "Download the sample file to see the expected format."
+)
 EXPLAIN_DEADLINE_SECONDS = 240  # stay inside the serverless function time limit
 
 
@@ -43,6 +48,7 @@ def upload_cases(
     body: Annotated[bytes, Depends(read_upload)],
     ws: WorkspaceDep,
     session: SessionDep,
+    ref: RefDep,
     payer_type: PayerType = "unknown",
 ) -> UploadResult | JSONResponse:
     try:
@@ -50,20 +56,22 @@ def upload_cases(
     except (UnicodeDecodeError, ValueError, RecursionError):
         return JSONResponse(
             status_code=422,
-            content={"cases": [], "errors": [{"path": "$", "message": "body is not valid JSON"}]},
+            content={"cases": [], "errors": [{"path": "$", "message": NOT_JSON}]},
         )
     ensure_capacity(session)
     result = parse_fhir(data)
     errors = [ParseErrorOut(path=e.path, message=e.message) for e in result.errors]
     if not result.claims:
+        if not (isinstance(data, dict) and data.get("resourceType") == "Bundle"):
+            errors = [ParseErrorOut(path="$", message=NOT_FHIR)]
         return JSONResponse(
             status_code=422, content=UploadResult(cases=[], errors=errors).model_dump(mode="json")
         )
     cases = create_cases(session, ws, result.claims, payer_type)
-    session.commit()
     for c in cases:
-        session.refresh(c)
-    return UploadResult(cases=[summarize(c, []) for c in cases], errors=errors)
+        run_audit(session, c, ref)
+    session.commit()
+    return UploadResult(cases=[summarize(c, case_flags(session, c.id)) for c in cases], errors=errors)
 
 
 @router.get("/api/cases", response_model=list[CaseSummary])

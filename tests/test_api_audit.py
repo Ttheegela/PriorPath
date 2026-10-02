@@ -37,7 +37,10 @@ def test_audit_stores_flags_and_totals(db: Engine) -> None:
     assert detail["status"] == "needs_review"
     assert detail["est_overcharge"] == "30.00" and detail["outlier_amount"] == "23.55"
     with Session(db) as s:
-        event = s.scalars(select(AuditEvent).where(AuditEvent.action == "audit_run")).one()
+        event = s.scalars(
+            select(AuditEvent).where(AuditEvent.action == "audit_run").order_by(AuditEvent.id.desc())
+        ).first()
+        assert event is not None
         assert event.ref_versions == ["NCCI-TEST", "MUE-TEST", "PFS-TEST"]
 
 

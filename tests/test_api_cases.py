@@ -2,22 +2,32 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_reference
 from app.db.models import AuditEvent
 from app.ingest.fhir import claims_to_bundle
 from app.main import app
 from tests.api_helpers import sample_claim, upload
+from tests.helpers import FIXTURE_REF
+
+NOT_JSON = "This file isn't valid JSON. Upload a FHIR claim bundle (.json) or a PDF bill."
 
 
 def test_upload_creates_one_case_per_claim(db: Engine) -> None:
+    app.dependency_overrides[get_reference] = lambda: FIXTURE_REF
     c = TestClient(app)
     r = upload(c, [sample_claim("A"), sample_claim("B")])
     assert r.status_code == 201
     body = r.json()
     assert body["errors"] == []
     assert [x["claim_id"] for x in body["cases"]] == ["A", "B"]
-    assert body["cases"][0]["status"] == "uploaded" and body["cases"][0]["line_count"] == 4
+    assert body["cases"][0]["status"] == "needs_review" and body["cases"][0]["line_count"] == 4
     with Session(db) as s:
-        assert [e.action for e in s.scalars(select(AuditEvent))] == ["case_uploaded", "case_uploaded"]
+        assert [e.action for e in s.scalars(select(AuditEvent))] == [
+            "case_uploaded",
+            "case_uploaded",
+            "audit_run",
+            "audit_run",
+        ]
 
 
 def test_partial_bundle_keeps_valid_claims_and_reports_paths(db: Engine) -> None:
@@ -30,15 +40,17 @@ def test_partial_bundle_keeps_valid_claims_and_reports_paths(db: Engine) -> None
 
 
 def test_no_valid_claims_is_422_with_paths(db: Engine) -> None:
-    r = TestClient(app).post("/api/cases", json={"resourceType": "Patient"})
+    eob = {"resourceType": "ExplanationOfBenefit", "item": []}
+    bundle = {"resourceType": "Bundle", "entry": [{"resource": eob}]}
+    r = TestClient(app).post("/api/cases", json=bundle)
     assert r.status_code == 422
-    assert r.json()["errors"][0]["path"] == "$.resourceType"
+    assert r.json()["errors"][0]["path"] == "$.entry[0].resource.id"
 
 
 def test_non_json_body_is_422(db: Engine) -> None:
     r = TestClient(app).post("/api/cases", content=b"not json", headers={"content-type": "application/json"})
     assert r.status_code == 422
-    assert r.json()["errors"] == [{"path": "$", "message": "body is not valid JSON"}]
+    assert r.json()["errors"] == [{"path": "$", "message": NOT_JSON}]
 
 
 def test_oversized_upload_is_413(db: Engine) -> None:
@@ -53,6 +65,7 @@ def test_invalid_payer_type_is_422(db: Engine) -> None:
 
 
 def test_list_is_newest_first_and_detail_has_lines(db: Engine) -> None:
+    app.dependency_overrides[get_reference] = lambda: FIXTURE_REF
     c = TestClient(app)
     upload(c, [sample_claim("A")])
     upload(c, [sample_claim("B")])
@@ -61,7 +74,7 @@ def test_list_is_newest_first_and_detail_has_lines(db: Engine) -> None:
     detail = c.get(f"/api/cases/{cases[0]['id']}").json()
     assert [ln["id"] for ln in detail["lines"]] == ["L1", "L2", "L3", "L4"]
     assert detail["lines"][2]["charge"] == "300.00"
-    assert detail["flags"] == [] and detail["letter"] is None
+    assert detail["flags"] and detail["letter"] is None
 
 
 def test_other_workspace_cannot_see_case(db: Engine) -> None:
@@ -76,4 +89,21 @@ def test_deeply_nested_json_is_422(db: Engine) -> None:
         "/api/cases", content=b"[" * 100000, headers={"content-type": "application/json"}
     )
     assert r.status_code == 422
-    assert r.json()["errors"] == [{"path": "$", "message": "body is not valid JSON"}]
+    assert r.json()["errors"] == [{"path": "$", "message": NOT_JSON}]
+
+
+def test_upload_runs_the_audit(db: Engine) -> None:
+    app.dependency_overrides[get_reference] = lambda: FIXTURE_REF
+    c = TestClient(app)
+    case = upload(c, [sample_claim()]).json()["cases"][0]
+    assert case["status"] == "needs_review"
+    assert case["error_count"] >= 1  # sample_claim plants an R1 duplicate
+    detail = c.get(f"/api/cases/{case['id']}").json()
+    assert {f["rule_id"] for f in detail["flags"]} >= {"R1"}
+
+
+def test_non_fhir_json_gets_a_helpful_message(db: Engine) -> None:
+    c = TestClient(app)
+    r = c.post("/api/cases", json={"hello": "world"})
+    assert r.status_code == 422
+    assert "FHIR" in r.json()["errors"][0]["message"]
