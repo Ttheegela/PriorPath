@@ -28,7 +28,7 @@ from app.reference.normalized import load_normalized
 from app.rules import RuleConfig, run_rules
 
 DEFAULT_JUDGE_MODEL = "google/gemini-2.5-flash"
-PROMPT_VERSION = "judge-v1"
+PROMPT_VERSION = "judge-v2"
 MIN_FAITHFUL = 0.90
 EXPLAINED = {Severity.ERROR, Severity.OUTLIER, Severity.LEAD}  # as in scripts/build_demo.py
 DEMO_DIR = DEMO_EXPLANATIONS.parent
@@ -36,21 +36,26 @@ VERDICTS = ("faithful", "unfaithful")
 SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "verdict": {"type": "string", "enum": list(VERDICTS)},
         "unsupported_claims": {"type": "array", "items": {"type": "string"}},
         "reason": {"type": "string"},
+        "verdict": {"type": "string", "enum": list(VERDICTS)},
     },
-    "required": ["verdict", "unsupported_claims", "reason"],
+    "required": ["unsupported_claims", "reason", "verdict"],
     "additionalProperties": False,
 }
 SYSTEM_PROMPT = (
-    "You check one explanation of a medical-billing finding against the finding's source facts. "
-    "The explanation is faithful only if every factual statement in it (numbers, dollar amounts, dates, "
-    "codes, what the rule means, what the finding is) is supported by the RULE, SEVERITY, FINDING, "
-    "EVIDENCE or ESTIMATED OVERCHARGE below, or is a harmless paraphrase of them. Anything added, "
-    "contradicted or invented makes it unfaithful. List each unsupported statement in unsupported_claims "
-    "and give a one-sentence reason."
+    "Check the EXPLANATION against the facts below. Mark it UNFAITHFUL if it (a) states any number, "
+    "dollar amount, date, code or unit that is not in EVIDENCE/FINDING/ESTIMATED OVERCHARGE (arithmetic "
+    "derived from them is OK), (b) describes a rule other than the one given or misstates what the rule "
+    "means, (c) says or implies fraud, illegality, wrongdoing, intent or certainty that the finding is an "
+    "error, when the rule only supports 'may be' / 'worth asking about', (d) recommends specific actions, "
+    "legal claims, deadlines or outcomes beyond generic 'ask the provider/payer for clarification'. "
+    "Rewording, simplification, and plain-language definitions of the rule and codes are FAITHFUL. "
+    "Do not penalise style or omissions. First list each unsupported claim verbatim, then reason, "
+    "then verdict."
 )
+MAX_TOKENS = 2000  # gemini-2.5-flash reasoning tokens count against this
+REASONING = {"reasoning": {"effort": "low"}}
 
 
 @dataclass
@@ -93,7 +98,8 @@ class OpenRouterJudge:
                     "type": "json_schema",
                     "json_schema": {"name": "faithfulness", "strict": True, "schema": SCHEMA},
                 },
-                max_tokens=600,
+                max_tokens=MAX_TOKENS,
+                extra_body=REASONING,
                 temperature=0,
             )
             choice = response.choices[0]
@@ -213,14 +219,20 @@ def replay(items: list[Item], path: Path) -> dict[str, Any]:
 
 def to_markdown(r: Result, model: str) -> str:
     lines = [
-        f"Judge: `{model}`; judged: {r.judged} of {r.total}; unjudged (junk output): {r.unjudged}",
+        f"Judge: `{model}`; n={r.total} demo explanations; judged: {r.judged}; "
+        f"unjudged (junk output): {r.unjudged}",
+        "",
+        f"n={r.total} demo explanations; rates are indicative only; one miss moves the rate by "
+        f"~{1 / r.total if r.total else 0:.3f}.",
         "",
         f"Faithfulness: **{r.rate:.3f}** ({r.faithful}/{r.total}; gate {MIN_FAITHFUL}). "
         "Unjudged items count as not faithful.",
         "",
-        "| Rule | Faithful | Total | Rate |",
+        "| Rule | Faithful | n | Rate |",
         "|---|---|---|---|",
         *(f"| {k} | {a} | {b} | {a / b:.3f} |" for k, (a, b) in sorted(r.by_rule.items())),
+        "",
+        "Rules with no explanations: " + (", ".join(sorted(set(RULE_TEXT) - set(r.by_rule))) or "none"),
         "",
         "## Unfaithful explanations",
         "",
@@ -273,7 +285,14 @@ def main(argv: list[str] | None = None) -> int:
     a.out.write_text(text)
     a.out.with_suffix(".json").write_text(
         json.dumps(
-            {"model": model, "faithful": r.faithful, "judged": r.judged, "total": r.total, "rate": r.rate},
+            {
+                "model": model,
+                "faithful": r.faithful,
+                "judged": r.judged,
+                "total": r.total,
+                "rate": r.rate,
+                "by_rule": {k: {"faithful": a, "n": b} for k, (a, b) in sorted(r.by_rule.items())},
+            },
             indent=2,
         )
         + "\n"

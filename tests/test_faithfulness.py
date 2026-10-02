@@ -9,6 +9,7 @@ from app.llm.cache import explanation_cache_key
 from app.models import Evidence, Flag, Severity
 from evals.faithfulness import (
     Item,
+    OpenRouterJudge,
     build_items,
     gate_failures,
     load_recorded,
@@ -37,8 +38,8 @@ def _items(n: int) -> list[Item]:
     return [Item(explanation_cache_key(f), f, f"text {i}") for i, f in enumerate(map(_flag, range(1, n + 1)))]
 
 
-FAITHFUL = {"verdict": "faithful", "unsupported_claims": [], "reason": "ok"}
-UNFAITHFUL = {"verdict": "unfaithful", "unsupported_claims": ["made up"], "reason": "bad"}
+FAITHFUL = {"unsupported_claims": [], "reason": "ok", "verdict": "faithful"}
+UNFAITHFUL = {"unsupported_claims": ["made up"], "reason": "bad", "verdict": "unfaithful"}
 
 
 def test_all_faithful_passes_gate() -> None:
@@ -103,9 +104,64 @@ def test_unmatched_explanation_key_is_an_error() -> None:
     assert [i.key for i in items] == [explanation_cache_key(f)] and unmatched == ["deadbeef"]
 
 
-def test_main_replay_gate_and_unmatched(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_replay_missing_recorded_key_exits_2(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(Path(__file__).resolve().parent.parent)
     out = tmp_path / "faithfulness.md"
     rec = tmp_path / "rec.json"
     rec.write_text(json.dumps({"model": "m", "judgments": {}}))
     assert main(["--replay", str(rec), "--out", str(out)]) == 2  # real demo keys missing from the recording
+
+
+class _Resp:
+    def __init__(self, content: str, finish: str = "stop") -> None:
+        msg = type("M", (), {"content": content})()
+        self.choices = [type("C", (), {"finish_reason": finish, "message": msg})()]
+        self.usage = None
+
+
+def _judge(content: str, finish: str = "stop") -> tuple[OpenRouterJudge, list[dict[str, Any]]]:
+    calls: list[dict[str, Any]] = []
+
+    def create(**kw: Any) -> _Resp:
+        calls.append(kw)
+        return _Resp(content, finish)
+
+    j = OpenRouterJudge("k", "m")
+    j._client = type(
+        "O", (), {"chat": type("Ch", (), {"completions": type("Co", (), {"create": staticmethod(create)})})}
+    )()  # type: ignore[assignment]
+    return j, calls
+
+
+def test_judge_request_has_schema_reasoning_and_token_budget() -> None:
+    j, calls = _judge(json.dumps(FAITHFUL))
+    assert j(_items(1)[0]) == FAITHFUL
+    kw = calls[0]
+    assert kw["max_tokens"] == 2000 and kw["temperature"] == 0
+    assert kw["extra_body"] == {"reasoning": {"effort": "low"}}
+    assert kw["response_format"]["json_schema"]["strict"] is True
+    assert list(kw["response_format"]["json_schema"]["schema"]["properties"])[-1] == "verdict"
+
+
+def test_judge_length_finish_errors_and_junk_is_recorded_raw() -> None:
+    j, _ = _judge("{}", finish="length")
+    with pytest.raises(RuntimeError):
+        j(_items(1)[0])
+    j, _ = _judge("not json")
+    assert j(_items(1)[0]) == {"raw": "not json"}
+
+
+def test_main_replay_gate_failure_exits_nonzero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(Path(__file__).resolve().parent.parent)
+    from evals import faithfulness as fa
+
+    items, _ = fa.build_items(
+        fa.demo_flags(fa.load_normalized(Path("data/reference/subset"))),
+        json.loads(fa.DEMO_EXPLANATIONS.read_text()),
+    )
+    rec = tmp_path / "rec.json"
+    save_recording(rec, "m", {i.key: UNFAITHFUL for i in items})
+    assert main(["--replay", str(rec), "--out", str(tmp_path / "o.md")]) == 1
+    assert "faithfulness" in capsys.readouterr().out
