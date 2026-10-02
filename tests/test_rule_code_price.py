@@ -61,3 +61,20 @@ def test_professional_technical_modifiers_and_missing_rates_skipped() -> None:
         == []
     )
     assert check_price(claim(line("L1", code="0001U", charge="900.00")), FIXTURE_REF, CFG) == []
+
+
+def test_status_i_is_a_lead_for_non_medicare_payers() -> None:
+    for payer in ("commercial", "unknown"):
+        (flag,) = check_invalid_code(
+            claim(line("L1", code="77061", charge="80.00")), FIXTURE_REF, RuleConfig(payer_type=payer)
+        )
+        assert flag.severity is Severity.LEAD, payer
+        assert flag.est_overcharge == Decimal("0.00")
+        assert "confirm" in flag.message
+
+
+def test_status_d_stays_an_error_for_any_payer() -> None:
+    (flag,) = check_invalid_code(
+        claim(line("L1", code="99201")), FIXTURE_REF, RuleConfig(payer_type="commercial")
+    )
+    assert flag.severity is Severity.ERROR

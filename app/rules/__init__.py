@@ -1,14 +1,18 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Literal
 
 from app.models import Claim, Flag
 from app.reference.base import Reference
+
+PayerType = Literal["medicare", "commercial", "unknown"]
 
 
 @dataclass(frozen=True)
 class RuleConfig:
     price_multiplier: Decimal = Decimal("3")
+    payer_type: PayerType = "medicare"
 
 
 Rule = Callable[[Claim, Reference, RuleConfig], list[Flag]]
