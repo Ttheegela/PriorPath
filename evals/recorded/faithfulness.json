@@ -1,0 +1,83 @@
+{
+ "judgments": {
+  "0496d59a3ada3fe937bb5a5c650ca2ef5f95971fac583e15cf410149140621ec": {
+   "reason": "All numbers, codes, and units mentioned in the explanation are directly supported by the EVIDENCE and FINDING. The explanation accurately describes the rule (R3) regarding Medically Unlikely Edits and its application to the billed units versus the maximum allowed units. It does not imply fraud, wrongdoing, or recommend specific actions beyond a generic 'needs confirmation before it is disputed', which is acceptable.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "0a9b33c1984c020c1eafd07e712171bf68228d2bca083fab0a8d00425cb077ca": {
+   "reason": "The explanation accurately reflects the finding that the charge was more than three times the Medicare national rate and correctly applies Rule R5, which states that such a discrepancy justifies asking for an itemized justification. No numbers, dollar amounts, dates, codes, or units are stated that are not in the evidence or finding. The explanation does not misstate the rule or imply wrongdoing, and it does not recommend specific actions beyond what the rule supports.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "0fbb23c1a6ef3850495d1d13e9d3fdfc9d55b8c009860e2d20142500314ad499": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dollar amounts, dates, codes, or units are introduced that are not in the evidence or findings. The rule is accurately described, and there are no implications of fraud or specific recommendations beyond what the rule suggests.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "12ab6475a14f92623e3ee55bd85d78a6251015f7e092d3744fd2ad24274a6697": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dates, codes, or units are introduced that are not in the source material. The explanation accurately describes the rule and its application to the finding.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "184c3aea28a33751e2dde6d17c486b0cd839eec3e0db8a5cbd4c691904821aca": {
+   "reason": "The explanation accurately reflects the rule that status 'I' codes are not valid for Medicare and that a different code is required. It correctly identifies the code and its status from the evidence and aligns with the finding.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "1faef2fc2db931a2459374769e9d463c7e32bd5bf68f70f9421becd934ed74b8": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dates, or units are stated incorrectly. The explanation accurately describes the rule's application without implying fraud or recommending specific actions beyond what is supported by the 'error' severity.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "33ae7ec788ed6310c2b48c7f8f4acd16264243db58a46830dcffdfb3b3cb4a55": {
+   "reason": "All statements in the explanation are directly supported by the provided RULE, FINDING, and EVIDENCE. No numbers, dollar amounts, dates, codes, or units not in the evidence are used. The rule is accurately described, and no claims of fraud, illegality, or certainty of error are made beyond what the rule and severity support. The explanation does not recommend specific actions beyond what is implied by 'a different code is required'.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "3506e46f1a2ada5e9e258806e10f71a0fb266f871258685212d5cfeb99095dee": {
+   "reason": "The explanation accurately reflects the finding and the rule without introducing any unsupported information, misstating the rule, or implying intent/certainty beyond what the rule supports. It correctly identifies the service code, the number of times it was billed, and the reason it's considered a duplicate charge according to the rule.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "3d40835724b193bdf896c70749ae699b5bee1fcde23d5449999f4a7c01e23f9f": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. The explanation accurately reflects the billed units, the maximum allowed units, and the conclusion that the billed units exceed the limit.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "4b0642a9f14b9347984d7e34041d0f5730542b2bb184bc706ccd67dba8b9fa5c": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dollar amounts, dates, codes, or units are introduced that are not present in the source material. The explanation accurately describes the rule's meaning and avoids making claims of fraud, illegality, or certainty of error, instead suggesting 'needs confirmation before it is disputed', which aligns with 'may be' / 'worth asking about'.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "529a98d8717ab2705835ac432e6d41944da4ac69d8fa11a176c833c735f0de0d": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dollar amounts, dates, codes, or units are introduced that are not in the source material. The explanation accurately reflects the rule regarding status 'I' codes for Medicare.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "596bf2129e9a3aa768b2be6a739fb9f69b6d646ae1ff493acfdbde42403c0f47": {
+   "reason": "The explanation accurately restates the finding and applies the rule without introducing any new numbers, dollar amounts, dates, codes, units, or misinterpretations. It correctly identifies that the condition for a duplicate charge (same service, modifiers, units, date, billed more than once) is met, and the exception (repeat-procedure modifier) is not present.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "7f108062d17e130a091730cbb7af32af59c27fa599fd46805ab1b9d15d45324a": {
+   "reason": "All statements in the explanation are directly supported by the provided RULE, FINDING, and EVIDENCE. No numbers, dates, codes, or units are introduced that are not in the source material. The explanation accurately reflects the rule's meaning and does not imply fraud or recommend specific actions beyond generic correction.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  },
+  "d78ab3832a0706f0e75924c2c931dd59c7d68e4306680d9ad11750e18eeea7db": {
+   "reason": "The rule states that a charge far above the Medicare national payment rate 'justifies asking the provider for an itemized justification,' not that it 'requires' it. The explanation misstates the meaning of the rule by using a stronger term.",
+   "unsupported_claims": [
+    "This finding requires asking the provider for an itemized justification."
+   ],
+   "verdict": "unfaithful"
+  },
+  "ecffaf60f341176196204824b541d83aafc35b259dd8ef4aea81fe09b42c7d25": {
+   "reason": "All statements in the explanation are directly supported by the provided rule, finding, and evidence. No numbers, dates, codes, or units are stated that are not in the provided context. The explanation accurately reflects the meaning of the rule without implying wrongdoing or recommending specific actions beyond what the rule states.",
+   "unsupported_claims": [],
+   "verdict": "faithful"
+  }
+ },
+ "model": "google/gemini-2.5-flash",
+ "prompt_version": "judge-v2"
+}

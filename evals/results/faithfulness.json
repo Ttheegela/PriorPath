@@ -1,0 +1,25 @@
+{
+  "model": "google/gemini-2.5-flash",
+  "faithful": 14,
+  "judged": 15,
+  "total": 15,
+  "rate": 0.9333333333333333,
+  "by_rule": {
+    "R1": {
+      "faithful": 4,
+      "n": 4
+    },
+    "R3": {
+      "faithful": 4,
+      "n": 4
+    },
+    "R4": {
+      "faithful": 4,
+      "n": 4
+    },
+    "R5": {
+      "faithful": 2,
+      "n": 3
+    }
+  }
+}
