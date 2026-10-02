@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { auditCase, messageOf, pageUrl, updateLines, type CaseDetail, type Line } from "../lib/api";
 
-const LOW_CONFIDENCE = 0.8;
+// keep in sync with REVIEW_THRESHOLD in app/llm/extract.py (cases below it go to line review)
+const LOW_CONFIDENCE = 0.9;
 
 interface Row {
   id: string;
@@ -27,7 +28,7 @@ const FIELDS = [
   { key: "date_of_service", label: "Date" },
 ] as const;
 
-export default function LineReview({ caseDetail, onSaved }: { caseDetail: CaseDetail; onSaved: () => Promise<void> | void }) {
+export default function LineReview({ caseDetail, onSaved, locked = false }: { caseDetail: CaseDetail; onSaved: () => Promise<void> | void; locked?: boolean }) {
   const [rows, setRows] = useState<Row[]>(() => caseDetail.lines.map(toRow));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -110,7 +111,7 @@ export default function LineReview({ caseDetail, onSaved }: { caseDetail: CaseDe
                     );
                   })}
                   <td className="p-2">
-                    <button type="button" onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label={`Remove ${r.id}`} className="rounded border border-black px-2 py-0.5">
+                    <button type="button" disabled={locked} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))} aria-label={`Remove ${r.id}`} className="rounded border border-black px-2 py-0.5 disabled:opacity-50">
                       Remove
                     </button>
                   </td>
@@ -121,8 +122,8 @@ export default function LineReview({ caseDetail, onSaved }: { caseDetail: CaseDe
         </div>
         {error && <p role="alert" className="border border-black p-2 font-medium">{error}</p>}
         <div className="flex gap-2">
-          <button type="button" onClick={add} className="rounded border border-black px-3 py-1.5">Add line</button>
-          <button type="button" onClick={save} disabled={busy} className="rounded bg-black px-3 py-1.5 text-white disabled:opacity-50">
+          <button type="button" onClick={add} disabled={locked} className="rounded border border-black px-3 py-1.5 disabled:opacity-50">Add line</button>
+          <button type="button" onClick={save} disabled={busy || locked} className="rounded bg-black px-3 py-1.5 text-white disabled:opacity-50">
             Save lines and run audit
           </button>
         </div>

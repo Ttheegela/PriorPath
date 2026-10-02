@@ -76,3 +76,13 @@ test("add and remove lines; saving with none is blocked", async () => {
   expect(screen.getByRole("alert")).toHaveTextContent("Add at least one line");
   expect(fetchMock).not.toHaveBeenCalled();
 });
+
+test("fields below the backend review threshold (0.9) are marked", () => {
+  render(<LineReview caseDetail={caseWith([line({ field_confidence: { units: 0.85 } })])} onSaved={() => {}} />);
+  expect(screen.getByLabelText("Units for P1-L1")).toHaveAttribute("data-low-confidence", "true");
+});
+
+test("a locked case cannot be edited or saved", () => {
+  render(<LineReview caseDetail={caseWith([line()])} onSaved={() => {}} locked />);
+  for (const name of ["Save lines and run audit", "Add line", "Remove P1-L1"]) expect(screen.getByRole("button", { name })).toBeDisabled();
+});

@@ -52,7 +52,7 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
   const flagsByLine = new Map<string, string[]>();
   for (const f of detail.flags) for (const l of f.line_ids) flagsByLine.set(l, [...(flagsByLine.get(l) ?? []), f.rule_id]);
   const needsLineReview = detail.status === "needs_line_review";
-  const lineReview = <LineReview key={JSON.stringify(detail.lines)} caseDetail={detail} onSaved={reload} />;
+  const lineReview = <LineReview key={JSON.stringify(detail.lines)} caseDetail={detail} onSaved={reload} locked={locked} />;
   const canExplain = detail.flags.some((f) => EXPLAINABLE.has(f.explanation_status));
 
   async function runAudit() {
@@ -130,7 +130,11 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
       {detail.source === "pdf" && (needsLineReview ? (
         <section aria-labelledby="line-review" className="space-y-2">
           <h3 id="line-review" className="font-semibold">Review extracted lines</h3>
-          <p className="text-sm">Some values were hard to read. Check the marked fields against the bill, then save.</p>
+          <p className="text-sm">
+            {detail.lines.length === 0
+              ? "The lines on this bill could not be read. Add them from the bill pages, then save."
+              : "Some values were hard to read. Check the marked fields against the bill, then save."}
+          </p>
           {lineReview}
         </section>
       ) : (

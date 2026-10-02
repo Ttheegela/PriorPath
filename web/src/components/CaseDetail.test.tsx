@@ -163,3 +163,9 @@ test("an audited PDF case keeps the line review collapsed", async () => {
   expect(summary.closest("details")).not.toHaveAttribute("open");
   expect(screen.queryByRole("heading", { name: "Review extracted lines" })).not.toBeInTheDocument();
 });
+
+test("a needs_line_review case with no lines says the bill could not be read", async () => {
+  stubFetch(vi.fn(async () => json(detail({ source: "pdf", status: "needs_line_review", page_count: 1, flags: [], lines: [] }))));
+  render(<CaseDetail id="c1" onBack={() => {}} />);
+  expect(await screen.findByText(/could not be read\. Add them/)).toBeInTheDocument();
+});
