@@ -1,4 +1,3 @@
-# ruff: noqa: E501, E741
 from datetime import date
 from decimal import Decimal
 
@@ -27,7 +26,7 @@ def page(*rows, claim_id="ACC-1"):  # type: ignore[no-untyped-def]
 
 def test_valid_rows_become_extracted_line_items() -> None:
     res = extract_page(b"png", 1, FakeVision([page(row(), row(code="96372", mods=["59"], charge="30"))]))
-    assert [l.id for l in res.lines] == ["P1-L1", "P1-L2"]
+    assert [ln.id for ln in res.lines] == ["P1-L1", "P1-L2"]
     l2 = res.lines[1]
     assert (l2.code, l2.modifiers, l2.units, l2.charge, l2.date_of_service) == (
         "96372",
@@ -46,7 +45,7 @@ def test_bad_rows_are_dropped_with_page_and_row_named() -> None:
         2,
         FakeVision([page(row(), row(code=""), row(units=-1), row(dos="2026-13-40"), row(charge="abc"))]),
     )
-    assert [l.id for l in res.lines] == ["P2-L1"]
+    assert [ln.id for ln in res.lines] == ["P2-L1"]
     assert len(res.errors) == 4 and all(e.startswith("page 2, row ") for e in res.errors)
 
 
@@ -68,7 +67,7 @@ def test_merge_keeps_first_non_null_header_and_all_lines() -> None:
     a = extract_page(b"p", 1, FakeVision([page(row(), claim_id=None)]))
     b = extract_page(b"p", 2, FakeVision([page(row(code="96372"), claim_id="ACC-9")]))
     m = merge([a, b])
-    assert m.claim_id == "ACC-9" and [l.id for l in m.lines] == ["P1-L1", "P2-L1"]
+    assert m.claim_id == "ACC-9" and [ln.id for ln in m.lines] == ["P1-L1", "P2-L1"]
 
 
 def test_no_lines_at_all_needs_review() -> None:
@@ -82,3 +81,30 @@ def test_parse_page_is_the_pure_half_of_extract_page() -> None:
         and res.lines[0].field_confidence["code"] == 1.0
         and res.provider == "Clinic"
     )
+
+
+def test_parse_page_rejects_malformed_responses() -> None:
+    for raw in ([], "x", {"lines": None}, {"claim_id": "A"}):
+        res = parse_page(raw, 2)  # type: ignore[arg-type]
+        assert res.lines == [] and res.errors == ["page 2: unreadable model response"]
+
+
+def test_parse_page_headers_are_coerced_and_capped() -> None:
+    raw = {"claim_id": 12, "provider": "p" * 500, "payer": None, "lines": []}
+    res = parse_page(raw, 1)
+    assert res.claim_id is None and res.provider == "p" * 200 and res.payer is None
+
+
+def test_parse_page_drops_implausible_rows() -> None:
+    bad = [
+        row(mods="59"),
+        row(units=10**6),
+        row(units=True),
+        row(charge="1e20"),
+        row(charge="NaN"),
+        row(conf="high"),
+        row(conf=True),
+    ]
+    res = parse_page(page(row(), *bad), 1)
+    assert [ln.id for ln in res.lines] == ["P1-L1"]
+    assert len(res.errors) == len(bad) and all(e.startswith("page 1, row ") for e in res.errors)

@@ -9,6 +9,8 @@ from app.llm.vision import VisionClient
 from app.models import LineItem, LineSource
 
 REVIEW_THRESHOLD = 0.9
+MAX_UNITS = 9999
+MAX_CHARGE = Decimal(1_000_000)
 
 
 def _field(kind: dict[str, Any]) -> dict[str, Any]:
@@ -68,15 +70,29 @@ class ExtractionResult:
     errors: list[str] = field(default_factory=list)
 
 
+def _num(v: Any) -> Any:
+    if isinstance(v, bool):
+        raise TypeError("bool is not a number")
+    return v
+
+
 def _line(raw: dict[str, Any], line_id: str) -> LineItem:
     vals = {k: raw[k]["value"] for k in _FIELDS}
-    conf = {k: min(1.0, max(0.0, float(raw[k]["confidence"]))) for k in _FIELDS}
+    conf = {k: min(1.0, max(0.0, float(_num(raw[k]["confidence"])))) for k in _FIELDS}
+    if not isinstance(vals["modifiers"], list) or not all(isinstance(m, str) for m in vals["modifiers"]):
+        raise TypeError("modifiers must be a list of strings")
+    units = _num(vals["units"])
+    if not isinstance(units, int) or not 1 <= units <= MAX_UNITS:
+        raise ValueError(f"units must be 1 to {MAX_UNITS}")
+    charge = Decimal(str(vals["charge"]))
+    if not charge.is_finite() or not 0 <= charge <= MAX_CHARGE:
+        raise ValueError(f"charge must be 0 to {MAX_CHARGE}")
     return LineItem(
         id=line_id,
         code=vals["code"],
         modifiers=vals["modifiers"],
-        units=vals["units"],
-        charge=Decimal(vals["charge"]),
+        units=units,
+        charge=charge,
         date_of_service=date.fromisoformat(vals["date_of_service"]),
         source=LineSource.EXTRACTED,
         confidence=min(conf.values()),
@@ -84,15 +100,23 @@ def _line(raw: dict[str, Any], line_id: str) -> LineItem:
     )
 
 
+def _header(v: Any, cap: int) -> str | None:
+    return v[:cap] if isinstance(v, str) and v else None
+
+
 def parse_page(raw: dict[str, Any], page_no: int) -> ExtractionResult:
-    res = ExtractionResult(raw.get("claim_id"), raw.get("provider"), raw.get("payer"))
-    for i, row in enumerate(raw.get("lines", []), start=1):
+    if not isinstance(raw, dict) or not isinstance(raw.get("lines"), list):
+        return ExtractionResult(None, None, None, [], [f"page {page_no}: unreadable model response"])
+    res = ExtractionResult(
+        _header(raw.get("claim_id"), 128), _header(raw.get("provider"), 200), _header(raw.get("payer"), 200)
+    )
+    for i, row in enumerate(raw["lines"], start=1):
         try:
             res.lines.append(_line(row, f"P{page_no}-L{i}"))
         except ValidationError as exc:
             res.errors.append(f"page {page_no}, row {i}: {exc.errors()[0]['msg']}")
         except (ArithmeticError, ValueError, KeyError, TypeError) as exc:
-            res.errors.append(f"page {page_no}, row {i}: could not read {type(exc).__name__}")
+            res.errors.append(f"page {page_no}, row {i}: could not read ({exc})")
     return res
 
 

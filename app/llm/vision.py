@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import os
 from typing import Any, Protocol
 
@@ -7,6 +8,7 @@ from openai import OpenAI
 
 from app.llm.client import OPENROUTER_BASE_URL
 
+log = logging.getLogger(__name__)
 DEFAULT_EXTRACT_MODEL = "google/gemini-2.5-flash-lite"
 
 
@@ -45,7 +47,10 @@ class OpenRouterVisionClient:
                 temperature=0,
             )
         except Exception as exc:
-            raise VisionError(f"vision request failed: {exc}") from exc
+            log.warning("vision request failed: %s", exc)
+            raise VisionError("vision request failed") from exc
+        if not response.choices:
+            raise VisionError("vision response was empty")
         choice = response.choices[0]
         if choice.finish_reason != "stop":
             raise VisionError(f"vision response incomplete: {choice.finish_reason}")
@@ -62,4 +67,4 @@ def default_vision_client() -> VisionClient | None:
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:
         return None
-    return OpenRouterVisionClient(key, os.environ.get("EXTRACT_MODEL", DEFAULT_EXTRACT_MODEL))
+    return OpenRouterVisionClient(key, os.environ.get("EXTRACT_MODEL") or DEFAULT_EXTRACT_MODEL)

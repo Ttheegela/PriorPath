@@ -37,3 +37,40 @@ def test_rejects_encrypted_pdfs() -> None:
     pdf.add_page()
     with pytest.raises(PdfError, match="password"):
         pdf_page_images(bytes(pdf.output()))
+
+
+def test_rejects_oversized_page_without_rendering(monkeypatch: pytest.MonkeyPatch) -> None:
+    import pypdfium2 as pdfium
+    from fpdf import FPDF
+
+    def boom(*a: object, **k: object) -> None:
+        raise AssertionError("rendered")
+
+    monkeypatch.setattr(pdfium.PdfPage, "render", boom)
+    pdf = FPDF(format=(3000, 3000))
+    pdf.add_page()
+    with pytest.raises(PdfError, match="too large"):
+        pdf_page_images(bytes(pdf.output()))
+
+
+def test_rejects_zero_page_pdf() -> None:
+    pdf = (
+        b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
+    )
+    with pytest.raises(PdfError, match="no pages|could not be read"):
+        pdf_page_images(pdf)
+
+
+def test_corrupt_page_tree_is_a_pdf_error() -> None:
+    pdf = (
+        b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+        b"2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n"
+        b"3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 a b]/Contents 99 0 R>>endobj\n"
+        b"trailer<</Root 1 0 R>>\n%%EOF"
+    )
+    try:
+        pages = pdf_page_images(pdf)
+    except PdfError:
+        return
+    assert pages  # pdfium repaired it; the point is no raw PdfiumError escapes
