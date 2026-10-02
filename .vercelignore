@@ -15,7 +15,7 @@ scripts
 migrations
 alembic.ini
 docker-compose.yml
-public
+/public
 web/node_modules
 web/test-results
 web/playwright-report
