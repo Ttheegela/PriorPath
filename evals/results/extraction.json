@@ -1,0 +1,60 @@
+{
+  "model": "google/gemini-2.5-flash-lite",
+  "n": 30,
+  "seed": 11,
+  "lines": {
+    "tp": 150,
+    "pred": 153,
+    "true": 153,
+    "pages": 30,
+    "errors": 0,
+    "by": {
+      "table": {
+        "tp": 55,
+        "pred": 55,
+        "true": 55,
+        "pages": 10,
+        "errors": 0,
+        "by": {},
+        "f1": 1.0
+      },
+      "clean": {
+        "tp": 77,
+        "pred": 78,
+        "true": 78,
+        "pages": 15,
+        "errors": 0,
+        "by": {},
+        "f1": 0.9871794871794872
+      },
+      "statement": {
+        "tp": 40,
+        "pred": 43,
+        "true": 43,
+        "pages": 10,
+        "errors": 0,
+        "by": {},
+        "f1": 0.9302325581395349
+      },
+      "compact": {
+        "tp": 55,
+        "pred": 55,
+        "true": 55,
+        "pages": 10,
+        "errors": 0,
+        "by": {},
+        "f1": 1.0
+      },
+      "noisy": {
+        "tp": 73,
+        "pred": 75,
+        "true": 75,
+        "pages": 15,
+        "errors": 0,
+        "by": {},
+        "f1": 0.9733333333333334
+      }
+    },
+    "f1": 0.9803921568627451
+  }
+}

@@ -1,0 +1,4211 @@
+{
+ "model": "google/gemini-2.5-flash-lite",
+ "pages": {
+  "C0000/1": {
+   "claim_id": "C0000",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "35.80"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "37.20"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "34.65"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97140"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "19.54"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "210.97"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "70450"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "84.54"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96374"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "471.25"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99205"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-24"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "XS"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0001/1": {
+   "claim_id": "C0001",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "124.70"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "443.57"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "29.34"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93000"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "44.10"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "40.35"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "44.10"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "78.09"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-10"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0002/1": {
+   "claim_id": "C0002",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "52.31"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97110"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "221.48"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "118.92"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "53.11"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "261.31"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99284"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "123.11"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "92012"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "61.12"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 6
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0003/1": {
+   "claim_id": "C0003",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "128.09"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "12.51"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "100.00"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "83992"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "1130.13"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "29880"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "40.71"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99211"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-07"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "59"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0004/1": {
+   "claim_id": "C0004",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "81.36"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "12.27"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0005/1": {
+   "claim_id": "C0005",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "95.04"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-25"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "193.99"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-25"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "234.41"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "70450"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-25"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "100.00"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "83992"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-25"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0006/1": {
+   "claim_id": "C0006",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "210.37"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "304.57"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "213.36"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 14
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "196.34"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "196.34"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "91"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "196.34"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-13"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "91"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0007/1": {
+   "claim_id": "C0007",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "165.69"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "20611"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-11-29"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "10.86"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-11-29"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "71.54"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-11-29"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "119.50"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-11-29"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 3
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0008/1": {
+   "claim_id": "C0008",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "83.95"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "20610"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "22.28"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "90472"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "47.40"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97140"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "58.99"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97110"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "38.94"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "119.14"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97112"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-20"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0009/1": {
+   "claim_id": "C0009",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "54.01"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "134.36"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99212"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "391.71"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "18.29"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "32.23"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "60.66"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "34.38"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "9.04"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "22"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0010/1": {
+   "claim_id": "C0010",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "108.42"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-09-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "198.00"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-09-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "54.31"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-09-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "108.42"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-09-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "100.00"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "83992"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-09-13"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0011/1": {
+   "claim_id": "C0011",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "212.80"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-19"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "76.13"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-19"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "44.16"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-19"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "572.12"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64483"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-19"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "381.42"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99223"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-19"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0012/1": {
+   "claim_id": "C0012",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "71.50"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-10-09"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "19.87"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-10-09"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "65.23"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-10-09"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "177.05"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-10-09"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0013/1": {
+   "claim_id": "C0013",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "15.61"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-08-08"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "125.44"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "99212"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-08-08"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "50.50"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-08-08"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0014/1": {
+   "claim_id": "C0014",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "113.19"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-08"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "61.53"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97112"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-08"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "62.42"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-08"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "977.43"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-08"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "26"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0015/1": {
+   "claim_id": "C0015",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "23.40"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "90472"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-03"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "30.62"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-03"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "1708.87"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-03"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 4
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0016/1": {
+   "claim_id": "C0016",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "261.75"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-04"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "470.14"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-04"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "190.44"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "90472"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-04"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 9
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "619.01"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "20611-TC"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-04"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "TC"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0017/1": {
+   "claim_id": "C0017",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "62.17"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "69.45"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "19.12"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "297.97"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93307"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "36.74"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0018/1": {
+   "claim_id": "C0018",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "398.60"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "13.61"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "492.44"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74177"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "48.24"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97110"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "376.73"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99223"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "292.70"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "92014"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "138.94"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-07"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0019/1": {
+   "claim_id": "C0019",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "63.93"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-08-30"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "32.56"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "96372"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-08-30"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "15.14"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "93005"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-08-30"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0020/1": {
+   "claim_id": "C0020",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "41.30"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97140"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "70.68"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97598"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "54.34"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97110"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "38.09"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93000"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "273.64"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0021/1": {
+   "claim_id": "C0021",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "356.93"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-11"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "20.58"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96372"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-11"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "13.21"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-11"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "30.62"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-11"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "28.11"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93000"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-09-11"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0022/1": {
+   "claim_id": "C0022",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "41.62"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-12-09"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "62.09"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97140"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-12-09"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "153.45"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "20610"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-12-09"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "1113.05"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "45381"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-12-09"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "393.64"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "12004-XS"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-12-09"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0023/1": {
+   "claim_id": "C0023",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "44.63"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97140"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "126.63"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99212"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "12.57"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "219.65"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "74176"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "47.66"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "20.04"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "20.04"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "76"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "20.04"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93010"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-31"
+     },
+     "modifiers": {
+      "confidence": 1.0,
+      "value": [
+       "76"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0024/1": {
+   "claim_id": "C0024",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "235.14"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "64484"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "110.08"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "32.25"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93325"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "144.69"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99213"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "60.40"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "3053.89"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-10-18"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 6
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0025/1": {
+   "claim_id": "C0025",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "124.25"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "99212"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "63.35"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97116"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "22.43"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93000"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "299.35"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93307"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "154.84"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "93308-59"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-11-26"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0026/1": {
+   "claim_id": "C0026",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "306.62"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "73721"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-17"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "55.89"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-17"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "23.24"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-17"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "55.89"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-07-17"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0027/1": {
+   "claim_id": "C0027",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "142.77"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "20611"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "46.99"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "97530"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "210.33"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 3
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1.0,
+      "value": "100.00"
+     },
+     "code": {
+      "confidence": 1.0,
+      "value": "77061"
+     },
+     "date_of_service": {
+      "confidence": 1.0,
+      "value": "2026-08-24"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1.0,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1.0,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0028/1": {
+   "claim_id": "C0028",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "15.14"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "93005"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-12-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "35.91"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "90472"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-12-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "62.24"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-12-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "60.19"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "71046"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-12-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 0.9,
+      "value": "15.14"
+     },
+     "code": {
+      "confidence": 0.9,
+      "value": "93005"
+     },
+     "date_of_service": {
+      "confidence": 0.9,
+      "value": "2026-12-15"
+     },
+     "modifiers": {
+      "confidence": 0.0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 0.9,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 0.9,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  },
+  "C0029/1": {
+   "claim_id": "C0029",
+   "lines": [
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "23.55"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "96375"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "396.36"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "74177"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "91.05"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "93320"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "12.00"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "17003"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "70.37"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97112"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "70.37"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "97112"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 0,
+      "value": []
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    },
+    {
+     "charge": {
+      "confidence": 1,
+      "value": "94.92"
+     },
+     "code": {
+      "confidence": 1,
+      "value": "71045"
+     },
+     "date_of_service": {
+      "confidence": 1,
+      "value": "2026-11-23"
+     },
+     "modifiers": {
+      "confidence": 1,
+      "value": [
+       "TC"
+      ]
+     },
+     "place_of_service": {
+      "confidence": 1,
+      "value": "11"
+     },
+     "units": {
+      "confidence": 1,
+      "value": 1
+     }
+    }
+   ],
+   "payer": "Synthetic Health Plan",
+   "provider": "Synthetic Clinic"
+  }
+ }
+}

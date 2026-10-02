@@ -1,0 +1,238 @@
+{
+ "B0001": {
+  "lines": [
+   {
+    "id": "P1-L1",
+    "code": "99212",
+    "modifiers": [],
+    "units": 1,
+    "charge": "93.93",
+    "date_of_service": "2026-11-16",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L2",
+    "code": "71045",
+    "modifiers": [],
+    "units": 1,
+    "charge": "59.64",
+    "date_of_service": "2026-11-16",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L3",
+    "code": "93320",
+    "modifiers": [],
+    "units": 1,
+    "charge": "92.59",
+    "date_of_service": "2026-11-16",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L4",
+    "code": "73721",
+    "modifiers": [],
+    "units": 4,
+    "charge": "1586.22",
+    "date_of_service": "2026-11-16",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L5",
+    "code": "74176",
+    "modifiers": [],
+    "units": 1,
+    "charge": "1006.72",
+    "date_of_service": "2026-11-16",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   }
+  ],
+  "errors": [],
+  "provider": "Lakeview Orthopedics",
+  "payer": "Medicare (synthetic)",
+  "model": "google/gemini-2.5-flash-lite"
+ },
+ "B0002": {
+  "lines": [
+   {
+    "id": "P1-L1",
+    "code": "97112",
+    "modifiers": [],
+    "units": 1,
+    "charge": "46.80",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L2",
+    "code": "99213",
+    "modifiers": [],
+    "units": 1,
+    "charge": "236.07",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L3",
+    "code": "71045",
+    "modifiers": [],
+    "units": 1,
+    "charge": "32.49",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L4",
+    "code": "93005",
+    "modifiers": [],
+    "units": 1,
+    "charge": "11.08",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L5",
+    "code": "93005",
+    "modifiers": [],
+    "units": 1,
+    "charge": "11.08",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "11",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   },
+   {
+    "id": "P1-L6",
+    "code": "17003",
+    "modifiers": [],
+    "units": 1,
+    "charge": "16.86",
+    "date_of_service": "2026-11-18",
+    "place_of_service": "22",
+    "diagnosis_codes": [],
+    "source": "extracted",
+    "confidence": 1.0,
+    "field_confidence": {
+     "code": 1.0,
+     "modifiers": 1.0,
+     "units": 1.0,
+     "charge": 1.0,
+     "date_of_service": 1.0,
+     "place_of_service": 1.0
+    }
+   }
+  ],
+  "errors": [],
+  "provider": "Northgate Imaging Center",
+  "payer": "Medicare (synthetic)",
+  "model": "google/gemini-2.5-flash-lite"
+ }
+}
