@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ensureWorkspace, messageOf } from "./lib/api";
 import CaseQueue from "./components/CaseQueue";
 import AuditLog from "./components/AuditLog";
+import ErrorBoundary from "./components/ErrorBoundary";
 import CaseDetail from "./components/CaseDetail";
 import { isPlainClick, routeHref, useRoute, type Route } from "./lib/route";
 
@@ -38,6 +39,7 @@ export default function App() {
           <h1 className="text-xl font-semibold">
             <a
               href="/"
+              className="hover:underline"
               onClick={(e) => {
                 if (!isPlainClick(e)) return;
                 e.preventDefault();
@@ -59,12 +61,16 @@ export default function App() {
           <p role="alert" className="border border-black p-3 font-medium">Couldn't start the demo: {error}</p>
         ) : !ready ? (
           <p>Loading…</p>
-        ) : route.name === "case" ? (
-          <CaseDetail key={route.id} id={route.id} onBack={() => navigate({ name: "queue" })} />
-        ) : route.name === "log" ? (
-          <AuditLog onOpenCase={(id) => navigate({ name: "case", id })} />
         ) : (
-          <CaseQueue onOpen={(id) => navigate({ name: "case", id })} />
+          <ErrorBoundary key={routeHref(route)} onBack={() => navigate({ name: "queue" })}>
+            {route.name === "case" ? (
+              <CaseDetail id={route.id} onBack={() => navigate({ name: "queue" })} />
+            ) : route.name === "log" ? (
+              <AuditLog onOpenCase={(id) => navigate({ name: "case", id })} />
+            ) : (
+              <CaseQueue onOpen={(id) => navigate({ name: "case", id })} />
+            )}
+          </ErrorBoundary>
         )}
       </main>
     </div>

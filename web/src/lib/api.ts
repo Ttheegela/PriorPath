@@ -127,11 +127,18 @@ const jsonInit = (method: string, body: unknown): RequestInit => ({
 });
 
 let workspace: Promise<void> | undefined;
+let workspaceCreatedAt = NaN;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** True when the workspace was created over 24 h ago, so a 404 most likely means it expired. */
+export const workspaceLikelyExpired = () => Date.now() - workspaceCreatedAt > DAY_MS;
 
 /** Creates (or loads) this browser's workspace. Must resolve before any other call. */
 export function ensureWorkspace(): Promise<void> {
-  workspace ??= request("/api/workspace").then(
-    () => undefined,
+  workspace ??= request<{ created_at: string }>("/api/workspace").then(
+    (w) => {
+      workspaceCreatedAt = Date.parse(w.created_at);
+    },
     (e) => {
       workspace = undefined;
       throw e;
@@ -147,7 +154,13 @@ export const resetDemo = () => request<{ cases: number }>("/api/demo/reset", { m
 export const draftLetter = (caseId: string) => request<Letter>(`/api/cases/${encodeURIComponent(caseId)}/letter`, { method: "POST" });
 export const editLetter = (id: string, body: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}`, jsonInit("PATCH", { body }));
 export const approveLetter = (id: string) => request<Letter>(`/api/letters/${encodeURIComponent(id)}/approve`, { method: "POST" });
-export const exportUrl = (id: string, format: "txt" | "docx") => `/api/letters/${encodeURIComponent(id)}/export?format=${format}`;
+
+export async function exportLetter(id: string, format: "txt" | "docx"): Promise<{ blob: Blob; filename: string }> {
+  const res = await fetch(`/api/letters/${encodeURIComponent(id)}/export?format=${format}`, { credentials: "same-origin" });
+  if (!res.ok) throw new ApiError(res.status, await errorMessage(res));
+  const filename = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? `dispute-letter.${format}`;
+  return { blob: await res.blob(), filename };
+}
 export const auditLog = (caseId?: string) =>
   request<AuditEvent[]>(caseId ? `/api/cases/${encodeURIComponent(caseId)}/audit-log` : "/api/audit-log");
 

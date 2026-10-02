@@ -21,6 +21,6 @@ test("demo case: accept a flag, approve the letter, export it", async ({ page })
   await letter.getByRole("button", { name: "Approve letter" }).click();
 
   const download = page.waitForEvent("download");
-  await letter.getByRole("link", { name: "Download .txt" }).click();
+  await letter.getByRole("button", { name: "Download .txt" }).click();
   expect((await download).suggestedFilename()).toMatch(/^dispute-letter-.*\.txt$/);
 });

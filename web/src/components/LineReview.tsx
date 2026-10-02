@@ -20,6 +20,13 @@ const toRow = (l: Line): Row => ({
   date_of_service: l.date_of_service, place_of_service: l.place_of_service, field_confidence: l.field_confidence,
 });
 
+// only fields the server rejects when empty/malformed; the rest are legitimately blank
+const isInvalid = (r: Row, key: keyof Row) => {
+  if (key === "units") return !/^[1-9]\d*$/.test(r.units.trim());
+  if (key === "code" || key === "charge" || key === "date_of_service") return !r[key].trim();
+  return false;
+};
+
 const FIELDS = [
   { key: "code", label: "Code" },
   { key: "modifiers", label: "Modifiers" },
@@ -101,7 +108,7 @@ export default function LineReview({ caseDetail, onSaved, locked = false }: { ca
                       <td key={f.key} className="p-2">
                         <input
                           aria-label={`${f.label} for ${r.id}`}
-                          aria-invalid="false"
+                          aria-invalid={isInvalid(r, f.key) || undefined}
                           data-low-confidence={low ? "true" : undefined}
                           value={r[f.key] ?? ""}
                           onChange={(e) => edit(i, f.key, e.target.value)}

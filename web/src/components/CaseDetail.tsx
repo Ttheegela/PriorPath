@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ApiError, auditCase, getCase, messageOf, streamExplanations, type CaseDetail as Detail, type Flag } from "../lib/api";
+import { ApiError, auditCase, getCase, messageOf, streamExplanations, workspaceLikelyExpired, type CaseDetail as Detail, type Flag } from "../lib/api";
 import { money, SEVERITY_GROUPS, statusLabel } from "../lib/format";
 import AuditLog from "./AuditLog";
+import ExpiredNotice from "./ExpiredNotice";
 import FlagCard from "./FlagCard";
 import LineReview from "./LineReview";
 import LetterPanel from "./LetterPanel";
@@ -11,6 +12,7 @@ const EXPLAINABLE = new Set(["pending", "unavailable"]);
 export default function CaseDetail({ id, onBack }: { id: string; onBack: () => void }) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [expired, setExpired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -19,8 +21,10 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
     try {
       setDetail(await getCase(id));
     } catch (e) {
-      if (e instanceof ApiError && e.status === 404) setNotFound(true);
-      else setError(messageOf(e));
+      if (e instanceof ApiError && e.status === 404) {
+        setNotFound(true);
+        setExpired(workspaceLikelyExpired());
+      } else setError(messageOf(e));
     }
   }, [id]);
   useEffect(() => {
@@ -29,8 +33,10 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
       (d) => !cancelled && setDetail(d),
       (e) => {
         if (cancelled) return;
-        if (e instanceof ApiError && e.status === 404) setNotFound(true);
-        else setError(messageOf(e));
+        if (e instanceof ApiError && e.status === 404) {
+          setNotFound(true);
+          setExpired(workspaceLikelyExpired());
+        } else setError(messageOf(e));
       },
     );
     return () => {
@@ -42,6 +48,7 @@ export default function CaseDetail({ id, onBack }: { id: string; onBack: () => v
     return (
       <div className="space-y-2">
         <p>Case not found.</p>
+        {expired && <ExpiredNotice />}
         <button type="button" onClick={onBack} className="rounded border px-3 py-1.5">Back to cases</button>
       </div>
     );

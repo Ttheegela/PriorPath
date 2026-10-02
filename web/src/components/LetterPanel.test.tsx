@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import LetterPanel from "./LetterPanel";
@@ -55,13 +55,42 @@ test("approving saves unsaved edits first", async () => {
   expect(urls).toEqual(["/api/letters/l1", "/api/letters/l1/approve"]);
 });
 
-test("approved letters are read-only with export links", () => {
+test("approved letters are read-only with export buttons", () => {
   render(<LetterPanel caseDetail={caseWith({ status: "approved", letter: letter({ status: "approved", approved_at: "2026-10-02T11:00:00Z" }) })} onChange={() => {}} />);
   expect(screen.getByLabelText("Letter text")).toHaveAttribute("readonly");
   expect(screen.queryByRole("button", { name: "Approve letter" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /Draft|Redraft/ })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Download .txt" })).toHaveAttribute("href", "/api/letters/l1/export?format=txt");
-  expect(screen.getByRole("link", { name: "Download .docx" })).toHaveAttribute("href", "/api/letters/l1/export?format=docx");
+  expect(screen.getByRole("button", { name: "Download .txt" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Download .docx" })).toBeEnabled();
+});
+
+const approvedCase = () => caseWith({ status: "approved", letter: letter({ status: "approved", approved_at: "2026-10-02T11:00:00Z" }) });
+
+test("export downloads the blob under the server filename", async () => {
+  const fetchMock = vi.fn(async () =>
+    new Response("Dear provider", { status: 200, headers: { "Content-Disposition": 'attachment; filename="dispute-letter-C0001.txt"' } }));
+  vi.stubGlobal("fetch", fetchMock);
+  const create = vi.fn(() => "blob:fake");
+  const revoke = vi.fn();
+  vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: create, revokeObjectURL: revoke }));
+  const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  render(<LetterPanel caseDetail={approvedCase()} onChange={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { name: "Download .txt" }));
+  await waitFor(() => expect(click).toHaveBeenCalled());
+  const clicked = click.mock.contexts[0] as HTMLAnchorElement;
+  expect(fetchMock).toHaveBeenCalledWith("/api/letters/l1/export?format=txt", expect.anything());
+  expect(create).toHaveBeenCalledWith(expect.anything());
+  expect(clicked.download).toBe("dispute-letter-C0001.txt");
+  expect(clicked.href).toBe("blob:fake");
+  expect(revoke).toHaveBeenCalledWith("blob:fake");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+test("a 409 export shows the server's reason", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => json({ detail: "letter is not approved" }, 409)));
+  render(<LetterPanel caseDetail={approvedCase()} onChange={() => {}} />);
+  await userEvent.click(screen.getByRole("button", { name: "Download .docx" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("letter is not approved");
 });
 
 test("redraft is disabled with a hint while there are unsaved edits", async () => {

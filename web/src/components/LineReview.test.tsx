@@ -28,7 +28,7 @@ test("low-confidence fields are marked with words and a dashed border, not color
   render(<LineReview caseDetail={caseWith([line({ field_confidence: { code: 0.6 } })])} onSaved={() => {}} />);
   const code = screen.getByLabelText("Code for P1-L1");
   expect(code).toHaveAttribute("data-low-confidence", "true");
-  expect(code).toHaveAttribute("aria-invalid", "false");
+  expect(code).not.toHaveAttribute("aria-invalid");
   expect(screen.getByText("check")).toBeInTheDocument();
   expect(screen.getByLabelText("Units for P1-L1")).not.toHaveAttribute("data-low-confidence");
 });
@@ -99,4 +99,14 @@ test("an unreadable POS is marked, editable, and saved as null when left empty",
 test("a locked case cannot be edited or saved", () => {
   render(<LineReview caseDetail={caseWith([line()])} onSaved={() => {}} locked />);
   for (const name of ["Save lines and run audit", "Add line", "Remove P1-L1"]) expect(screen.getByRole("button", { name })).toBeDisabled();
+});
+
+test("aria-invalid is set only on a field that is actually invalid", async () => {
+  render(<LineReview caseDetail={caseWith([line()])} onSaved={() => {}} />);
+  const units = screen.getByLabelText("Units for P1-L1");
+  expect(units).not.toHaveAttribute("aria-invalid");
+  await userEvent.clear(units);
+  await userEvent.type(units, "0");
+  expect(units).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText("Code for P1-L1")).not.toHaveAttribute("aria-invalid");
 });

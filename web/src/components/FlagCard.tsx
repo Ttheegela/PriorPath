@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { messageOf, updateFlag, type Flag, type FlagStatus } from "../lib/api";
+import { ApiError, messageOf, updateFlag, workspaceLikelyExpired, type Flag, type FlagStatus } from "../lib/api";
+import ExpiredNotice from "./ExpiredNotice";
 import { money } from "../lib/format";
 
 const EXPLANATION_TEXT: Record<string, string> = {
@@ -13,6 +14,7 @@ export default function FlagCard({ flag, locked, onChange }: { flag: Flag; locke
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
   const reviewable = flag.severity !== "notice";
 
   async function save(status: FlagStatus, rejectReason?: string) {
@@ -24,6 +26,7 @@ export default function FlagCard({ flag, locked, onChange }: { flag: Flag; locke
       setReason("");
     } catch (e) {
       setError(messageOf(e));
+      setExpired(e instanceof ApiError && e.status === 404 && workspaceLikelyExpired());
     } finally {
       setBusy(false);
     }
@@ -89,6 +92,7 @@ export default function FlagCard({ flag, locked, onChange }: { flag: Flag; locke
         </div>
       )}
       {error && <p role="alert" className="border border-black p-2 text-sm font-medium">{error}</p>}
+      {expired && <ExpiredNotice />}
     </article>
   );
 }

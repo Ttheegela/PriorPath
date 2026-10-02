@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, test, vi } from "vitest";
 import CaseDetail from "./CaseDetail";
-import type { CaseDetail as Detail, Flag } from "../lib/api";
+import { ensureWorkspace, type CaseDetail as Detail, type Flag } from "../lib/api";
 
 const flag = (over: Partial<Flag>): Flag => ({
   id: "f1", rule_id: "R1", severity: "error", line_ids: ["L2"], evidence: { table: "claim", ref_version: "NCCI-2026Q4" },
@@ -169,4 +169,33 @@ test("a needs_line_review case with no lines says the bill could not be read", a
   stubFetch(vi.fn(async () => json(detail({ source: "pdf", status: "needs_line_review", page_count: 1, flags: [], lines: [] }))));
   render(<CaseDetail id="c1" onBack={() => {}} />);
   expect(await screen.findByText(/could not be read\. Add them/)).toBeInTheDocument();
+});
+
+test("a 404 after the workspace is 24 h old explains the expiry", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(new Date("2026-10-01T00:00:00Z"));
+    stubFetch(vi.fn(async (url: string) => (url === "/api/workspace" ? json({ id: "w", created_at: "2026-10-01T00:00:00Z" }) : json({ detail: "case not found" }, 404))));
+    await ensureWorkspace();
+    vi.setSystemTime(new Date("2026-10-02T01:00:00Z"));
+    render(<CaseDetail id="c1" onBack={() => {}} />);
+    expect(await screen.findByText(/Your demo workspace expired after 24 hours and a fresh one was created\. Your earlier cases are gone\./)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to the case list" })).toHaveAttribute("href", "/");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a flag 404 after 24 h shows the expiry hint, a fresh workspace does not", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(new Date("2026-10-02T01:00:00Z"));
+    stubFetch(vi.fn(async (url: string) => (url === "/api/flags/f1" ? json({ detail: "flag not found" }, 404) : json(detail()))));
+    render(<CaseDetail id="c1" onBack={() => {}} />);
+    const card = within(await screen.findByRole("article", { name: /R1: Duplicate of line L1/ }));
+    await userEvent.click(card.getByRole("button", { name: "Accept" }));
+    expect(await card.findByText(/Your demo workspace expired after 24 hours/)).toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
 });

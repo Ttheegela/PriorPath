@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { approveLetter, draftLetter, editLetter, exportUrl, messageOf, type CaseDetail } from "../lib/api";
+import { approveLetter, draftLetter, editLetter, exportLetter, messageOf, type CaseDetail } from "../lib/api";
 
 export default function LetterPanel({ caseDetail, onChange }: { caseDetail: CaseDetail; onChange: () => Promise<void> | void }) {
   const letter = caseDetail.letter;
@@ -21,6 +21,22 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
       setError(messageOf(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function download(format: "txt" | "docx") {
+    if (!letter) return;
+    setError(null);
+    try {
+      const { blob, filename } = await exportLetter(letter.id, format);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(messageOf(e));
     }
   }
 
@@ -55,8 +71,8 @@ export default function LetterPanel({ caseDetail, onChange }: { caseDetail: Case
           {approved ? (
             <div className="flex flex-wrap gap-3 text-sm">
               <span className="font-medium">Approved {letter.approved_at ? new Date(letter.approved_at).toLocaleString() : ""}</span>
-              <a href={exportUrl(letter.id, "txt")} download className="underline">Download .txt</a>
-              <a href={exportUrl(letter.id, "docx")} download className="underline">Download .docx</a>
+              <button type="button" onClick={() => download("txt")} className="underline">Download .txt</button>
+              <button type="button" onClick={() => download("docx")} className="underline">Download .docx</button>
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
