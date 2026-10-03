@@ -1,6 +1,6 @@
 # PriorPath v2 — Progress Log (Plans 1 to 5)
 
-_Last updated: 2026-10-02 · Branch: `v2-bill-audit` (pushed, not merged; `main` still holds v1; production was deployed from this branch with the Vercel CLI) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
+_Last updated: 2026-10-02 · Branch: `main` (v2 merged 2026-10-02; `v2-bill-audit` kept; production deploys from `main` through Vercel's Git integration) · Live: https://priorpath.vercel.app (API docs at `/api/docs`)_
 
 PriorPath v2 rebuilds the old prior-authorization demo as an **AI medical bill auditor** for claims auditors and patient advocates. Deterministic rules over public CMS data decide what is wrong with a claim; an LLM only explains each finding in plain English, and a person approves every dispute letter.
 
@@ -107,7 +107,6 @@ Compared on the 12 demo flags by grounding-pass rate:
 - Plain counts up to 10 are always allowed, so "billed 2 times" could be edited to "billed 9 times" in a letter.
 - Bots that call the API create throwaway workspaces; bounded by the storage breaker and daily cleanup.
 - Demo service dates are Oct–Dec 2026. Since Plan 4 (merged Plan 5a), 2026 Q3 and Q4 releases are loaded, so bills dated Jul–Dec 2026 are auditable; other dates get a "cannot audit" notice.
-- `main` still holds v1; Vercel production is deployed from this branch with the CLI. Merging anything to `main` before v2 is finished would deploy v1.
 
 ---
 

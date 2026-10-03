@@ -249,7 +249,6 @@ Compared on the 12 demo flags by how many explanations passed the number check:
 ```bash
 git clone https://github.com/Ttheegela/PriorPath.git
 cd PriorPath
-git checkout v2-bill-audit
 
 # 1. Database: Postgres 17 on localhost:5433 (database priorpath_test)
 docker compose up -d db
@@ -284,6 +283,8 @@ The local database is the same one the tests use, and the tests empty its tables
 | `EXTRACT_MODEL` | Optional | OpenRouter vision model ID for PDF extraction. Default set in `app/llm/vision.py` (currently `google/gemini-2.5-flash-lite`). |
 | `PSEUDONYM_SECRET` | Optional | Key for patient pseudonyms. Falls back to `SESSION_SECRET`. |
 | `PRIORPATH_DEMO` | Optional | `0` turns off seeding demo cases into new workspaces. Default on. |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional | Turn on Langfuse tracing; both are needed. |
+| `LANGFUSE_BASE_URL` | Optional | Langfuse host (legacy name `LANGFUSE_HOST` also works). |
 
 ### Tests and evals
 
@@ -368,7 +369,7 @@ curl -s -c jar -b jar -H 'Content-Type: application/json' --data-binary @claim.j
 ## Deployment
 
 - **Vercel, one project.** `vercel.json` builds the UI (`cd web && npm ci && npm run build`, output to `public/`). The FastAPI app in `app/main.py` is a single Python function (it includes `data/**` and excludes `web/**`). `app.frontend("/", directory=public, fallback="index.html")` registers the UI, and `[tool.vercel.fastapi.static] exclude = true` in `pyproject.toml` tells Vercel to serve those files from its CDN instead of bundling them into the function. `.vercelignore` keeps raw CMS files, tests, evals and docs out of the upload.
-- **Production deploys** are made from the `v2-bill-audit` branch with the Vercel CLI (command-line interface): `vercel deploy --prod`. (`main` still holds v1 until v2 is finished.)
+- **Production deploys** come from `main` through Vercel's Git integration: a push to `main` deploys production, and other branches get preview deploys. `vercel deploy --prod` from the CLI (command-line interface) is the manual fallback; see [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 - **Neon Postgres** holds all data. Secrets are Vercel environment variables of the secret type: `DATABASE_URL`, `OPENROUTER_API_KEY`, `SESSION_SECRET`, `CRON_SECRET` (and optionally `PSEUDONYM_SECRET`).
 - **Migrations run from your own terminal**, not during the build (the `migrations/` folder is not deployed):
   ```bash

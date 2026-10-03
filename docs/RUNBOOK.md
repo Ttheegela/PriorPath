@@ -16,7 +16,7 @@ Conventions:
 
 ## Deploy
 
-### From the CLI (current)
+### From the CLI (manual fallback)
 
 ```bash
 # 1. Green locally: backend chain, frontend chain (CI runs the same on push)
@@ -48,13 +48,13 @@ npx vercel rollback <deployment-url> --yes
 
 A rollback does not undo a database migration; see the migration rules below before rolling back across one.
 
-### From Git
+### From Git (current)
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request: backend, frontend, then E2E. If the Vercel
 project is connected to the GitHub repository with `main` as its production branch, a push to `main` deploys
 production and every other branch or pull request gets a preview deploy. Merge to `main` only when CI is green on
-the branch, and still run the smoke test against production afterwards. Until v2 is on `main`, production is
-deployed only from the CLI; a push of v1 code to `main` must not reach a Git-connected production.
+the branch, and still run the smoke test against production afterwards. The project is connected this way
+since v2 was merged to `main` on 2026-10-02.
 
 ## Migrations
 

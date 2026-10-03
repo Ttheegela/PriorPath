@@ -4,7 +4,7 @@ PriorPath is a public demo of a medical-bill auditor. It is built for **syntheti
 This page describes what the deployed demo (https://priorpath.vercel.app) actually does today, and
 what is still missing before it could handle real patient data.
 
-Status as of 2026-10-02 (branch `v2-bill-audit`). Items marked *(Plan 4)* describe the PDF upload path added in
+Status as of 2026-10-02 (branch `main`). Items marked *(Plan 4)* describe the PDF upload path added in
 Plan 4.
 
 ## Not HIPAA compliant
