@@ -160,7 +160,7 @@ Demo explanations still show (they are precomputed), so the site looks healthy.
 
 ### Rate limits (429)
 
-Two different 429s:
+Three different 429s:
 
 - **Ours:** "hourly AI limit reached; try again later" (PDF) or "hourly explanation limit reached" (flag reason).
   A workspace used its 20 explanations or 20 PDF pages this hour, or all workspaces together used 100 calls.
@@ -170,6 +170,10 @@ Two different 429s:
   `RateLimitError` in the logs. Wait and retry (flags marked unavailable can be explained again). If it persists,
   check the model's status page on OpenRouter or switch `EXPLAIN_MODEL` / `EXTRACT_MODEL` to an evaluated
   alternative.
+- **New workspaces:** "too many new demo sessions from your network; please try again later" on first load
+  ("Couldn't start the demo"). One IP created 20 workspaces this hour on that instance; visitors who already have
+  a cookie are unaffected. The counter is in memory per instance (`app/services/capacity.py`) and resets after
+  an hour or on a cold start.
 
 ### OpenRouter credit exhausted
 

@@ -35,6 +35,9 @@ class OpenRouterClient:
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                 max_tokens=300,
                 temperature=0,
+                # v4-flash reasons by default and hidden reasoning tokens count against max_tokens;
+                # with it on, uncached explanations stopped at "length" on exactly 300 (2026-10-21)
+                extra_body={"reasoning": {"enabled": False}},
             )
             choice = response.choices[0]
             span.end(

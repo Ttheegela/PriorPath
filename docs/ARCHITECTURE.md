@@ -47,9 +47,9 @@ terminal when recording.
 ### FHIR upload: `POST /api/cases`
 
 1. `read_upload` refuses bodies over 4,000,000 bytes (413), by `Content-Length` and by actual size.
-2. `current_workspace` reads the signed `pp_ws` cookie. No valid cookie: check the storage breaker (503 if the
-   database is over 400 MB), create a workspace, seed the demo cases inside a savepoint (a seeding failure is
-   logged and the empty workspace still works), set the cookie.
+2. `current_workspace` reads the signed `pp_ws` cookie. No valid cookie: check the per-IP cap (429 after 20 new
+   workspaces an hour) and the storage breaker (503 if the database is over 400 MB), create a workspace, seed the
+   demo cases inside a savepoint (a seeding failure is logged and the empty workspace still works), set the cookie.
 3. Not JSON → 422 with a friendly message. `parse_fhir` turns each `ExplanationOfBenefit` into a `Claim`; bad
    items become errors with their JSON path and the rest still load. Patient references become an HMAC-SHA256
    pseudonym; names and addresses are not stored. No valid claims → 422.
@@ -174,6 +174,7 @@ response runs in a daemon thread and the request waits at most 2 seconds for it.
 | Explanation stream deadline | 240 s (remaining flags reported in `done`) | `app/api/cases.py` |
 | PDF extraction deadline | 240 s, checked before each page (504, nothing stored) | `app/services/pdf_cases.py` |
 | Storage breaker | 503 for new workspaces and uploads above 400 MB | `app/services/capacity.py` |
+| New workspaces per IP | 20 per hour per instance, in memory, keyed by an HMAC of the IP (429) | `app/services/capacity.py` |
 | Health check | `SET LOCAL statement_timeout = '2s'` | `app/main.py` |
 | Langfuse | 3 s SDK timeout; 2 s flush budget per request | `app/observability.py` |
 | Workspace lifetime | 24 h cookie max age; daily cleanup of workspaces older than 24 h | `app/api/deps.py`, `app/services/demo.py` |
