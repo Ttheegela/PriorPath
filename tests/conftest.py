@@ -24,6 +24,7 @@ from sqlalchemy import Engine, text  # noqa: E402
 from sqlalchemy.exc import OperationalError  # noqa: E402
 
 from app.db.session import get_engine  # noqa: E402
+from app.services import capacity  # noqa: E402
 
 TABLES = "workspaces, cases, flags, letters, audit_events, llm_usage, case_documents"
 
@@ -47,3 +48,4 @@ def db(migrated_db: Engine) -> Iterator[Engine]:
     yield migrated_db
     with migrated_db.begin() as conn:
         conn.execute(text(f"TRUNCATE {TABLES} RESTART IDENTITY CASCADE"))
+    capacity._new_workspaces.clear()  # every TestClient is the same IP; count each test from zero

@@ -192,6 +192,7 @@ payer, dates and codes are still stored.
   The OpenRouter key also has a credit cap. Explanation output is capped at 300 tokens, with one retry if the number check fails.
 - Explanation streams stop after 240 seconds, and PDF extraction stops at 240 seconds (504, nothing stored), to stay inside the serverless time limit.
 - Storage breaker: new workspaces and uploads get 503 when the database passes 400 MB.
+- New workspaces: 20 per client IP per hour (429), counted in memory per instance under an HMAC of the IP.
 - Prompt-injection controls: document content is data; explanations and letters may only contain numbers found
   in the flag evidence, and letter edits may not add amounts or URLs. A person must approve every letter;
   nothing is sent anywhere by the app.
